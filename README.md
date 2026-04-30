@@ -15,3 +15,7 @@
 - JOÃO HENRIQUE CAMILO FOGAÇA
 - MATHEUS DE SOUZA CONSTANTE
 - PAULO HENRIQUE DA SILVA MACCARI
+
+# Modelo Banco de Dados
+
+[Acessar Modelo do BD](./Modelo-BD.pdf)
