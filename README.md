@@ -1,4 +1,4 @@
-# projeto-desenvolvimento-mobile
+# Projeto Integrador: Desenvolvimento Mobile - COMANDOU
 
 
 - **Beneficiário 01:** Wesley Dagostin  
@@ -8,7 +8,7 @@
 - **Relato do Problema (o que o cliente relatou):** "Como os itens são escritos na comanda e entregue ao cliente, muitas vezes gera transtorno na parte da cozinha por esquecer o cliente pediu. Na hora de pagamento no caixa, como não possui um controle exato, acaba que cliente sai sem pagar as vezes, um app vai ajudar a organizar muito"
 
 
-# Grupo Projeto Integrador: Desenvolvimento Mobile
+# Grupo 
 
 - BRUNO PAGANI RAMPINELLI
 - GABRIELA DE SOUZA GORRESE
