@@ -1,13 +1,13 @@
 const jwt =  require('jsonwebtoken')
 
-function authMiddleaware(req, res, next) {
+function authMiddleware(req, res, next) {
 
     //token da cabeça grad
     const authHeader = req.headers.authorization
 
     //Verifica o se é bearer
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Token não Não fornecido'})
+        return res.status(401).json({ error: 'Token não fornecido'})
     
     }
 
@@ -35,4 +35,26 @@ function roleMiddleware(...roles) {
   }
 }
 
-module.exports = { authMiddleaware, roleMiddleware }
+function isManager(token) {
+    try{
+        const payload = jwt.verify(token, process.env.JWT_SECRET);
+
+        //pego o role e verifico se é "manager"
+        const role = payload.role;
+
+        if(role === 'manager'){
+            return true
+        }else{
+            return false
+        }
+
+    }catch(err){
+        console.error('Erro ao verificar token:', err);
+        return false;
+    }
+}
+
+
+
+
+module.exports = { authMiddleware, roleMiddleware, isManager }
