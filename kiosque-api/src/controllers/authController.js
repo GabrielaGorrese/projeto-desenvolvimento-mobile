@@ -3,6 +3,29 @@ const jwt    = require('jsonwebtoken')
 const pool   = require('../db/pool')
 const middlewares = require('../middlewares/auth')
 
+
+
+
+async function getAllUsers(req, res) {
+
+    try{
+        const {rows} = await pool.query(
+            `SELECT * FROM "users"`
+        );
+
+        return res.status(200).json({
+            total: rows.length,
+            users: rows
+        });
+
+    }catch(err){
+        console.error(err)
+        return res.status(500).json({error: 'Erro interno no servidor.' })
+    }
+
+
+}
+
 async function login(req, res) {
 
     const { username, password } = req.body
@@ -55,41 +78,31 @@ async function login(req, res) {
 
 async function register(req, res) {
 
-    const authHeader = req.headers['authorization'];
+    const {username,password,roleId} = req.body
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Token não fornecido' });
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    if(!middlewares.isManager(token)){
-        return res.status(403).json({ error: "Você não é gerente" })
-    }
-
-    const {username,password,role_id} = req.body
-
-    if (!username || !password || !role_id){
-        return res.status(400).json({ error: "Username, senha e role_id são obrigatórios" })
+    if (!username || !password || !roleId){
+        return res.status(400).json({ error: "Username, senha e roleId são obrigatórios" })
     }
     
 
 
     try{
 
-        const password_hash = await bcrypt.hash(password, 10);
+        const passwordHash = await bcrypt.hash(password, 10);
 
 
         const { rows } = await pool.query(
         `INSERT INTO "users" (username, password_hash, role_id, created_at) 
          VALUES ($1, $2, $3, now()) 
          RETURNING *;`, 
-        [username, password_hash, role_id]
+        [username, passwordHash, roleId]
         );
+
+        delete rows[0].password_hash;
 
 
         return res.status(201).json({
-            message: 'Usuário criado com sucesso.',
+            message: `Usuário ${username} criado com sucesso.`,
             user: rows[0]
         })
 
@@ -103,19 +116,7 @@ async function register(req, res) {
 }
 
 
-async function delete_user(req, res) {
-
-    const authHeader = req.headers['authorization'];
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Token não fornecido' });
-    }
-    
-    const token = authHeader.split(' ')[1];
-
-    if(!middlewares.isManager(token)){
-        return res.status(403).json({ error: "Você não é gerente" })
-    }
+async function deleteUser(req, res) {
 
     const {username} = req.body
 
@@ -125,22 +126,16 @@ async function delete_user(req, res) {
 
     try{
         
-        const checkUser = await pool.query(
-            `SELECT id FROM "users" WHERE username = $1`,
-            [username]
-        )
-
-        if (checkUser.rows.length === 0) {
-            return res.status(404).json({error: 'Usuário não encontrado.'})
-        }
-
-        
-        await pool.query(
+        const deleteResult = await pool.query(
             `DELETE FROM "users" WHERE username = $1`,
             [username]
         )
 
-        return res.status(200).json({ message: 'Usuário deletado com sucesso.' })
+        if (deleteResult.rowCount === 0) {
+            return res.status(404).json({error: 'Usuário não encontrado ou não foi possível deletar.'})
+        }
+
+        return res.status(200).json({ message: `Usuário ${username} deletado com sucesso.` })
 
 
     }catch(err){
@@ -149,12 +144,50 @@ async function delete_user(req, res) {
     }
 }
 
+//somente o gerente pode trocar as senhas dele mesmo e dos outros usuários
+async function alterPassword(req, res) {
+    
+    const {username, newPassword} = req.body
+
+    if (!username || !newPassword){
+        return res.status(400).json({ error: "Username, newPassword é obrigatório" })
+    }
+
+    try{
+
+        const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+        const { rows } = await pool.query(
+        `UPDATE users
+         SET password_hash = $1
+         WHERE username = $2
+         RETURNING *;`, 
+        [newPasswordHash, username]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado ou senha não alterada.' });
+        }
+
+        delete rows[0].password_hash;
+
+        return res.status(200).json({
+        message: `Senha do usuário ${username} alterada com sucesso`,
+        user: rows[0]
+        })
+
+
+
+    }catch(err){
+        console.error(err)
+        return res.status(500).json({error: 'Erro, não foi possível alterar a senha' })
+    }
 
 
 
 
+    
+}
 
 
-
-
-module.exports = { login, register, delete_user }
+module.exports = { login, register, deleteUser,alterPassword,getAllUsers }

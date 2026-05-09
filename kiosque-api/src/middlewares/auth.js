@@ -35,26 +35,7 @@ function roleMiddleware(...roles) {
   }
 }
 
-function isManager(token) {
-    try{
-        const payload = jwt.verify(token, process.env.JWT_SECRET);
-
-        //pego o role e verifico se é "manager"
-        const role = payload.role;
-
-        if(role === 'manager'){
-            return true
-        }else{
-            return false
-        }
-
-    }catch(err){
-        console.error('Erro ao verificar token:', err);
-        return false;
-    }
-}
 
 
 
-
-module.exports = { authMiddleware, roleMiddleware, isManager }
+module.exports = { authMiddleware, roleMiddleware}
