@@ -176,7 +176,33 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_block_inactive_product
-BEFORE INSERT ON order_item
-FOR EACH ROW EXECUTE FUNCTION check_product_active();
+-- 4.5 Bloquear a remoção de mesa inativo na comanda
+-- -------------------------------------------------------------
 
+CREATE OR REPLACE FUNCTION prevent_delete_table_with_open_orders()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_exists_open_order BOOLEAN;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1
+    FROM orders
+    WHERE table_id = OLD.id
+      AND closed_at IS NULL
+  )
+  INTO v_exists_open_order;
+
+  IF v_exists_open_order THEN
+    RAISE EXCEPTION 
+      'Não é possível deletar a mesa %, pois existem comandas abertas vinculadas a ela.',
+      OLD.label;
+  END IF;
+
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_prevent_delete_table_open_orders
+BEFORE DELETE ON table_seat
+FOR EACH ROW
+EXECUTE FUNCTION prevent_delete_table_with_open_orders();

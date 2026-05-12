@@ -6,7 +6,7 @@ const middlewares = require('../middlewares/auth')
 
 
 
-async function getAllUsers(req, res) {
+async function getAll(req, res) {
 
     try{
         const {rows} = await pool.query(
@@ -92,11 +92,15 @@ async function register(req, res) {
 
 
         const { rows } = await pool.query(
-        `INSERT INTO "users" (username, password_hash, role_id, created_at) 
-         VALUES ($1, $2, $3, now()) 
+        `INSERT INTO "users" (username, password_hash, role_id) 
+         VALUES ($1, $2, $3) 
          RETURNING *;`, 
         [username, passwordHash, roleId]
         );
+
+        if (rows.rowCount === 0){
+            return res.status(404).json({error: 'Usuário não registrado.'})
+        }
 
         delete rows[0].password_hash;
 
@@ -190,4 +194,4 @@ async function alterPassword(req, res) {
 }
 
 
-module.exports = { login, register, deleteUser,alterPassword,getAllUsers }
+module.exports = { login, register, deleteUser,alterPassword,getAll }
