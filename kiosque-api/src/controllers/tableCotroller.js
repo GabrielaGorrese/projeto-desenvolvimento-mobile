@@ -32,11 +32,11 @@ async function create(req, res) {
     )
 
     if (result.rows.length === 0) {
-      return res.status(500).json({ error: 'Mesa não registrada.' })
+      return res.status(500).json({ error: 'Table não registrada.' })
     }
 
     return res.status(201).json({
-      message: `Mesa ${label} criada com sucesso.`,
+      message: `Table ${label} criada com sucesso.`,
       table: result.rows[0]
     })
   } catch (err) {
@@ -62,11 +62,11 @@ async function update(req, res) {
     )
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Mesa não encontrada ou não alterada.' })
+      return res.status(404).json({ error: 'Table não encontrada ou não alterada.' })
     }
 
     return res.status(200).json({
-      message: `Mesa ${id} atualizada com sucesso.`,
+      message: `Table ${id} atualizada com sucesso.`,
       table: result.rows[0]
     })
   } catch (err) {
@@ -89,10 +89,10 @@ async function deleteTable(req, res) {
     )
 
     if (deleteResult.rowCount === 0) {
-      return res.status(404).json({ error: 'Mesa não encontrada ou não foi possível deletar.' })
+      return res.status(404).json({ error: 'Table não encontrada ou não foi possível deletar.' })
     }
 
-    return res.status(200).json({ message: `Mesa ${id} deletada com sucesso.` })
+    return res.status(200).json({ message: `Table ${id} deletada com sucesso.` })
   } catch (err) {
     console.error(err)
     return res.status(500).json({ error: 'Erro interno no servidor.' })
@@ -113,7 +113,7 @@ async function statusTable(req, res) {
     )
 
     if (selectResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Mesa não encontrada.' })
+      return res.status(404).json({ error: 'Table não encontrada.' })
     }
 
     const currentStatus = selectResult.rows[0].is_active
@@ -126,11 +126,11 @@ async function statusTable(req, res) {
     )
 
     if (updatedResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Mesa não encontrada ou status não alterado.' })
+      return res.status(404).json({ error: 'Table não encontrada ou status não alterado.' })
     }
 
     return res.status(200).json({
-      message: 'Status da mesa alterado com sucesso.',
+      message: 'Status da Table alterado com sucesso.',
       table: updatedResult.rows[0]
     })
   } catch (err) {

@@ -1,13 +1,15 @@
-const express = require('express');
-const router =  express.Router();
-const tableController = require('../controllers/tableCotroller')
-const { authMiddleware, roleMiddleware } = require('../middlewares/auth');
+const express = require('express')
+const router  = express.Router()
+const tables  = require('../controllers/tableController')
+const { authMiddleware, roleMiddleware } = require('../middlewares/auth')
 
+// Listagem: qualquer usuário autenticado pode ver as mesas
+router.get('/', authMiddleware, tables.getAll)
 
-router.get('/',tableController.getAllTables);
-router.post('/',tableController.create);
-router.patch('/',tableController.update);
-router.delete('/',tableController.deleteTable);
-router.put('/',tableController.statusTable);
+// Modificações: apenas gerente
+router.post(  '/',              authMiddleware, roleMiddleware('manager'), tables.create)
+router.patch( '/:id',          authMiddleware, roleMiddleware('manager'), tables.update)
+router.patch( '/:id/toggle',   authMiddleware, roleMiddleware('manager'), tables.toggleStatus)
+router.delete('/:id',          authMiddleware, roleMiddleware('manager'), tables.deleteTable)
 
-module.exports = router;
+module.exports = router

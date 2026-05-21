@@ -1,11 +1,11 @@
 -- =============================================================
---  SCHEMA COMPLETO — QUIOSQUE APP
---  Ordem de execução: rodar de cima para baixo
+--  SCHEMA COMPLETO — COMANDOU APP
+--  Executar do início ao fim em um banco PostgreSQL limpo.
 -- =============================================================
 
 
 -- -------------------------------------------------------------
--- 1. TABELAS 
+-- 1. TABELAS DE LOOKUP
 -- -------------------------------------------------------------
 
 CREATE TABLE "role" (
@@ -18,75 +18,119 @@ CREATE TABLE "status" (
   "name" VARCHAR(50) NOT NULL UNIQUE
 );
 
+
+-- -------------------------------------------------------------
+-- 2. TABELAS DE SUPORTE
+-- -------------------------------------------------------------
+
+-- Categorias são gerenciadas internamente (sem UI); pré-populadas via seed.
 CREATE TABLE "category" (
   "id"   SERIAL PRIMARY KEY,
-  "name" VARCHAR(100) NOT NULL
+  "name" VARCHAR(100) NOT NULL UNIQUE
 );
 
+-- Mesa é opcional em uma comanda. O atendente pode usar só o campo
+-- label livre na comanda (ex.: "João", "Balcão"). A mesa pode ser
+-- usada quando o estabelecimento quiser associar fisicamente.
 CREATE TABLE "table_seat" (
   "id"        SERIAL PRIMARY KEY,
-  "label"     VARCHAR(50) NOT NULL,
-  "is_active" BOOLEAN NOT NULL DEFAULT TRUE
+  "label"     VARCHAR(50)  NOT NULL UNIQUE,
+  "is_active" BOOLEAN      NOT NULL DEFAULT TRUE
 );
 
 
 -- -------------------------------------------------------------
--- 2. TABELAS PRINCIPAIS 
+-- 3. TABELAS PRINCIPAIS
 -- -------------------------------------------------------------
 
 CREATE TABLE "users" (
-  "id"            SERIAL PRIMARY KEY,
+  "id"            SERIAL       PRIMARY KEY,
   "username"      VARCHAR(100) NOT NULL UNIQUE,
   "password_hash" VARCHAR(255) NOT NULL,
-  "role_id"       INTEGER      NOT NULL REFERENCES "role" ("id") DEFERRABLE INITIALLY IMMEDIATE,
+  "role_id"       INTEGER      NOT NULL REFERENCES "role"("id"),
+  "is_active"     BOOLEAN      NOT NULL DEFAULT TRUE,
   "created_at"    TIMESTAMP    NOT NULL DEFAULT NOW(),
   "updated_at"    TIMESTAMP
 );
 
 CREATE TABLE "product" (
-  "id"          SERIAL PRIMARY KEY,
+  "id"          SERIAL        PRIMARY KEY,
   "name"        VARCHAR(100)  NOT NULL,
-  "price"       DECIMAL(10,2) NOT NULL,
-  "category_id" INTEGER       NOT NULL REFERENCES "category" ("id") DEFERRABLE INITIALLY IMMEDIATE,
-  "is_active"   BOOLEAN       NOT NULL DEFAULT TRUE
+  "description" TEXT,
+  "price"       DECIMAL(10,2) NOT NULL CHECK (price >= 0),
+  "image"       VARCHAR(255),
+  "category_id" INTEGER       NOT NULL REFERENCES "category"("id"),
+  "is_active"   BOOLEAN       NOT NULL DEFAULT TRUE,
+  "created_at"  TIMESTAMP     NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE "orders" (
-  "id"         SERIAL PRIMARY KEY,
+  "id"         SERIAL        PRIMARY KEY,
+  -- label identifica a comanda de forma legível: "Mesa 3", "João", etc.
+  "label"      VARCHAR(100),
   "created_at" TIMESTAMP     NOT NULL DEFAULT NOW(),
   "closed_at"  TIMESTAMP,
-  "table_id"   INTEGER       REFERENCES "table_seat" ("id") DEFERRABLE INITIALLY IMMEDIATE,
-  "user_id"    INTEGER       NOT NULL REFERENCES "users" ("id") DEFERRABLE INITIALLY IMMEDIATE,
-  "status_id"  INTEGER       NOT NULL REFERENCES "status" ("id") DEFERRABLE INITIALLY IMMEDIATE,
-  "total"      DECIMAL(10,2) NOT NULL DEFAULT 0
+  "table_id"   INTEGER       REFERENCES "table_seat"("id"),
+  "user_id"    INTEGER       NOT NULL REFERENCES "users"("id"),
+  "status_id"  INTEGER       NOT NULL REFERENCES "status"("id"),
+  "discount"   DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (discount >= 0),
+  "total"      DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (total >= 0)
 );
 
 CREATE TABLE "order_item" (
-  "id"         SERIAL PRIMARY KEY,
-  "order_id"   INTEGER       NOT NULL REFERENCES "orders" ("id") DEFERRABLE INITIALLY IMMEDIATE,
-  "product_id" INTEGER       NOT NULL REFERENCES "product" ("id") DEFERRABLE INITIALLY IMMEDIATE,
-  "quantity"   INTEGER       NOT NULL DEFAULT 1,
-  "unit_price" DECIMAL(10,2) NOT NULL,
-  "notes"      VARCHAR(255)
+  "id"         SERIAL        PRIMARY KEY,
+  -- CASCADE: excluir comanda remove também seus itens.
+  "order_id"   INTEGER       NOT NULL REFERENCES "orders"("id") ON DELETE CASCADE,
+  -- Sem cascade em product: produto inativo ainda aparece em comandas antigas.
+  "product_id" INTEGER       NOT NULL REFERENCES "product"("id"),
+  "quantity"   INTEGER       NOT NULL DEFAULT 1 CHECK (quantity > 0),
+  -- Snapshot do preço no momento da venda; alterações futuras no produto
+  -- não afetam comandas já abertas.
+  "unit_price" DECIMAL(10,2) NOT NULL CHECK (unit_price >= 0),
+  "notes"      TEXT
 );
 
 
 -- -------------------------------------------------------------
--- 3. DADOS INICIAIS 
+-- 4. ÍNDICES
 -- -------------------------------------------------------------
 
-INSERT INTO "role" ("name") VALUES ('manager'), ('attendant');
+CREATE INDEX idx_users_role_id         ON "users"      ("role_id");
+CREATE INDEX idx_users_is_active       ON "users"      ("is_active");
+CREATE INDEX idx_product_category_id   ON "product"    ("category_id");
+CREATE INDEX idx_product_is_active     ON "product"    ("is_active");
+CREATE INDEX idx_orders_status_id      ON "orders"     ("status_id");
+CREATE INDEX idx_orders_user_id        ON "orders"     ("user_id");
+CREATE INDEX idx_orders_table_id       ON "orders"     ("table_id");
+CREATE INDEX idx_orders_created_at     ON "orders"     ("created_at");
+CREATE INDEX idx_orders_closed_at      ON "orders"     ("closed_at");
+CREATE INDEX idx_order_item_order_id   ON "order_item" ("order_id");
+CREATE INDEX idx_order_item_product_id ON "order_item" ("product_id");
 
+
+-- -------------------------------------------------------------
+-- 5. DADOS INICIAIS
+-- -------------------------------------------------------------
+
+INSERT INTO "role"   ("name") VALUES ('manager'), ('attendant');
 INSERT INTO "status" ("name") VALUES ('open'), ('closed');
 
-INSERT INTO "table_seat" ("label") VALUES ('Mesa 1'), ('Mesa 2'), ('Balcão');
+INSERT INTO "category" ("name") VALUES
+  ('Lanches'),
+  ('Bebidas'),
+  ('Sobremesas'),
+  ('Porções'),
+  ('Combos');
+
+-- Usuário admin criado via: npm run seed
+-- O script de seed gera o hash correto de bcrypt em tempo de execução.
 
 
 -- -------------------------------------------------------------
--- 4. FUNÇÕES E TRIGGERS
+-- 6. FUNÇÕES E TRIGGERS
 -- -------------------------------------------------------------
 
--- 4.1 updated_at automático no user
+-- 6.1  updated_at automático em users
 -- -------------------------------------------------------------
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
@@ -101,11 +145,11 @@ BEFORE UPDATE ON "users"
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 
--- 4.2 Bloquear inserção/edição de item em comanda fechada
+-- 6.2  Bloquear INSERT/UPDATE de item em comanda fechada
 -- -------------------------------------------------------------
--- Nota: editar o PRODUTO em si (nome, preço, imagem) continua
--- funcionando normalmente — esse trigger só protege order_item.
--- A comanda fechada já guardou o unit_price do momento da venda.
+-- Protege apenas order_item; editar o cadastro do produto em si
+-- (nome, preço) continua funcionando normalmente. O unit_price
+-- já foi capturado no snapshot quando o item foi adicionado.
 -- -------------------------------------------------------------
 CREATE OR REPLACE FUNCTION check_order_open()
 RETURNS TRIGGER AS $$
@@ -113,9 +157,9 @@ DECLARE
   v_status VARCHAR;
 BEGIN
   SELECT s.name INTO v_status
-  FROM orders o
-  JOIN status s ON s.id = o.status_id
-  WHERE o.id = NEW.order_id;
+  FROM   orders o
+  JOIN   status s ON s.id = o.status_id
+  WHERE  o.id = NEW.order_id;
 
   IF v_status != 'open' THEN
     RAISE EXCEPTION 'Comanda % já está fechada e não pode ser alterada.', NEW.order_id;
@@ -126,11 +170,13 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_block_closed_order
-BEFORE INSERT OR UPDATE ON order_item
+BEFORE INSERT OR UPDATE ON "order_item"
 FOR EACH ROW EXECUTE FUNCTION check_order_open();
 
 
--- 4.3 Calcular total e registrar closed_at ao fechar comanda
+-- 6.3  Calcular total e registrar closed_at ao fechar comanda
+-- -------------------------------------------------------------
+-- Deduz o desconto do total bruto; garante que total nunca seja negativo.
 -- -------------------------------------------------------------
 CREATE OR REPLACE FUNCTION calculate_order_total()
 RETURNS TRIGGER AS $$
@@ -142,11 +188,11 @@ BEGIN
   SELECT name INTO v_old_status FROM status WHERE id = OLD.status_id;
 
   IF v_new_status = 'closed' AND v_old_status != 'closed' THEN
-    NEW.total := (
+    NEW.total := GREATEST(0, (
       SELECT COALESCE(SUM(quantity * unit_price), 0)
-      FROM order_item
-      WHERE order_id = NEW.id
-    );
+      FROM   order_item
+      WHERE  order_id = NEW.id
+    ) - COALESCE(NEW.discount, 0));
     NEW.closed_at := NOW();
   END IF;
 
@@ -155,11 +201,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_close_order
-BEFORE UPDATE ON orders
+BEFORE UPDATE ON "orders"
 FOR EACH ROW EXECUTE FUNCTION calculate_order_total();
 
 
--- 4.4 Bloquear adição de produto inativo na comanda
+-- 6.4  Bloquear adição de produto inativo em nova comanda
 -- -------------------------------------------------------------
 CREATE OR REPLACE FUNCTION check_product_active()
 RETURNS TRIGGER AS $$
@@ -176,25 +222,27 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 4.5 Bloquear a remoção de mesa inativo na comanda
--- -------------------------------------------------------------
+CREATE TRIGGER trg_check_product_active
+BEFORE INSERT ON "order_item"
+FOR EACH ROW EXECUTE FUNCTION check_product_active();
 
+
+-- 6.5  Bloquear exclusão de mesa com comandas abertas
+-- -------------------------------------------------------------
 CREATE OR REPLACE FUNCTION prevent_delete_table_with_open_orders()
 RETURNS TRIGGER AS $$
 DECLARE
-  v_exists_open_order BOOLEAN;
+  v_has_open BOOLEAN;
 BEGIN
   SELECT EXISTS (
-    SELECT 1
-    FROM orders
-    WHERE table_id = OLD.id
-      AND closed_at IS NULL
-  )
-  INTO v_exists_open_order;
+    SELECT 1 FROM orders
+    WHERE  table_id = OLD.id
+      AND  closed_at IS NULL
+  ) INTO v_has_open;
 
-  IF v_exists_open_order THEN
-    RAISE EXCEPTION 
-      'Não é possível deletar a mesa %, pois existem comandas abertas vinculadas a ela.',
+  IF v_has_open THEN
+    RAISE EXCEPTION
+      'Não é possível excluir a mesa "%" pois há comandas abertas vinculadas a ela.',
       OLD.label;
   END IF;
 
@@ -203,6 +251,5 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_prevent_delete_table_open_orders
-BEFORE DELETE ON table_seat
-FOR EACH ROW
-EXECUTE FUNCTION prevent_delete_table_with_open_orders();
+BEFORE DELETE ON "table_seat"
+FOR EACH ROW EXECUTE FUNCTION prevent_delete_table_with_open_orders();

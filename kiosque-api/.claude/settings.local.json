@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(node --check src/server.js)",
+      "Bash(node --check src/utils/socket.js)",
+      "Bash(node --check src/utils/multerConfig.js)",
+      "Bash(node --check src/middlewares/auth.js)",
+      "Bash(node --check src/controllers/authController.js)",
+      "Bash(mkdir \"c:\\\\Users\\\\joaoh\\\\Documents\\\\projeto-desenvolvimento-mobile\\\\kiosque-api\\\\src\\\\config\" 2>/dev/null; echo \"ok\")",
+      "Bash(node --check src/config/swagger.js)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\joaoh\\Documents\\projeto-desenvolvimento-mobile\\kiosque-api\\src"
+    ]
+  }
+}
