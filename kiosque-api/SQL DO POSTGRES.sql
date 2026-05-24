@@ -3,6 +3,10 @@
 --  Executar do início ao fim em um banco PostgreSQL limpo.
 -- =============================================================
 
+-- Habilita busca sem acento (café → cafe, pão → pao).
+-- Necessário para GET /api/products?search=
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
 
 -- -------------------------------------------------------------
 -- 1. TABELAS DE LOOKUP

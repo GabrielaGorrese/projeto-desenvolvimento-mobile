@@ -8,7 +8,7 @@ function buildImageUrl(req, filename) {
 }
 
 async function getAll(req, res) {
-  const { category_id, active } = req.query
+  const { category_id, active, search } = req.query
 
   let query = `
     SELECT p.id, p.name, p.description, p.price, p.image, p.is_active,
@@ -18,6 +18,13 @@ async function getAll(req, res) {
     WHERE  1=1
   `
   const params = []
+
+  // Busca por nome: case-insensitive + acento-insensitive via unaccent.
+  // ?search=bana encontra "Banana", "Bananada", "Café Banana", etc.
+  if (search && search.trim()) {
+    params.push(`%${search.trim()}%`)
+    query += ` AND unaccent(p.name) ILIKE unaccent($${params.length})`
+  }
 
   if (category_id) {
     params.push(category_id)

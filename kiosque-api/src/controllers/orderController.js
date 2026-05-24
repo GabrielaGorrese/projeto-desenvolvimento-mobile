@@ -53,37 +53,113 @@ async function fetchItems(client, orderId) {
   return rows
 }
 
-// GET /api/orders — comandas abertas
+// GET /api/orders — comandas abertas, paginadas
+// Query params:
+//   ?page=1   (default 1)
+//   ?limit=50 (default 50, máx 200)
+// Defaults altos para não quebrar UX dos tablets em dia normal.
 async function getOpenOrders(req, res) {
+  const page   = Math.max(1,   parseInt(req.query.page  || '1',  10))
+  const limit  = Math.min(200, Math.max(1, parseInt(req.query.limit || '50', 10)))
+  const offset = (page - 1) * limit
+
   try {
-    const { rows } = await pool.query(
-      ORDER_SELECT + `
-      WHERE  s.name = 'open'
-      GROUP  BY o.id, s.name, u.username, t.label
-      ORDER  BY o.created_at ASC
-      `
-    )
-    return res.json({ total: rows.length, orders: rows })
+    const [countResult, dataResult] = await Promise.all([
+      pool.query(
+        `SELECT COUNT(*) AS total
+         FROM   orders o
+         JOIN   status s ON s.id = o.status_id
+         WHERE  s.name = 'open'`
+      ),
+      pool.query(
+        ORDER_SELECT + `
+        WHERE  s.name = 'open'
+        GROUP  BY o.id, s.name, u.username, t.label
+        ORDER  BY o.created_at ASC
+        LIMIT  $1 OFFSET $2`,
+        [limit, offset]
+      )
+    ])
+
+    const total       = parseInt(countResult.rows[0].total, 10)
+    const total_pages = Math.ceil(total / limit) || 1
+
+    return res.json({
+      page,
+      limit,
+      total,
+      total_pages,
+      has_prev: page > 1,
+      has_next: page < total_pages,
+      orders:   dataResult.rows
+    })
   } catch (err) {
     console.error('[orders.getOpenOrders]', err)
     return res.status(500).json({ error: 'Erro interno no servidor.' })
   }
 }
 
-// GET /api/orders/closed — comandas fechadas hoje
-async function getClosedToday(req, res) {
+// GET /api/orders/closed — comandas fechadas, paginadas
+// Query params:
+//   ?page=1          (default 1)
+//   ?limit=20        (default 20, máx 100)
+//   ?date=YYYY-MM-DD (default: hoje)
+async function getClosedOrders(req, res) {
+  const page  = Math.max(1,   parseInt(req.query.page  || '1',  10))
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || '20', 10)))
+  const { date } = req.query
+  const offset = (page - 1) * limit
+
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'date deve estar no formato YYYY-MM-DD.' })
+  }
+
+  // Quando date é fornecido: filtra o dia inteiro escolhido.
+  // Sem date: filtra o dia de hoje (CURRENT_DATE).
+  const dateFilter = date
+    ? `o.closed_at >= $1::date AND o.closed_at < $1::date + INTERVAL '1 day'`
+    : `o.closed_at >= CURRENT_DATE`
+
+  const baseParams  = date ? [date]         : []
+  const countParams = baseParams
+  const dataParams  = date ? [date, limit, offset] : [limit, offset]
+  const limitIdx    = date ? 2 : 1
+  const offsetIdx   = date ? 3 : 2
+
   try {
-    const { rows } = await pool.query(
-      ORDER_SELECT + `
-      WHERE  s.name = 'closed'
-        AND  o.closed_at >= CURRENT_DATE
-      GROUP  BY o.id, s.name, u.username, t.label
-      ORDER  BY o.closed_at DESC
-      `
-    )
-    return res.json({ total: rows.length, orders: rows })
+    // Count e dados em paralelo para reduzir latência
+    const [countResult, dataResult] = await Promise.all([
+      pool.query(
+        `SELECT COUNT(*) AS total
+         FROM   orders o
+         JOIN   status s ON s.id = o.status_id
+         WHERE  s.name = 'closed' AND ${dateFilter}`,
+        countParams
+      ),
+      pool.query(
+        ORDER_SELECT + `
+        WHERE  s.name = 'closed' AND ${dateFilter}
+        GROUP  BY o.id, s.name, u.username, t.label
+        ORDER  BY o.closed_at DESC
+        LIMIT  $${limitIdx} OFFSET $${offsetIdx}`,
+        dataParams
+      )
+    ])
+
+    const total       = parseInt(countResult.rows[0].total, 10)
+    const total_pages = Math.ceil(total / limit)
+
+    return res.json({
+      page,
+      limit,
+      total,
+      total_pages,
+      has_prev: page > 1,
+      has_next: page < total_pages,
+      orders:   dataResult.rows
+    })
   } catch (err) {
-    console.error('[orders.getClosedToday]', err)
+    console.error('[orders.getClosedOrders]', err)
     return res.status(500).json({ error: 'Erro interno no servidor.' })
   }
 }
@@ -201,11 +277,15 @@ async function update(req, res) {
   try {
     await client.query('BEGIN')
 
-    // Verificar se comanda existe e está aberta
+    // SELECT ... FOR UPDATE OF o trava esta linha de orders pelo resto
+    // da transação. Outro tablet que tente PATCH ou close() na mesma
+    // comanda fica em espera até este commit/rollback — elimina race
+    // entre check de status e UPDATE/INSERT de itens.
     const { rows: orderCheck } = await client.query(
       `SELECT o.id, s.name AS status
        FROM orders o JOIN status s ON s.id = o.status_id
-       WHERE o.id = $1`,
+       WHERE o.id = $1
+       FOR UPDATE OF o`,
       [id]
     )
     if (orderCheck.length === 0) {
@@ -392,4 +472,4 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { getOpenOrders, getClosedToday, getOne, create, update, close, remove }
+module.exports = { getOpenOrders, getClosedOrders, getOne, create, update, close, remove }

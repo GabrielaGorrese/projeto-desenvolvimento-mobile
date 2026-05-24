@@ -1,9 +1,20 @@
-const express = require('express')
-const router  = express.Router()
-const auth    = require('../controllers/authController')
+const express   = require('express')
+const rateLimit = require('express-rate-limit')
+const router    = express.Router()
+const auth      = require('../controllers/authController')
 const { authMiddleware, roleMiddleware } = require('../middlewares/auth')
 
-router.post('/login', auth.login)
+// Protege contra força bruta: 10 tentativas / 15 min por IP.
+// Conta inclusive logins bem-sucedidos para evitar enumeração de timing.
+const loginLimiter = rateLimit({
+  windowMs:        15 * 60 * 1000,
+  max:             10,
+  standardHeaders: true,
+  legacyHeaders:   false,
+  message:         { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' }
+})
+
+router.post('/login', loginLimiter, auth.login)
 
 // Gerenciar usuários: apenas gerente
 router.post(  '/users',           authMiddleware, roleMiddleware('manager'), auth.register)

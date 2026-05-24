@@ -744,9 +744,14 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
         description: 'Por padrão retorna apenas produtos **ativos**. Use `?active=all` para incluir inativos (gerente). Itens inativos ainda aparecem em comandas históricas mas não podem ser adicionados a novas.',
         parameters: [
           {
+            name: 'search', in: 'query', required: false,
+            schema: { type: 'string', example: 'bana' },
+            description: 'Busca por nome. **Parcial, case-insensitive e acento-insensitive** (via `unaccent`). `bana` encontra "Banana", "Bananada", "Suco de Banana"; `cafe` encontra "Café", "Café com leite".'
+          },
+          {
             name: 'category_id', in: 'query', required: false,
             schema: { type: 'integer', example: 1 },
-            description: 'Filtrar por categoria'
+            description: 'Filtrar por categoria (pode ser combinado com `search`)'
           },
           {
             name: 'active', in: 'query', required: false,
@@ -921,18 +926,42 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
     '/orders': {
       get: {
         tags:        ['Orders'],
-        summary:     'Listar comandas abertas',
-        description: 'Retorna todas as comandas com status `open`, ordenadas da mais antiga para a mais nova. Inclui `color_status`, `minutes_elapsed`, `items_count` e `subtotal` para exibição resumida nos tablets.',
+        summary:     'Listar comandas abertas (paginado)',
+        description: `Retorna comandas com status \`open\`, ordenadas da mais antiga para a mais nova. Inclui \`color_status\`, \`minutes_elapsed\`, \`items_count\` e \`subtotal\` para exibição resumida nos tablets.
+
+Count total e dados são buscados em paralelo para menor latência.`,
+        parameters: [
+          {
+            name: 'page', in: 'query', required: false,
+            schema: { type: 'integer', minimum: 1, default: 1, example: 1 },
+            description: 'Página atual (começa em 1)'
+          },
+          {
+            name: 'limit', in: 'query', required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 200, default: 50, example: 50 },
+            description: 'Itens por página (máx. 200)'
+          }
+        ],
         responses: {
           200: {
-            description: 'Comandas abertas',
+            description: 'Página de comandas abertas',
             content: { 'application/json': {
               schema: {
                 type: 'object',
                 properties: {
-                  total:  { type: 'integer', example: 4 },
-                  orders: { type: 'array', items: { $ref: '#/components/schemas/OrderSummary' } }
+                  page:        { type: 'integer', example: 1 },
+                  limit:       { type: 'integer', example: 50 },
+                  total:       { type: 'integer', example: 8, description: 'Total de comandas abertas' },
+                  total_pages: { type: 'integer', example: 1 },
+                  has_prev:    { type: 'boolean', example: false },
+                  has_next:    { type: 'boolean', example: false },
+                  orders:      { type: 'array', items: { $ref: '#/components/schemas/OrderSummary' } }
                 }
+              },
+              example: {
+                page: 1, limit: 50, total: 8,
+                total_pages: 1, has_prev: false, has_next: false,
+                orders: []
               }
             }}
           },
@@ -981,19 +1010,57 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
     '/orders/closed': {
       get: {
         tags:        ['Orders'],
-        summary:     'Listar comandas fechadas hoje',
-        description: 'Retorna as comandas com status `closed` cujo `closed_at >= início do dia atual`. Após a virada do dia, as comandas saem automaticamente desta listagem (sem necessidade de ação manual).',
+        summary:     'Listar comandas fechadas (paginado)',
+        description: `Retorna comandas com status \`closed\` de forma paginada.
+
+**Padrão:** exibe as do **dia atual**. Passe \`?date=YYYY-MM-DD\` para consultar qualquer outro dia.
+
+Count total e dados são buscados em paralelo para menor latência.`,
+        parameters: [
+          {
+            name: 'page', in: 'query', required: false,
+            schema: { type: 'integer', minimum: 1, default: 1, example: 1 },
+            description: 'Página atual (começa em 1)'
+          },
+          {
+            name: 'limit', in: 'query', required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 100, default: 20, example: 20 },
+            description: 'Itens por página (máx. 100)'
+          },
+          {
+            name: 'date', in: 'query', required: false,
+            schema: { type: 'string', format: 'date', example: '2025-05-23' },
+            description: 'Dia a consultar no formato `YYYY-MM-DD`. Omitir retorna o dia atual.'
+          }
+        ],
         responses: {
           200: {
-            description: 'Comandas fechadas hoje',
+            description: 'Página de comandas fechadas',
             content: { 'application/json': {
               schema: {
                 type: 'object',
                 properties: {
-                  total:  { type: 'integer', example: 7 },
-                  orders: { type: 'array', items: { $ref: '#/components/schemas/OrderSummary' } }
+                  page:        { type: 'integer', example: 1 },
+                  limit:       { type: 'integer', example: 20 },
+                  total:       { type: 'integer', example: 47, description: 'Total de registros no dia filtrado' },
+                  total_pages: { type: 'integer', example: 3 },
+                  has_prev:    { type: 'boolean', example: false },
+                  has_next:    { type: 'boolean', example: true },
+                  orders:      { type: 'array', items: { $ref: '#/components/schemas/OrderSummary' } }
                 }
+              },
+              example: {
+                page: 1, limit: 20, total: 47,
+                total_pages: 3, has_prev: false, has_next: true,
+                orders: []
               }
+            }}
+          },
+          400: {
+            description: 'Formato de date inválido',
+            content: { 'application/json': {
+              schema:  { $ref: '#/components/schemas/Error' },
+              example: { error: 'date deve estar no formato YYYY-MM-DD.' }
             }}
           },
           401: { $ref: '#/components/responses/Unauthorized' },

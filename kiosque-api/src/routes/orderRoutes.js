@@ -7,7 +7,7 @@ const { authMiddleware } = require('../middlewares/auth')
 router.use(authMiddleware)
 
 router.get(   '/',         orders.getOpenOrders)
-router.get(   '/closed',   orders.getClosedToday)
+router.get(   '/closed',   orders.getClosedOrders)
 router.get(   '/:id',      orders.getOne)
 router.post(  '/',         orders.create)
 router.patch( '/:id',      orders.update)
