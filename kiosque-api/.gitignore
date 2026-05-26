@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.local
+
+# Uploads de imagens (gerados em runtime, não commitar)
+src/uploads/products/*
+!src/uploads/products/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*

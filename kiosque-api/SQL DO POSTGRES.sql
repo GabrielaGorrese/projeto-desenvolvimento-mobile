@@ -78,7 +78,9 @@ CREATE TABLE "orders" (
   "user_id"    INTEGER       NOT NULL REFERENCES "users"("id"),
   "status_id"  INTEGER       NOT NULL REFERENCES "status"("id"),
   "discount"   DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (discount >= 0),
-  "total"      DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (total >= 0)
+  "total"      DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (total >= 0),
+  -- Número de pessoas para divisão do total ("rachar").
+  "people"     INTEGER       NOT NULL DEFAULT 1 CHECK (people >= 1)
 );
 
 CREATE TABLE "order_item" (

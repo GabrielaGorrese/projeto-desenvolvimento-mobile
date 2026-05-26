@@ -14,6 +14,7 @@ const ORDER_SELECT = `
     o.closed_at,
     o.discount,
     o.total,
+    o.people,
     s.name                                        AS status,
     u.username                                    AS attendant,
     o.table_id,
@@ -37,11 +38,19 @@ const ORDER_SELECT = `
   LEFT   JOIN order_item oi ON oi.order_id = o.id
 `
 
-// Retorna os itens de uma comanda com info do produto
-async function fetchItems(client, orderId) {
+// Monta URL absoluta da imagem do produto (mesma convenção do productController).
+// Retorna null se o produto não tem imagem cadastrada.
+function buildImageUrl(req, filename) {
+  if (!filename || !req) return null
+  return `${req.protocol}://${req.get('host')}/uploads/products/${filename}`
+}
+
+// Retorna os itens de uma comanda com info do produto (incluindo imagem).
+// `req` é opcional — se fornecido, retorna URL absoluta no campo image.
+async function fetchItems(client, orderId, req) {
   const { rows } = await client.query(
     `SELECT oi.id, oi.quantity, oi.unit_price, oi.notes,
-            p.id AS product_id, p.name AS product_name,
+            p.id AS product_id, p.name AS product_name, p.image AS product_image,
             c.name AS category_name
      FROM   order_item oi
      JOIN   product  p ON p.id = oi.product_id
@@ -50,7 +59,10 @@ async function fetchItems(client, orderId) {
      ORDER  BY oi.id ASC`,
     [orderId]
   )
-  return rows
+  return rows.map(r => ({
+    ...r,
+    image: buildImageUrl(req, r.product_image),
+  }))
 }
 
 // GET /api/orders — comandas abertas, paginadas
@@ -181,7 +193,7 @@ async function getOne(req, res) {
       return res.status(404).json({ error: 'Comanda não encontrada.' })
     }
 
-    const items = await fetchItems(pool, id)
+    const items = await fetchItems(pool, id, req)
     return res.json({ order: { ...rows[0], items } })
   } catch (err) {
     console.error('[orders.getOne]', err)
@@ -190,10 +202,11 @@ async function getOne(req, res) {
 }
 
 // POST /api/orders — criar comanda
-// Body: { label?, table_id?, items: [{ product_id, quantity, notes? }] }
+// Body: { label?, table_id?, people?, items: [{ product_id, quantity, notes? }] }
 async function create(req, res) {
-  const { label, table_id, items = [] } = req.body
+  const { label, table_id, people, items = [] } = req.body
   const userId = req.user.id
+  const peopleParsed = Math.max(1, parseInt(people || 1, 10))
 
   const client = await pool.connect()
   try {
@@ -207,10 +220,10 @@ async function create(req, res) {
 
     // Criar a comanda
     const { rows: orderRows } = await client.query(
-      `INSERT INTO orders (label, table_id, user_id, status_id)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO orders (label, table_id, user_id, status_id, people)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING id`,
-      [label || null, table_id || null, userId, statusId]
+      [label || null, table_id || null, userId, statusId, peopleParsed]
     )
     const orderId = orderRows[0].id
 
@@ -243,7 +256,7 @@ async function create(req, res) {
     const { rows: full } = await pool.query(
       ORDER_SELECT + `WHERE o.id = $1 GROUP BY o.id, s.name, u.username, t.label`, [orderId]
     )
-    const orderItems = await fetchItems(pool, orderId)
+    const orderItems = await fetchItems(pool, orderId, req)
     const order = { ...full[0], items: orderItems }
 
     socket.getIO().emit('order:created', order)
@@ -271,7 +284,7 @@ async function create(req, res) {
 // }
 async function update(req, res) {
   const { id } = req.params
-  const { label, table_id, discount, add_items, update_items, remove_items } = req.body
+  const { label, table_id, discount, people, add_items, update_items, remove_items } = req.body
 
   const client = await pool.connect()
   try {
@@ -303,6 +316,14 @@ async function update(req, res) {
 
     if (label     !== undefined) { params.push(label);    updates.push(`label = $${params.length}`)    }
     if (table_id  !== undefined) { params.push(table_id); updates.push(`table_id = $${params.length}`) }
+    if (people    !== undefined) {
+      const p = Math.max(1, parseInt(people, 10))
+      if (isNaN(p)) {
+        await client.query('ROLLBACK')
+        return res.status(400).json({ error: 'people deve ser um número inteiro >= 1.' })
+      }
+      params.push(p); updates.push(`people = $${params.length}`)
+    }
     if (discount  !== undefined) {
       const d = parseFloat(discount)
       if (isNaN(d) || d < 0) {
@@ -392,7 +413,7 @@ async function update(req, res) {
     const { rows: full } = await pool.query(
       ORDER_SELECT + `WHERE o.id = $1 GROUP BY o.id, s.name, u.username, t.label`, [id]
     )
-    const orderItems = await fetchItems(pool, id)
+    const orderItems = await fetchItems(pool, id, req)
     const order = { ...full[0], items: orderItems }
 
     socket.getIO().emit('order:updated', order)

@@ -2,9 +2,20 @@ const path = require('path')
 const fs   = require('fs')
 const pool = require('../db/pool')
 
-function buildImageUrl(req, filename) {
-  if (!filename) return null
-  return `${req.protocol}://${req.get('host')}/uploads/products/${filename}`
+// O campo image pode armazenar:
+//   - filename de upload local (ex.: "1779328178446-833083768.webp")
+//   - URL absoluta de imagem externa (ex.: "https://cdn.exemplo.com/x.jpg")
+// Esta função normaliza: passa URLs direto, monta URL local para filenames.
+function buildImageUrl(req, image) {
+  if (!image) return null
+  if (/^https?:\/\//i.test(image)) return image   // URL externa — retorna direto
+  return `${req.protocol}://${req.get('host')}/uploads/products/${image}`
+}
+
+// Valida se uma string é URL HTTP/HTTPS válida.
+function isValidImageUrl(s) {
+  if (!s || typeof s !== 'string') return false
+  return /^https?:\/\/[\w.-]+(:\d+)?(\/[^\s]*)?$/i.test(s.trim())
 }
 
 async function getAll(req, res) {
@@ -77,8 +88,19 @@ async function getOne(req, res) {
 }
 
 async function create(req, res) {
-  const { name, description, price, category_id } = req.body
-  const imageFilename = req.file ? req.file.filename : null
+  const { name, description, price, category_id, image_url } = req.body
+  // O upload de arquivo tem prioridade. Se não houve upload mas veio image_url,
+  // salva a URL diretamente no campo image (a coluna serve para os dois casos).
+  let imageField = null
+  if (req.file) {
+    imageField = req.file.filename
+  } else if (image_url && image_url.trim()) {
+    const url = image_url.trim()
+    if (!isValidImageUrl(url)) {
+      return res.status(400).json({ error: 'image_url inválida. Use http(s)://...' })
+    }
+    imageField = url
+  }
 
   if (!name || !price || !category_id) {
     // Remove arquivo se houve upload mas validação falhou
@@ -97,7 +119,7 @@ async function create(req, res) {
       `INSERT INTO product (name, description, price, image, category_id)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [name.trim(), description || null, parsedPrice, imageFilename, category_id]
+      [name.trim(), description || null, parsedPrice, imageField, category_id]
     )
 
     return res.status(201).json({
@@ -116,7 +138,7 @@ async function create(req, res) {
 
 async function update(req, res) {
   const { id } = req.params
-  const { name, description, price, category_id } = req.body
+  const { name, description, price, category_id, image_url } = req.body
   const newImageFilename = req.file ? req.file.filename : undefined
 
   try {
@@ -131,11 +153,29 @@ async function update(req, res) {
 
     const prod = current[0]
 
-    const updatedName        = name        !== undefined ? name.trim()           : prod.name
-    const updatedDescription = description !== undefined ? description           : prod.description
-    const updatedPrice       = price       !== undefined ? parseFloat(price)     : prod.price
-    const updatedCategoryId  = category_id !== undefined ? category_id           : prod.category_id
-    const updatedImage       = newImageFilename          !== undefined ? newImageFilename : prod.image
+    // Decide qual valor vai para o campo image, em ordem de prioridade:
+    //  1. Arquivo enviado (req.file)
+    //  2. image_url no body (URL externa)
+    //  3. Mantém o valor atual
+    let newImageField
+    if (newImageFilename !== undefined) {
+      newImageField = newImageFilename
+    } else if (image_url !== undefined) {
+      const url = (image_url || '').trim()
+      if (url === '') {
+        newImageField = null   // limpar imagem
+      } else if (isValidImageUrl(url)) {
+        newImageField = url
+      } else {
+        return res.status(400).json({ error: 'image_url inválida. Use http(s)://...' })
+      }
+    }
+
+    const updatedName        = name        !== undefined ? name.trim()       : prod.name
+    const updatedDescription = description !== undefined ? description       : prod.description
+    const updatedPrice       = price       !== undefined ? parseFloat(price) : prod.price
+    const updatedCategoryId  = category_id !== undefined ? category_id       : prod.category_id
+    const updatedImage       = newImageField !== undefined ? newImageField   : prod.image
 
     if (price !== undefined && (isNaN(updatedPrice) || updatedPrice < 0)) {
       if (req.file) fs.unlink(req.file.path, () => {})
@@ -150,8 +190,10 @@ async function update(req, res) {
       [updatedName, updatedDescription, updatedPrice, updatedImage, updatedCategoryId, id]
     )
 
-    // Remove imagem antiga do disco se uma nova foi enviada
-    if (newImageFilename && prod.image) {
+    // Remove imagem antiga do disco se a anterior era um arquivo upload e
+    // a nova é diferente (outro arquivo ou URL externa).
+    const oldWasFile = prod.image && !/^https?:\/\//i.test(prod.image)
+    if (oldWasFile && updatedImage !== prod.image) {
       const oldPath = path.resolve(__dirname, '..', 'uploads', 'products', prod.image)
       fs.unlink(oldPath, () => {})
     }

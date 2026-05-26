@@ -1,0 +1,36 @@
+import api from './api';
+
+export async function fetchOpenOrders({ page = 1, limit = 50 } = {}) {
+  const { data } = await api.get('/orders', { params: { page, limit } });
+  return data;
+}
+
+export async function fetchClosedOrders({ page = 1, limit = 50, date } = {}) {
+  const { data } = await api.get('/orders/closed', { params: { page, limit, date } });
+  return data;
+}
+
+export async function fetchOrder(id) {
+  const { data } = await api.get(`/orders/${id}`);
+  return data.order;
+}
+
+export async function createOrder({ label, table_id, items = [] }) {
+  const { data } = await api.post('/orders', { label, table_id, items });
+  return data.order;
+}
+
+export async function updateOrder(id, payload) {
+  const { data } = await api.patch(`/orders/${id}`, payload);
+  return data.order;
+}
+
+export async function closeOrder(id) {
+  const { data } = await api.post(`/orders/${id}/close`);
+  return data.order;
+}
+
+export async function deleteOrder(id) {
+  const { data } = await api.delete(`/orders/${id}`);
+  return data;
+}
