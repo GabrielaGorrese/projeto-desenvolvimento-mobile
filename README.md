@@ -22,7 +22,7 @@ App mobile (Expo / React Native) + API (Node.js / Express / PostgreSQL) para ger
 
 ---
 
-# 🚀 Como rodar o projeto do zero
+# Como rodar o projeto do zero
 
 ## 1. Pré-requisitos
 
@@ -201,7 +201,7 @@ Quando o app abrir:
 
 ---
 
-## 🐛 Problemas comuns
+## Problemas comuns
 
 ### "Network Error" ao fazer login
 
@@ -224,9 +224,6 @@ Faz **cold boot** do emulador:
 1. Android Studio → Device Manager
 2. ⋮ ao lado do emulador → **Cold Boot Now** ou **Wipe Data**
 
-### Erro de senha no Postgres
-
-Confere o `.env` em `kiosque-api/` — `DB_PASSWORD` precisa bater com a senha que você definiu ao instalar o Postgres.
 
 ### Tabelas não existem no banco
 
@@ -242,7 +239,7 @@ node src/scripts/migrate_add_people.js
 
 ---
 
-## 📁 Estrutura do projeto
+## Estrutura do projeto
 
 ```
 .
@@ -260,7 +257,7 @@ node src/scripts/migrate_add_people.js
 └── kiosque-api/               # Backend
     ├── SQL DO POSTGRES.sql    # Schema do banco
     ├── package.json           # Deps do backend
-    ├── .env                   # ⚠️ NÃO COMMITAR (configs locais)
+    ├── .env                   # NÃO COMMITAR (configs locais)
     └── src/
         ├── server.js          # Entry point da API
         ├── controllers/       # Lógica das rotas
@@ -273,7 +270,7 @@ node src/scripts/migrate_add_people.js
 
 ---
 
-## 📜 Scripts úteis
+## Scripts úteis
 
 ### Frontend (raiz)
 
@@ -295,7 +292,7 @@ node src/scripts/migrate_add_people.js          # Adiciona coluna `people` no ba
 
 ---
 
-## 🌐 Endpoints da API
+## Endpoints da API
 
 Documentação interativa (Swagger UI) em:
 **<http://localhost:3000/api-docs>**
