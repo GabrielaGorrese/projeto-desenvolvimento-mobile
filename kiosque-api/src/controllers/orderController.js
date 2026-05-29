@@ -219,6 +219,9 @@ async function create(req, res) {
     )
     const statusId = statusRows[0].id
 
+    // Próximo número visível da comanda. O UPDATE ... RETURNING trava a linha
+    // do contador até o commit, serializando a numeração (sem corrida) — e se
+    // a transação der ROLLBACK, o incremento é desfeito (sem buracos).
     const { rows: seqRows } = await client.query(
       `UPDATE order_sequence SET current_value = current_value + 1
        WHERE id = 1
