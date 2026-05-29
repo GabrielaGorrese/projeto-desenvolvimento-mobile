@@ -1,10 +1,14 @@
 const express = require('express')
 const router  = express.Router()
 const orders  = require('../controllers/orderController')
-const { authMiddleware } = require('../middlewares/auth')
+const { authMiddleware, roleMiddleware } = require('../middlewares/auth')
 
 // Todas as rotas de comanda exigem autenticação
 router.use(authMiddleware)
+
+// Reset da numeração visível ("fechar caixa") — somente gerente.
+// Declarado antes de '/:id' para não ser capturado como rota dinâmica.
+router.post(  '/sequence/reset', roleMiddleware('manager'), orders.resetSequence)
 
 router.get(   '/',         orders.getOpenOrders)
 router.get(   '/closed',   orders.getClosedOrders)

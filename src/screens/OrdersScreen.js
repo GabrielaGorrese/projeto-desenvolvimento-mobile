@@ -7,18 +7,22 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import Screen from '../components/Screen';
 import SearchHeader from '../components/SearchHeader';
 import OrderTile from '../components/OrderTile';
 import BottomBar from '../components/BottomBar';
+import Button from '../components/Button';
 import Fab from '../components/Fab';
 import FeedbackModal from '../components/FeedbackModal';
+import ConfirmModal from '../components/ConfirmModal';
 import FiltersSheet from '../components/FiltersSheet';
 import { colors, typography } from '../theme';
 import {
   fetchOpenOrders,
   fetchClosedOrders,
+  resetOrderSequence,
 } from '../services/ordersService';
 import { connectSocket } from '../services/socket';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,7 +36,7 @@ const INITIAL_FILTERS = {
 };
 
 export default function OrdersScreen({ navigation, route }) {
-  const { signOut } = useAuth();
+  const { signOut, isManager } = useAuth();
   const r = useResponsive();
   const [open,    setOpen]    = useState([]);
   const [closed,  setClosed]  = useState([]);
@@ -40,7 +44,12 @@ export default function OrdersScreen({ navigation, route }) {
   const [refresh, setRefresh] = useState(false);
   const [search,  setSearch]  = useState('');
   const [newOrderId, setNewOrderId] = useState(route.params?.justCreatedId || null);
+  const [newOrderNumber] = useState(route.params?.justCreatedNumber ?? route.params?.justCreatedId ?? null);
   const [createdModal, setCreatedModal] = useState(!!route.params?.justCreatedId);
+  const [resetModal,  setResetModal]  = useState(false); // confirmação "novo dia"
+  const [resetting,   setResetting]   = useState(false); // chamada em andamento
+  const [resetResult, setResetResult] = useState(null);  // mensagem de sucesso
+  const [resetError,  setResetError]  = useState(null);  // mensagem de erro
 
   // Filtros (modal)
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -108,6 +117,23 @@ export default function OrdersScreen({ navigation, route }) {
     setFilters(INITIAL_FILTERS);
   }
 
+  // "Fechar caixa": zera a numeração visível (próxima comanda volta a ser nº 1).
+  // O backend recusa se ainda houver comandas abertas.
+  async function doReset() {
+    try {
+      setResetting(true);
+      const res = await resetOrderSequence();
+      await load();
+      setResetModal(false);
+      setResetResult(res?.message || 'Numeração reiniciada.');
+    } catch (err) {
+      setResetModal(false);
+      setResetError(err?.uiMessage || 'Erro ao reiniciar a numeração.');
+    } finally {
+      setResetting(false);
+    }
+  }
+
   return (
     <Screen background="#FFF" statusBarBg={colors.bgDark} statusBarStyle="light-content">
       <SearchHeader
@@ -127,6 +153,17 @@ export default function OrdersScreen({ navigation, route }) {
           refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => { setRefresh(true); load(); }} />}
         >
         <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
+          {isManager ? (
+            <View style={styles.resetWrap}>
+              <Button
+                title="Iniciar novo dia (zerar numeração)"
+                variant="outline"
+                onPress={() => setResetModal(true)}
+                icon={<Feather name="refresh-ccw" size={16} color={colors.primary} />}
+              />
+            </View>
+          ) : null}
+
           <SectionHeader title="Pedidos em andamento" count={filteredOpen.length} />
           <Grid>
             {filteredOpen.map((o) => (
@@ -214,8 +251,38 @@ export default function OrdersScreen({ navigation, route }) {
       <FeedbackModal
         visible={createdModal}
         title="Pedido cadastrado"
-        message={`Pedido nº ${newOrderId} cadastrado com sucesso!`}
+        message={`Pedido nº ${newOrderNumber} cadastrado com sucesso!`}
         onClose={() => { setCreatedModal(false); }}
+      />
+
+      <ConfirmModal
+        visible={resetModal}
+        variant="warning"
+        icon="refresh-ccw"
+        title="Iniciar novo dia?"
+        message="A numeração das comandas voltará a começar do nº 1. Faça isso apenas com o caixa fechado (sem comandas abertas)."
+        confirmLabel="Iniciar novo dia"
+        cancelLabel="Cancelar"
+        loading={resetting}
+        onConfirm={doReset}
+        onCancel={() => setResetModal(false)}
+      />
+
+      <FeedbackModal
+        visible={!!resetResult}
+        title="Novo dia iniciado"
+        message={resetResult || ''}
+        okLabel="OK"
+        onClose={() => setResetResult(null)}
+      />
+
+      <FeedbackModal
+        visible={!!resetError}
+        variant="danger"
+        title="Não foi possível"
+        message={resetError || ''}
+        okLabel="OK"
+        onClose={() => setResetError(null)}
       />
     </Screen>
   );
@@ -238,11 +305,11 @@ function Grid({ children }) {
 function applyFilters(arr, term, filters) {
   let out = arr;
 
-  // Busca textual em id, label (identificação) e atendente
+  // Busca textual pelo número visível, label (identificação) e atendente
   if (term?.trim()) {
     const t = term.trim().toLowerCase();
     out = out.filter((o) =>
-         String(o.id).includes(t)
+         String(o.daily_number ?? o.id).includes(t)
       || String(o.label     || '').toLowerCase().includes(t)
       || String(o.attendant || '').toLowerCase().includes(t)
     );
@@ -279,5 +346,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginTop: 4,
   },
+  resetWrap: { paddingHorizontal: 18, marginTop: 14 },
   empty: { padding: 24, color: colors.textMuted, fontStyle: 'italic' },
 });

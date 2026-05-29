@@ -70,6 +70,10 @@ CREATE TABLE "product" (
 
 CREATE TABLE "orders" (
   "id"         SERIAL        PRIMARY KEY,
+  -- Número exibido ao usuário. Reinicia em 1 quando o gerente "fecha o caixa"
+  -- (POST /orders/sequence/reset). Diferente do id, que é a chave interna e
+  -- nunca reinicia (preserva FKs e histórico).
+  "daily_number" INTEGER,
   -- label identifica a comanda de forma legível: "Mesa 3", "João", etc.
   "label"      VARCHAR(100),
   "created_at" TIMESTAMP     NOT NULL DEFAULT NOW(),
@@ -95,6 +99,15 @@ CREATE TABLE "order_item" (
   "unit_price" DECIMAL(10,2) NOT NULL CHECK (unit_price >= 0),
   "notes"      TEXT
 );
+
+-- Contador da numeração visível das comandas (daily_number).
+-- Linha única (CHECK id = 1). Incrementado a cada comanda criada e zerado
+-- pelo gerente ao "fechar o caixa". Mantém a numeração sequencial sem buracos.
+CREATE TABLE "order_sequence" (
+  "id"            INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  "current_value" INTEGER NOT NULL DEFAULT 0 CHECK (current_value >= 0)
+);
+INSERT INTO "order_sequence" ("id", "current_value") VALUES (1, 0);
 
 
 -- -------------------------------------------------------------

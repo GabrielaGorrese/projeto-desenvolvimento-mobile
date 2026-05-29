@@ -8,7 +8,7 @@ const bcrypt = require('bcryptjs')
 const pool   = require('../db/pool')
 
 const USERNAME = 'teste'
-const PASSWORD = 'teste123'
+const PASSWORD = 'teste'
 const ROLE     = 'attendant'
 
 async function run() {

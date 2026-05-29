@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -24,6 +24,7 @@ import {
   deleteOrder,
 } from '../services/ordersService';
 import { fetchTables } from '../services/tablesService';
+import { connectSocket } from '../services/socket';
 import { useAuth } from '../contexts/AuthContext';
 import useResponsive from '../hooks/useResponsive';
 import useElapsedTime from '../hooks/useElapsedTime';
@@ -53,6 +54,10 @@ export default function OrderDetailScreen({ route, navigation }) {
   const [busy,     setBusy]    = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
 
+  // Flag para ignorar o evento order:closed disparado pelo próprio fechamento
+  // deste atendente — só queremos o aviso quando OUTRO fecha a comanda.
+  const closingSelfRef = useRef(false);
+
   const loadOrder = useCallback(async () => {
     if (isNew) { setLoading(false); return; }
     try {
@@ -75,6 +80,24 @@ export default function OrderDetailScreen({ route, navigation }) {
   useEffect(() => {
     fetchTables().then(setTables).catch(() => {});
   }, []);
+
+  // Socket: se outro atendente fechar/excluir ESTA comanda enquanto ela está
+  // aberta aqui, mostra um aviso com saída em vez de deixar o usuário preso.
+  useEffect(() => {
+    if (isNew || readOnly) return;
+    const s = connectSocket();
+    const onGone = (payload) => {
+      if (closingSelfRef.current) return;            // foi este atendente
+      if (String(payload?.id) !== String(id)) return; // outra comanda
+      setConfirmModal('alreadyClosed');
+    };
+    s.on('order:closed', onGone);
+    s.on('order:deleted', onGone);
+    return () => {
+      s.off('order:closed', onGone);
+      s.off('order:deleted', onGone);
+    };
+  }, [id, isNew, readOnly]);
 
   // Itens vindos do catálogo (route.params.addItems do AddItemsScreen)
   useEffect(() => {
@@ -189,7 +212,10 @@ export default function OrderDetailScreen({ route, navigation }) {
             notes: i.notes,
           })),
         });
-        navigation.replace('Orders', { justCreatedId: created.id });
+        navigation.replace('Orders', {
+          justCreatedId: created.id,
+          justCreatedNumber: created.daily_number,
+        });
       } catch (err) {
         Alert.alert('Erro', err?.uiMessage || 'Erro ao criar comanda.');
       } finally { setBusy(false); }
@@ -219,12 +245,22 @@ export default function OrderDetailScreen({ route, navigation }) {
   async function confirmClose() {
     try {
       setBusy(true);
+      closingSelfRef.current = true; // ignora o order:closed do nosso fechamento
       await closeOrder(id);
       setConfirmModal(null);
       // popToTop volta para Orders mesmo após passar pelo catálogo.
       navigation.popToTop();
     } catch (err) {
-      Alert.alert('Erro', err?.uiMessage || 'Erro ao fechar comanda.');
+      closingSelfRef.current = false;
+      const status = err?.response?.status;
+      // 404/409 = a comanda já foi fechada por outro atendente: troca para o
+      // aviso com botão de saída em vez de manter o modal de confirmação preso.
+      if (status === 404 || status === 409) {
+        setConfirmModal('alreadyClosed');
+      } else {
+        setConfirmModal(null);
+        Alert.alert('Erro', err?.uiMessage || 'Erro ao fechar comanda.');
+      }
     } finally { setBusy(false); }
   }
 
@@ -267,7 +303,8 @@ export default function OrderDetailScreen({ route, navigation }) {
     );
   }
 
-  const headerTitle    = isNew ? 'Novo pedido' : `Comanda nº ${id}`;
+  const displayNumber  = order?.daily_number ?? id;
+  const headerTitle    = isNew ? 'Novo pedido' : `Comanda nº ${displayNumber}`;
   const headerSubtitle = isNew ? `Iniciado em ${createdAt}` : `Aberto em ${createdAt}`;
 
   return (
@@ -486,12 +523,24 @@ export default function OrderDetailScreen({ route, navigation }) {
       <FeedbackModal
         visible={confirmModal === 'saved'}
         title="Comanda atualizada"
-        message={`Comanda nº ${id} editada com sucesso!`}
+        message={`Comanda nº ${displayNumber} editada com sucesso!`}
         okLabel="OK"
         onClose={() => {
           setConfirmModal(null);
           // popToTop garante voltar pra lista de comandas (root do stack)
           // mesmo que o usuário tenha passado pelo catálogo de itens.
+          navigation.popToTop();
+        }}
+      />
+
+      <FeedbackModal
+        visible={confirmModal === 'alreadyClosed'}
+        variant="danger"
+        title="Comanda já fechada"
+        message="Esta comanda foi fechada por outro atendente e não pode mais ser editada."
+        okLabel="Voltar para comandas"
+        onClose={() => {
+          setConfirmModal(null);
           navigation.popToTop();
         }}
       />

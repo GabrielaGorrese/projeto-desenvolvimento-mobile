@@ -4,7 +4,8 @@ import { Feather } from '@expo/vector-icons';
 import { colors, radii, typography } from '../theme';
 
 // Card numerado verde/amarelo/vermelho (abertas) ou cinza (fechadas).
-// Mostra o "número da comanda" — id formatado com 2 dígitos.
+// Mostra o número visível da comanda (daily_number, reinicia ao fechar o caixa).
+// Cai no id como fallback para comandas antigas sem daily_number.
 export default function OrderTile({ order, onPress, isNew }) {
   const bg = order.status === 'closed'
     ? colors.statusClosed
@@ -15,7 +16,7 @@ export default function OrderTile({ order, onPress, isNew }) {
         : colors.statusGreen;
 
   const isClosed = order.status === 'closed';
-  const label = String(order.id).padStart(2, '0');
+  const label = String(order.daily_number ?? order.id).padStart(2, '0');
 
   return (
     <View style={styles.wrap}>

@@ -9,6 +9,7 @@ const COLOR_YELLOW_MAX = 30
 const ORDER_SELECT = `
   SELECT
     o.id,
+    o.daily_number,
     o.label,
     o.created_at,
     o.closed_at,
@@ -218,12 +219,19 @@ async function create(req, res) {
     )
     const statusId = statusRows[0].id
 
+    const { rows: seqRows } = await client.query(
+      `UPDATE order_sequence SET current_value = current_value + 1
+       WHERE id = 1
+       RETURNING current_value`
+    )
+    const dailyNumber = seqRows[0].current_value
+
     // Criar a comanda
     const { rows: orderRows } = await client.query(
-      `INSERT INTO orders (label, table_id, user_id, status_id, people)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO orders (label, table_id, user_id, status_id, people, daily_number)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id`,
-      [label || null, table_id || null, userId, statusId, peopleParsed]
+      [label || null, table_id || null, userId, statusId, peopleParsed, dailyNumber]
     )
     const orderId = orderRows[0].id
 
@@ -493,4 +501,31 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { getOpenOrders, getClosedOrders, getOne, create, update, close, remove }
+// POST /api/orders/sequence/reset — "fechar o caixa": zera a numeração visível.
+// A próxima comanda criada volta a ser nº 1. Somente gerente (rota protegida).
+// Bloqueia se houver comandas abertas, para não gerar números duplicados na tela.
+async function resetSequence(req, res) {
+  try {
+    const { rows: openRows } = await pool.query(
+      `SELECT COUNT(*)::int AS n
+       FROM   orders o
+       JOIN   status s ON s.id = o.status_id
+       WHERE  s.name = 'open'`
+    )
+    if (openRows[0].n > 0) {
+      return res.status(409).json({
+        error: `Há ${openRows[0].n} comanda(s) aberta(s). Feche todas antes de iniciar um novo dia.`,
+      })
+    }
+
+    await pool.query(`UPDATE order_sequence SET current_value = 0 WHERE id = 1`)
+
+    return res.json({ message: 'Numeração reiniciada. A próxima comanda será nº 1.' })
+
+  } catch (err) {
+    console.error('[orders.resetSequence]', err)
+    return res.status(500).json({ error: 'Erro interno no servidor.' })
+  }
+}
+
+module.exports = { getOpenOrders, getClosedOrders, getOne, create, update, close, remove, resetSequence }

@@ -34,3 +34,10 @@ export async function deleteOrder(id) {
   const { data } = await api.delete(`/orders/${id}`);
   return data;
 }
+
+// "Fechar caixa": zera a numeração visível das comandas (próxima volta a nº 1).
+// Somente gerente. Backend recusa (409) se houver comandas abertas.
+export async function resetOrderSequence() {
+  const { data } = await api.post('/orders/sequence/reset');
+  return data;
+}
