@@ -14,6 +14,8 @@ const Input = forwardRef(function Input(
     autoCapitalize = 'none',
     style,
     inputStyle,
+    fieldStyle,
+    labelStyle,
     error,
     rightIcon,
     onRightIconPress,
@@ -29,13 +31,14 @@ const Input = forwardRef(function Input(
 
   return (
     <View style={[styles.wrap, style]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Text style={[styles.label, labelStyle]}>{label}</Text> : null}
       <View
         style={[
           styles.field,
           multiline && { height: 'auto', minHeight: 92, paddingVertical: 10 },
           error && { borderColor: colors.danger },
           !editable && { backgroundColor: '#EAEAEA' },
+          fieldStyle,
         ]}
       >
         <TextInput

@@ -20,8 +20,17 @@ export default function RoleSelectScreen({ navigation }) {
 
   const cardsRow = r.isLandscape;
   const maxW = r.isLandscape
-    ? Math.max(420, Math.min(1100, r.width * 0.65))
+    ? Math.max(520, Math.min(1200, r.width * 0.78))
     : r.width;
+
+  const minSide = Math.min(r.width, r.height);
+  const cardHeight = Math.round(Math.max(100, Math.min(180, minSide * 0.30)));
+  const iconSize = Math.round(Math.max(44, Math.min(80, minSide * 0.11)));
+  const labelFontSize = Math.round(Math.max(22, Math.min(34, minSide * 0.06)));
+  const iconWidth = Math.round(Math.max(72, Math.min(96, iconSize * 1.35)));
+  const labelMarginLeft = Math.round(Math.max(12, Math.min(18, minSide * 0.02)));
+  const cardPaddingH = Math.round(Math.max(20, Math.min(28, minSide * 0.06)));
+  const portraitLift = cardsRow ? 0 : -Math.round(Math.max(8, Math.min(18, minSide * 0.03)));
 
   return (
     <View style={styles.root}>
@@ -33,21 +42,41 @@ export default function RoleSelectScreen({ navigation }) {
       </View>
 
       <View style={styles.sheet}>
-        <View style={[styles.content, { maxWidth: maxW }]}>
-          <Text style={styles.heading}>Quem está tentando acessar?</Text>
+        <Text style={styles.heading}>Quem está tentando acessar?</Text>
+        <View
+          style={[
+            styles.content,
+            { maxWidth: maxW },
+            portraitLift !== 0 && { transform: [{ translateY: portraitLift }] },
+          ]}
+        >
 
           <View style={cardsRow ? styles.cardsRow : styles.cardsCol}>
             <RoleCard
               label="ATENDENTE"
               color={colors.attendant}
+              icon="user"
               onPress={() => pick('attendant')}
               wide={!cardsRow}
+              cardHeight={cardHeight}
+              iconSize={iconSize}
+              iconWidth={iconWidth}
+              labelFontSize={labelFontSize}
+              labelMarginLeft={labelMarginLeft}
+              cardPaddingH={cardPaddingH}
             />
             <RoleCard
               label="GERENTE"
               color={colors.manager}
+              icon="shield"
               onPress={() => pick('manager')}
               wide={!cardsRow}
+              cardHeight={cardHeight}
+              iconSize={iconSize}
+              iconWidth={iconWidth}
+              labelFontSize={labelFontSize}
+              labelMarginLeft={labelMarginLeft}
+              cardPaddingH={cardPaddingH}
             />
           </View>
         </View>
@@ -61,7 +90,19 @@ export default function RoleSelectScreen({ navigation }) {
   );
 }
 
-function RoleCard({ label, color, onPress, wide }) {
+function RoleCard({
+  label,
+  color,
+  icon,
+  onPress,
+  wide,
+  cardHeight,
+  iconSize,
+  iconWidth,
+  labelFontSize,
+  labelMarginLeft,
+  cardPaddingH,
+}) {
   return (
     <View style={[styles.cardWrap, wide ? styles.cardWide : styles.cardFlex]}>
       <Pressable
@@ -70,13 +111,22 @@ function RoleCard({ label, color, onPress, wide }) {
         style={({ pressed }) => [
           styles.card,
           { backgroundColor: color },
+          { height: cardHeight, paddingHorizontal: cardPaddingH },
           pressed && Platform.OS !== 'android' && { opacity: 0.78 },
         ]}
       >
-        <View style={styles.cardIcon}>
-          <Feather name="user" size={48} color="#FFFFFF" />
+        <View style={[styles.cardIcon, { width: iconWidth }]}>
+          <Feather name={icon} size={iconSize} color="#FFFFFF" />
         </View>
-        <Text style={styles.cardLabel}>{label}</Text>
+        <Text
+          style={[
+            styles.cardLabel,
+            { fontSize: labelFontSize, marginLeft: labelMarginLeft, lineHeight: Math.round(labelFontSize * 1.1) },
+          ]}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
       </Pressable>
     </View>
   );
@@ -91,31 +141,38 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 28,
+    justifyContent: 'space-between', // conteúdo centralizado, footer no rodapé
   },
-  content:  { width: '100%', alignSelf: 'center' },
-  heading:  { ...typography.h3, color: colors.textDark, marginBottom: 24, fontSize: 18, textAlign: 'center' },
+  content:  {
+    width: '100%',
+    alignSelf: 'center',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  heading:  { ...typography.h3, color: colors.textDark, marginBottom: 22, fontSize: 18, textAlign: 'center' },
 
   cardsCol: { flexDirection: 'column' },
   cardsRow: { flexDirection: 'row' },
 
-  // O ripple respeita o border-radius do filho — por isso o wrap não tem radius
-  cardWrap: { marginBottom: 18 },
+  cardWrap: { marginBottom: 22 },
   cardWide: { width: '100%' },
-  cardFlex: { flex: 1, marginHorizontal: 8 },
+  cardFlex: { flex: 1, marginHorizontal: 6 },
 
   card: {
-    height: 92,
     borderRadius: radii.lg,
-    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    overflow: 'hidden',  // garante que o ripple não vaza dos cantos
+    overflow: 'hidden',
   },
-  cardIcon: { width: 64, alignItems: 'center', justifyContent: 'center' },
-  cardLabel: { color: '#FFF', fontSize: 24, fontWeight: '900', letterSpacing: 1.2, marginLeft: 12 },
+  cardIcon: { alignItems: 'center', justifyContent: 'center' },
+  cardLabel: {
+    color: '#FFF',
+    fontWeight: '900',
+    letterSpacing: 1.2,
+    fontFamily: typography.familyHeavy,
+  },
 
   footer: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
 });

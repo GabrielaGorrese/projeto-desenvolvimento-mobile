@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import Screen from '../components/Screen';
-import DarkHeader from '../components/DarkHeader';
+import SearchHeader from '../components/SearchHeader';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import FeedbackModal from '../components/FeedbackModal';
@@ -29,6 +29,8 @@ import useResponsive from '../hooks/useResponsive';
 import useElapsedTime from '../hooks/useElapsedTime';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const CONTENT_H_PADDING = 18;
+
 // Tela "Novo pedido" / detalhe da comanda. Aberta com:
 //   route.params.id = 'new'      -> criar comanda
 //   route.params.id = <id>       -> editar
@@ -39,7 +41,8 @@ export default function OrderDetailScreen({ route, navigation }) {
   const { user } = useAuth();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
-  const twoCol = r.isLandscape && r.width >= 800;
+  const layoutLarge = r.isLandscape;
+  const twoCol = layoutLarge && r.width >= 640;
 
   const [order,   setOrder]   = useState(null);
   const [items,   setItems]   = useState([]); // itens locais (modo "new")
@@ -261,7 +264,12 @@ export default function OrderDetailScreen({ route, navigation }) {
   if (loading) {
     return (
       <Screen background={colors.bgScreen} statusBarBg={colors.bgDark} statusBarStyle="light-content">
-        <DarkHeader title="Carregando..." onBack={() => navigation.popToTop()} />
+        <SearchHeader
+          title="Carregando..."
+          onBack={() => navigation.popToTop()}
+          enlarged={layoutLarge}
+          titlePlain
+        />
         <ActivityIndicator style={{ marginTop: 60 }} color={colors.primary} />
       </Screen>
     );
@@ -277,14 +285,26 @@ export default function OrderDetailScreen({ route, navigation }) {
       statusBarStyle="light-content"
       keyboardOffset={20}
     >
-      <DarkHeader title={headerTitle} subtitle={headerSubtitle} onBack={() => navigation.popToTop()} />
+      <SearchHeader
+        title={headerTitle}
+        subtitle={headerSubtitle}
+        onBack={() => navigation.popToTop()}
+        enlarged={layoutLarge}
+        titlePlain
+      />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 220, alignItems: 'center' }} keyboardShouldPersistTaps="handled">
-        <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
+
         <View style={styles.statusPill}>
           <View style={styles.statusDot} />
           <Text style={styles.statusText}>{readOnly ? 'Fechada' : 'Pendente'}</Text>
         </View>
+
+        <View style={{ width: '100%' }}>
+          <SectionDivider />
+        </View>
+
+        <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
 
         <View style={twoCol ? styles.twoColRow : null}>
         <View style={twoCol ? styles.twoColLeft : null}>
@@ -318,6 +338,8 @@ export default function OrderDetailScreen({ route, navigation }) {
           </View>
           <Row icon="clock" text={elapsed} />
         </View>
+
+        <SectionDivider />
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Mesa</Text>
@@ -374,6 +396,8 @@ export default function OrderDetailScreen({ route, navigation }) {
           />
         </View>
         </View>
+
+        {twoCol ? <View style={styles.colDivider} /> : <SectionDivider />}
 
         <View style={twoCol ? styles.twoColRight : null}>
         <View style={styles.section}>
@@ -499,10 +523,14 @@ export default function OrderDetailScreen({ route, navigation }) {
   );
 }
 
+function SectionDivider() {
+  return <View style={styles.divider} />;
+}
+
 function Row({ icon, text }) {
   return (
     <View style={styles.infoRow}>
-      <Feather name={icon} size={14} color={colors.textDark} />
+      <Feather name={icon} size={16} color={colors.textDark} />
       <Text style={styles.infoText}>{text}</Text>
     </View>
   );
@@ -596,24 +624,45 @@ const styles = StyleSheet.create({
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
+    width: '98%',
     backgroundColor: '#FFF6D6',
     paddingHorizontal: 14,
     paddingVertical: 10,
-    margin: 16,
+    marginHorizontal: CONTENT_H_PADDING,
+    marginTop: 14,
+    marginBottom: 4,
     borderRadius: radii.md,
   },
   statusDot:   { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.statusYellow, marginRight: 10 },
-  statusText:  { ...typography.bodyBold, color: colors.textDark },
+  statusText:  { ...typography.bodyBold, color: colors.textDark, fontSize: 15 },
 
-  twoColRow:   { flexDirection: 'row', gap: 8 },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.divider,
+    marginHorizontal: CONTENT_H_PADDING,
+    marginVertical: 14,
+  },
+  colDivider: {
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: colors.divider,
+    marginVertical: 4,
+  },
+
+  twoColRow:   { flexDirection: 'row', gap: 16, alignItems: 'stretch' },
   twoColLeft:  { flex: 1 },
   twoColRight: { flex: 1 },
 
-  section:      { paddingHorizontal: 18, marginBottom: 18 },
-  sectionTitle: { ...typography.h3, color: colors.textDark, fontSize: 18, marginBottom: 10 },
+  section:      { paddingHorizontal: CONTENT_H_PADDING, marginBottom: 6 },
+  sectionTitle: {
+    ...typography.h3,
+    color: colors.textDark,
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 12,
+  },
 
-  infoRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  infoText: { ...typography.body, color: colors.textDark, marginLeft: 10 },
+  infoRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  infoText: { ...typography.body, color: colors.textDark, marginLeft: 10, fontSize: 15, lineHeight: 20 },
 
   // Controles +/- ao lado do campo de pessoas
   peopleControls: { flexDirection: 'row', marginLeft: 12 },
@@ -630,7 +679,7 @@ const styles = StyleSheet.create({
 
   mesaRow: { flexDirection: 'row', alignItems: 'center' },
   mesaSelect: {
-    width: 110,
+    width: 130,
     height: 36,
     borderRadius: radii.md,
     backgroundColor: colors.inputBg,
@@ -641,8 +690,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  mesaText:  { color: colors.textDark, fontSize: 14 },
-  mesaHint:  { color: colors.textMuted, fontSize: 11, marginLeft: 10, flex: 1 },
+  mesaText:  { color: colors.textDark, fontSize: 15 },
+  mesaHint:  { color: colors.textMuted, fontSize: 12, marginLeft: 10, flex: 1, lineHeight: 17 },
   tableList: {
     marginTop: 8,
     backgroundColor: '#FFF',
@@ -662,9 +711,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   itemImg:   { width: 56, height: 56, borderRadius: 8, backgroundColor: '#EEE', alignItems: 'center', justifyContent: 'center' },
-  itemName:  { ...typography.bodyBold, color: colors.textDark, fontSize: 14 },
-  itemQty:   { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-  itemTotal: { color: colors.primary, fontWeight: '800', fontSize: 15 },
+  itemName:  { ...typography.bodyBold, color: colors.textDark, fontSize: 15 },
+  itemQty:   { color: colors.textMuted, fontSize: 13, marginTop: 3 },
+  itemTotal: { color: colors.primary, fontWeight: '800', fontSize: 16 },
   itemEdit:  {
     marginTop: 6, width: 26, height: 26, borderRadius: 6,
     backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
@@ -696,7 +745,7 @@ const styles = StyleSheet.create({
   },
 
   itemActions: { flexDirection: 'row', marginTop: 4 },
-  empty: { color: colors.textMuted, fontStyle: 'italic', paddingVertical: 8 },
+  empty: { color: colors.textMuted, fontStyle: 'italic', paddingVertical: 10, fontSize: 14 },
 
   footer: {
     position: 'absolute',

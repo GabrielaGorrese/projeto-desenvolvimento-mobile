@@ -15,7 +15,7 @@ import { Platform } from 'react-native';
 //   const API_OVERRIDE = 'http://192.168.0.168:3000'  // celular físico
 //   const API_OVERRIDE = 'https://api.exemplo.com'    // produção
 // =================================================================
-const API_OVERRIDE = 'http://localhost:3000';
+const API_OVERRIDE = 'http://10.0.2.2:3000';
 
 // =================================================================
 // Quando API_OVERRIDE é null, descobre o host automaticamente a partir

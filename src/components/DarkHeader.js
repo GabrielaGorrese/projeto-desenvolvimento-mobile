@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography } from '../theme';
 
 
-export default function DarkHeader({ title, subtitle, onBack, right }) {
+export default function DarkHeader({ title, subtitle, onBack, right, enlarged = false }) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.wrap, { paddingTop: insets.top + 14 }]}>
@@ -17,12 +17,16 @@ export default function DarkHeader({ title, subtitle, onBack, right }) {
             style={styles.back}
             android_ripple={{ color: 'rgba(255,255,255,0.2)', borderless: true, radius: 18 }}
           >
-            <Feather name="arrow-left" size={22} color="#FFF" />
+            <Feather name="arrow-left" size={enlarged ? 26 : 22} color="#FFF" />
           </Pressable>
         ) : <View style={styles.back} />}
         <View style={{ flex: 1 }}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          {subtitle ? <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text> : null}
+          <Text style={[styles.title, enlarged && styles.titleEnlarged]} numberOfLines={1}>{title}</Text>
+          {subtitle ? (
+            <Text style={[styles.subtitle, enlarged && styles.subtitleEnlarged]} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
         </View>
         {right || null}
       </View>
@@ -39,5 +43,7 @@ const styles = StyleSheet.create({
   row:  { flexDirection: 'row', alignItems: 'center' },
   back: { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' },
   title:    { ...typography.title, color: '#FFF', fontSize: 18 },
+  titleEnlarged: { fontSize: 22 },
   subtitle: { color: '#C0C0C0', fontSize: 12, marginTop: 2 },
+  subtitleEnlarged: { fontSize: 14 },
 });

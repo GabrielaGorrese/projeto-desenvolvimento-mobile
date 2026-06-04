@@ -15,7 +15,7 @@ export const colors = {
   managerDark:   '#A84838',
 
   // Inputs / surface
-  inputBg:       '#EFEFEF',
+  inputBg:       '#f7f7f7',
   inputBorder:   '#E2E2E2',
   cardBg:        '#F5F2EF',
   divider:       '#ECECEC',

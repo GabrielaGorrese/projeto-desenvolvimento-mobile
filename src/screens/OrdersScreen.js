@@ -11,7 +11,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import Screen from '../components/Screen';
 import SearchHeader from '../components/SearchHeader';
 import OrderTile from '../components/OrderTile';
-import BottomBar from '../components/BottomBar';
 import Fab from '../components/Fab';
 import FeedbackModal from '../components/FeedbackModal';
 import FiltersSheet from '../components/FiltersSheet';
@@ -23,6 +22,30 @@ import {
 import { connectSocket } from '../services/socket';
 import { useAuth } from '../contexts/AuthContext';
 import useResponsive from '../hooks/useResponsive';
+
+// Margem horizontal do conteúdo (cabeçalhos de seção) — o FAB usa o mesmo alinhamento.
+const CONTENT_H_PADDING = 18;
+
+// =============================================================================
+// PLACEHOLDER DEV — "Pedidos em andamento" (testes sem back-end)
+// =============================================================================
+// Card fictício exibido enquanto USE_OPEN_ORDER_PLACEHOLDER === true.
+//
+// Como remover:
+//   1) Defina USE_OPEN_ORDER_PLACEHOLDER = false; ou
+//   2) Apague este bloco (constantes + openOrdersForDisplay + map que usa
+//      openOrdersForDisplay) e volte a usar filteredOpen diretamente no JSX.
+// =============================================================================
+const USE_OPEN_ORDER_PLACEHOLDER = true;
+const PLACEHOLDER_OPEN_ORDER = {
+  id: 0,
+  label: 'Demo',
+  attendant: 'atendente-demo',
+  table_label: 'Mesa demo',
+  color_status: 'green',
+  status: 'open',
+  __placeholder: true,
+};
 
 // Valores iniciais dos filtros — 'all' significa "sem filtro nesta dimensão".
 const INITIAL_FILTERS = {
@@ -101,6 +124,17 @@ export default function OrdersScreen({ navigation, route }) {
   const filteredOpen   = applyFilters(open,   search, filters);
   const filteredClosed = applyFilters(closed, search, filters);
 
+  const openOrdersForDisplay = useMemo(() => {
+    if (!USE_OPEN_ORDER_PLACEHOLDER) return filteredOpen;
+    if (filteredOpen.some((o) => o.__placeholder)) return filteredOpen;
+    return [PLACEHOLDER_OPEN_ORDER, ...filteredOpen];
+  }, [filteredOpen]);
+
+  const landscape = r.isLandscape;
+  const tileSize = landscape ? 'lg' : 'md';
+  const contentWidth = Math.min(r.width, r.contentMaxWidth);
+  const fabRight = (r.width - contentWidth) / 2 + CONTENT_H_PADDING;
+
   // Conta quantos filtros estão ativos (≠ 'all') — vira badge sobre o ícone.
   const activeFiltersCount = Object.values(filters).filter((v) => v !== 'all').length;
 
@@ -117,6 +151,7 @@ export default function OrdersScreen({ navigation, route }) {
         onChangeText={setSearch}
         onFilter={() => setFiltersOpen(true)}
         activeFilters={activeFiltersCount}
+        enlarged={landscape}
       />
 
       {loading ? (
@@ -127,18 +162,27 @@ export default function OrdersScreen({ navigation, route }) {
           refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => { setRefresh(true); load(); }} />}
         >
         <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
-          <SectionHeader title="Pedidos em andamento" count={filteredOpen.length} />
-          <Grid>
-            {filteredOpen.map((o) => (
+          <SectionHeader
+            title="Pedidos em andamento"
+            count={openOrdersForDisplay.length}
+            large={landscape}
+          />
+          <Grid large={landscape}>
+            {openOrdersForDisplay.map((o) => (
               <OrderTile
-                key={o.id}
+                key={o.__placeholder ? 'placeholder-open' : o.id}
                 order={{ ...o, status: 'open' }}
+                size={tileSize}
                 isNew={o.id === newOrderId}
-                onPress={() => navigation.navigate('OrderDetail', { id: o.id })}
+                onPress={() =>
+                  navigation.navigate('OrderDetail', {
+                    id: o.__placeholder ? 'new' : o.id,
+                  })
+                }
               />
             ))}
-            {filteredOpen.length === 0 ? (
-              <Text style={styles.empty}>
+            {openOrdersForDisplay.length === 0 ? (
+              <Text style={[styles.empty, landscape && styles.emptyLarge]}>
                 {search || activeFiltersCount > 0
                   ? 'Nenhuma comanda encontrada com esses filtros.'
                   : 'Nenhuma comanda aberta.'}
@@ -146,17 +190,18 @@ export default function OrdersScreen({ navigation, route }) {
             ) : null}
           </Grid>
 
-          <SectionHeader title="Comandas fechadas hoje" count={filteredClosed.length} />
-          <Grid>
+          <SectionHeader title="Comandas fechadas hoje" count={filteredClosed.length} large={landscape} />
+          <Grid large={landscape}>
             {filteredClosed.map((o) => (
               <OrderTile
                 key={o.id}
                 order={{ ...o, status: 'closed' }}
+                size={tileSize}
                 onPress={() => navigation.navigate('OrderDetail', { id: o.id, readOnly: true })}
               />
             ))}
             {filteredClosed.length === 0 ? (
-              <Text style={styles.empty}>
+              <Text style={[styles.empty, landscape && styles.emptyLarge]}>
                 {search || activeFiltersCount > 0
                   ? 'Nenhuma comanda encontrada com esses filtros.'
                   : 'Nenhuma comanda fechada hoje.'}
@@ -167,8 +212,14 @@ export default function OrdersScreen({ navigation, route }) {
         </ScrollView>
       )}
 
-      <BottomBar current="home" />
-      <Fab onPress={() => navigation.navigate('OrderDetail', { id: 'new' })} />
+      <Fab
+        onPress={() => navigation.navigate('OrderDetail', { id: 'new' })}
+        iconSize={landscape ? 32 : 28}
+        style={[
+          { right: fabRight },
+          landscape && styles.fabLarge,
+        ]}
+      />
 
       <FiltersSheet
         visible={filtersOpen}
@@ -221,17 +272,17 @@ export default function OrdersScreen({ navigation, route }) {
   );
 }
 
-function SectionHeader({ title, count }) {
+function SectionHeader({ title, count, large }) {
   return (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <Text style={styles.sectionCount}>({count})</Text>
+      <Text style={[styles.sectionTitle, large && styles.sectionTitleLarge]}>{title}</Text>
+      <Text style={[styles.sectionCount, large && styles.sectionCountLarge]}>({count})</Text>
     </View>
   );
 }
 
-function Grid({ children }) {
-  return <View style={styles.grid}>{children}</View>;
+function Grid({ children, large }) {
+  return <View style={[styles.grid, large && styles.gridLarge]}>{children}</View>;
 }
 
 // Aplica busca textual + filtros estruturados a um array de comandas.
@@ -271,7 +322,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   sectionTitle: { ...typography.h3, color: colors.textDark, fontSize: 18 },
+  sectionTitleLarge: { fontSize: 22 },
   sectionCount: { ...typography.bodyBold, color: colors.primary, marginLeft: 8 },
+  sectionCountLarge: { fontSize: 16 },
 
   grid: {
     flexDirection: 'row',
@@ -279,5 +332,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginTop: 4,
   },
-  empty: { padding: 24, color: colors.textMuted, fontStyle: 'italic' },
+  gridLarge: {
+    paddingHorizontal: CONTENT_H_PADDING,
+    marginTop: 8,
+  },
+  empty: { padding: 24, color: colors.textMuted, fontStyle: 'italic', fontSize: 14 },
+  emptyLarge: { fontSize: 16, padding: 28 },
+
+  fabLarge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+  },
 });
