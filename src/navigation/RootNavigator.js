@@ -43,7 +43,11 @@ export default function RootNavigator() {
             <Stack.Screen name="OrderDetail"    component={OrderDetailScreen} />
             <Stack.Screen name="AddItems"       component={CatalogScreen} initialParams={{ mode: 'select' }} />
             <Stack.Screen name="Products"       component={CatalogScreen} initialParams={{ mode: 'manage' }} />
-            <Stack.Screen name="ProductDetail"  component={ProductDetailScreen} />
+            <Stack.Screen
+              name="ProductDetail"
+              component={ProductDetailScreen}
+              options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }}
+            />
             <Stack.Screen name="ProductEdit"    component={NewProductScreen} />
           </>
         )}

@@ -18,6 +18,7 @@ export default function Screen({
   statusBarBg    = colors.bgDark,
   contentContainerStyle,
   keyboardOffset = 0,
+  avoidKeyboard = true,
 }) {
   const Container = scroll ? ScrollView : View;
   const containerProps = scroll
@@ -28,16 +29,22 @@ export default function Screen({
       }
     : { style: [{ flex: 1 }, contentContainerStyle] };
 
+  const content = <Container {...containerProps}>{children}</Container>;
+
   return (
     <View style={[styles.root, { backgroundColor: background }]}>
       <StatusBar barStyle={statusBarStyle} backgroundColor={statusBarBg} />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={keyboardOffset}
-      >
-        <Container {...containerProps}>{children}</Container>
-      </KeyboardAvoidingView>
+      {avoidKeyboard ? (
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={keyboardOffset}
+        >
+          {content}
+        </KeyboardAvoidingView>
+      ) : (
+        content
+      )}
     </View>
   );
 }

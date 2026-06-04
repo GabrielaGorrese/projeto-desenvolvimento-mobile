@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
+  Keyboard,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,6 +16,7 @@ import DarkHeader from '../components/DarkHeader';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import FeedbackModal from '../components/FeedbackModal';
+import ConfirmModal from '../components/ConfirmModal';
 import { colors, radii, typography } from '../theme';
 import {
   fetchOrder,
@@ -26,8 +28,10 @@ import {
 import { fetchTables } from '../services/tablesService';
 import { connectSocket } from '../services/socket';
 import { useAuth } from '../contexts/AuthContext';
+import { usePendingItems } from '../contexts/PendingItemsContext';
 import useResponsive from '../hooks/useResponsive';
 import useElapsedTime from '../hooks/useElapsedTime';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Tela "Novo pedido" / detalhe da comanda. Aberta com:
@@ -35,9 +39,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 //   route.params.id = <id>       -> editar
 //   route.params.readOnly = true -> apenas visualizar (comanda fechada)
 export default function OrderDetailScreen({ route, navigation }) {
-  const { id, readOnly, addItems } = route.params || {};
+  const { id, readOnly } = route.params || {};
   const isNew = id === 'new' || id == null;
   const { user } = useAuth();
+  const { takePendingItems } = usePendingItems();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
   const twoCol = r.isLandscape && r.width >= 800;
@@ -47,16 +52,29 @@ export default function OrderDetailScreen({ route, navigation }) {
   const [label,   setLabel]   = useState('');
   const [tableId, setTableId] = useState(null);
   const [people,  setPeople]  = useState(1);  // nº de pessoas para divisão
+  const [dailyNumber, setDailyNumber] = useState(''); // número visível escolhido (só na criação)
   const [tables,  setTables]  = useState([]);
   const [showTablePicker, setShowTablePicker] = useState(false);
 
   const [loading,  setLoading] = useState(!isNew);
   const [busy,     setBusy]    = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
+  const [errorModal, setErrorModal] = useState(null); // { title, message }
+  const [confirmClear, setConfirmClear] = useState(false); // confirmação "limpar comanda"
 
   // Flag para ignorar o evento order:closed disparado pelo próprio fechamento
   // deste atendente — só queremos o aviso quando OUTRO fecha a comanda.
   const closingSelfRef = useRef(false);
+
+  const scrollRef       = useRef(null);
+  const contentRef      = useRef(null);
+  const labelInputRef   = useRef(null);
+  const numberInputRef  = useRef(null);
+  const [kbHeight, setKbHeight] = useState(0);
+
+  const updateDailyNumber = useCallback((value) => {
+    setDailyNumber(String(value).replace(/[^0-9]/g, '').slice(0, 6));
+  }, []);
 
   const loadOrder = useCallback(async () => {
     if (isNew) { setLoading(false); return; }
@@ -69,8 +87,11 @@ export default function OrderDetailScreen({ route, navigation }) {
       setTableId(o.table_id || null);
       setPeople(Math.max(1, Number(o.people) || 1));
     } catch (err) {
-      Alert.alert('Erro', err?.uiMessage || 'Erro ao buscar comanda.');
-      navigation.goBack();
+      setErrorModal({
+        title: 'Erro',
+        message: err?.uiMessage || 'Erro ao buscar comanda.',
+        onClose: () => navigation.goBack(),
+      });
     } finally { setLoading(false); }
   }, [id, isNew, navigation]);
 
@@ -80,6 +101,30 @@ export default function OrderDetailScreen({ route, navigation }) {
   useEffect(() => {
     fetchTables().then(setTables).catch(() => {});
   }, []);
+
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates?.height || 0));
+    const hideSub = Keyboard.addListener(hideEvt, () => setKbHeight(0));
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+
+
+  function scrollInputIntoView(inputRef) {
+    setTimeout(() => {
+      const input   = inputRef?.current;
+      const content = contentRef.current;
+      const scroll  = scrollRef.current;
+      if (!input || !content || !scroll || !input.measureLayout) return;
+      input.measureLayout(
+        content,
+        (_x, y) => scroll.scrollTo({ y: Math.max(0, y - 16), animated: true }),
+        () => {}
+      );
+    }, Platform.OS === 'ios' ? 60 : 220);
+  }
 
   // Socket: se outro atendente fechar/excluir ESTA comanda enquanto ela está
   // aberta aqui, mostra um aviso com saída em vez de deixar o usuário preso.
@@ -99,27 +144,29 @@ export default function OrderDetailScreen({ route, navigation }) {
     };
   }, [id, isNew, readOnly]);
 
-  // Itens vindos do catálogo (route.params.addItems do AddItemsScreen)
-  useEffect(() => {
-    if (!addItems?.length) return;
-    if (isNew) {
-      setItems((prev) => mergeItems(prev, addItems));
-    } else {
-      // Persiste imediatamente no backend
-      (async () => {
-        try {
-          setBusy(true);
-          const updated = await updateOrder(id, { add_items: addItems });
-          setOrder(updated);
-          setItems(updated.items || []);
-        } catch (err) {
-          Alert.alert('Erro', err?.uiMessage || 'Erro ao adicionar itens.');
-        } finally { setBusy(false); }
-      })();
-    }
-    // Limpa o param para não re-aplicar
-    navigation.setParams({ addItems: undefined });
-  }, [addItems, id, isNew, navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const pending = takePendingItems(id);
+      if (!pending?.items?.length) return;
+
+      if (isNew) {
+        setItems((prev) => mergeItems(prev, pending.items));
+      } else {
+        // Persiste imediatamente no backend
+        (async () => {
+          try {
+            setBusy(true);
+            const updated = await updateOrder(id, { add_items: pending.items });
+            setOrder(updated);
+            setItems(updated.items || []);
+          } catch (err) {
+            setErrorModal({ title: 'Erro', message: err?.uiMessage || 'Erro ao adicionar itens.' });
+          } finally { setBusy(false); }
+        })();
+      }
+    }, [id, isNew, takePendingItems])
+  );
 
   const totalRaw = useMemo(
     () => items.reduce((s, it) => s + Number(it.unit_price) * Number(it.quantity), 0),
@@ -177,7 +224,7 @@ export default function OrderDetailScreen({ route, navigation }) {
       setOrder(updated);
       setItems(updated.items || []);
     } catch (err) {
-      Alert.alert('Erro', err?.uiMessage || 'Erro ao alterar quantidade.');
+      setErrorModal({ title: 'Erro', message: err?.uiMessage || 'Erro ao alterar quantidade.' });
     } finally { setBusy(false); }
   }
 
@@ -188,7 +235,7 @@ export default function OrderDetailScreen({ route, navigation }) {
       setOrder(updated);
       setItems(updated.items || []);
     } catch (err) {
-      Alert.alert('Erro', err?.uiMessage || 'Erro ao remover item.');
+      setErrorModal({ title: 'Erro', message: err?.uiMessage || 'Erro ao remover item.' });
     } finally { setBusy(false); }
   }
 
@@ -197,7 +244,12 @@ export default function OrderDetailScreen({ route, navigation }) {
 
     if (isNew) {
       if (items.length === 0) {
-        Alert.alert('Atenção', 'Adicione ao menos um item antes de abrir a comanda.');
+        setErrorModal({ title: 'Atenção', message: 'Adicione ao menos um item antes de abrir a comanda.' });
+        return;
+      }
+      const parsedNumber = parseInt(dailyNumber, 10);
+      if (!parsedNumber || parsedNumber < 1) {
+        setErrorModal({ title: 'Atenção', message: 'Informe o número da comanda (inteiro maior que zero).' });
         return;
       }
       try {
@@ -206,6 +258,7 @@ export default function OrderDetailScreen({ route, navigation }) {
           label: label || null,
           table_id: tableId,
           people,
+          daily_number: parsedNumber,
           items: items.map((i) => ({
             product_id: i.product_id,
             quantity: i.quantity,
@@ -217,7 +270,7 @@ export default function OrderDetailScreen({ route, navigation }) {
           justCreatedNumber: created.daily_number,
         });
       } catch (err) {
-        Alert.alert('Erro', err?.uiMessage || 'Erro ao criar comanda.');
+        setErrorModal({ title: 'Erro ao abrir comanda', message: err?.uiMessage || 'Erro ao criar comanda.' });
       } finally { setBusy(false); }
     } else {
       // Comanda existente: fechar comanda (confirma antes)
@@ -238,7 +291,7 @@ export default function OrderDetailScreen({ route, navigation }) {
       });
       setConfirmModal('saved');
     } catch (err) {
-      Alert.alert('Erro', err?.uiMessage || 'Erro ao salvar.');
+      setErrorModal({ title: 'Erro', message: err?.uiMessage || 'Erro ao salvar.' });
     } finally { setBusy(false); }
   }
 
@@ -259,35 +312,32 @@ export default function OrderDetailScreen({ route, navigation }) {
         setConfirmModal('alreadyClosed');
       } else {
         setConfirmModal(null);
-        Alert.alert('Erro', err?.uiMessage || 'Erro ao fechar comanda.');
+        setErrorModal({ title: 'Erro', message: err?.uiMessage || 'Erro ao fechar comanda.' });
       }
     } finally { setBusy(false); }
   }
 
-  async function onClear() {
+  function onClear() {
     if (isNew) {
       setItems([]);
       return;
     }
-    Alert.alert('Limpar comanda', 'Remover todos os itens?', [
-      { text: 'Cancelar' },
-      {
-        text: 'Limpar',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setBusy(true);
-            const updated = await updateOrder(id, {
-              remove_items: items.map((i) => i.id),
-            });
-            setOrder(updated);
-            setItems(updated.items || []);
-          } catch (err) {
-            Alert.alert('Erro', err?.uiMessage || 'Erro ao limpar.');
-          } finally { setBusy(false); }
-        },
-      },
-    ]);
+    setConfirmClear(true);
+  }
+
+  async function doClear() {
+    try {
+      setBusy(true);
+      const updated = await updateOrder(id, {
+        remove_items: items.map((i) => i.id),
+      });
+      setOrder(updated);
+      setItems(updated.items || []);
+      setConfirmClear(false);
+    } catch (err) {
+      setConfirmClear(false);
+      setErrorModal({ title: 'Erro', message: err?.uiMessage || 'Erro ao limpar.' });
+    } finally { setBusy(false); }
   }
 
   function goAddItems() {
@@ -312,16 +362,36 @@ export default function OrderDetailScreen({ route, navigation }) {
       background={colors.bgScreen}
       statusBarBg={colors.bgDark}
       statusBarStyle="light-content"
-      keyboardOffset={20}
+      avoidKeyboard={false}
     >
       <DarkHeader title={headerTitle} subtitle={headerSubtitle} onBack={() => navigation.popToTop()} />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 220, alignItems: 'center' }} keyboardShouldPersistTaps="handled">
-        <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={{ paddingBottom: 220 + kbHeight, alignItems: 'center' }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View ref={contentRef} style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
         <View style={styles.statusPill}>
           <View style={styles.statusDot} />
           <Text style={styles.statusText}>{readOnly ? 'Fechada' : 'Pendente'}</Text>
         </View>
+
+        {isNew ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Número da comanda</Text>
+            <Input
+              ref={numberInputRef}
+              value={dailyNumber}
+              onChangeText={updateDailyNumber}
+              keyboardType="number-pad"
+              maxLength={6}
+              placeholder="Ex.: 1, 2, 3..."
+              onFocus={() => scrollInputIntoView(numberInputRef)}
+              style={{ maxWidth: 220 }}
+            />
+          </View>
+        ) : null}
 
         <View style={twoCol ? styles.twoColRow : null}>
         <View style={twoCol ? styles.twoColLeft : null}>
@@ -402,11 +472,13 @@ export default function OrderDetailScreen({ route, navigation }) {
           ) : null}
 
           <Input
+            ref={labelInputRef}
             label="Identificação (opcional)"
             value={label}
             onChangeText={setLabel}
             placeholder='Ex.: "João", "Balcão"'
             editable={!readOnly}
+            onFocus={() => scrollInputIntoView(labelInputRef)}
             style={{ marginTop: 14 }}
           />
         </View>
@@ -469,6 +541,9 @@ export default function OrderDetailScreen({ route, navigation }) {
         </View>
       </ScrollView>
 
+      {/* Esconde o rodapé (Total + ações) enquanto o teclado está aberto:
+          libera espaço e evita os botões flutuando no meio da tela ao digitar. */}
+      {kbHeight === 0 ? (
       <View style={[styles.footer, { paddingBottom: 22 + insets.bottom }]}>
         <View style={styles.totalRow}>
           <View>
@@ -511,6 +586,7 @@ export default function OrderDetailScreen({ route, navigation }) {
           )
         ) : null}
       </View>
+      ) : null}
 
       <FeedbackModal
         visible={confirmModal === 'close'}
@@ -543,6 +619,28 @@ export default function OrderDetailScreen({ route, navigation }) {
           setConfirmModal(null);
           navigation.popToTop();
         }}
+      />
+
+      <FeedbackModal
+        visible={!!errorModal}
+        variant="danger"
+        title={errorModal?.title || 'Erro'}
+        message={errorModal?.message || ''}
+        okLabel="OK"
+        onClose={() => { const cb = errorModal?.onClose; setErrorModal(null); cb?.(); }}
+      />
+
+      <ConfirmModal
+        visible={confirmClear}
+        variant="danger"
+        title="Limpar comanda"
+        message="Remover todos os itens desta comanda?"
+        confirmLabel="Limpar"
+        cancelLabel="Cancelar"
+        destructive
+        loading={busy}
+        onConfirm={doClear}
+        onCancel={() => setConfirmClear(false)}
       />
     </Screen>
   );

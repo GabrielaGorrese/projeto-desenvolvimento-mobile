@@ -10,6 +10,9 @@ router.use(authMiddleware)
 // Declarado antes de '/:id' para não ser capturado como rota dinâmica.
 router.post(  '/sequence/reset', roleMiddleware('manager'), orders.resetSequence)
 
+// Sugestão do próximo número (contador + 1) — usado na criação da comanda.
+router.get(   '/next-number', orders.nextNumber)
+
 router.get(   '/',         orders.getOpenOrders)
 router.get(   '/closed',   orders.getClosedOrders)
 router.get(   '/:id',      orders.getOne)
