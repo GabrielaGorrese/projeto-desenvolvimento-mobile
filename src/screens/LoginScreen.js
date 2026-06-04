@@ -23,6 +23,10 @@ import useResponsive from '../hooks/useResponsive';
 export default function LoginScreen({ navigation }) {
   const { selectedRole, signIn, rememberedUsername } = useAuth();
   const r = useResponsive();
+  const scale = Math.min(1.4, Math.max(1, r.width / 600));
+  const bannerTitleFontSize = 22 * scale;
+  const rememberLabelFontSize = 13 * scale;
+  const actionButtonHeight = comfyPortrait ? 54 : compact ? 40 : 46;
   const insets = useSafeAreaInsets();
   const role     = selectedRole || 'attendant';
   const isManager = role === 'manager';
@@ -30,6 +34,9 @@ export default function LoginScreen({ navigation }) {
   const maxW = r.isLandscape
     ? Math.max(420, Math.min(1100, r.width * 0.65))
     : r.width;
+  const compact = r.isTablet && r.isLandscape;
+  const comfyPortrait = r.isPortrait;
+  const buttonSize = comfyPortrait ? 'lg' : compact ? 'sm' : 'md';
 
   const [username, setUsername] = useState(rememberedUsername || '');
   const [password, setPassword] = useState('');
@@ -85,19 +92,25 @@ export default function LoginScreen({ navigation }) {
                 >
                   <Feather name="arrow-left" size={22} color="#FFF" />
                 </Pressable>
-                <Text style={styles.bannerTitle}>{isManager ? 'GERENTE' : 'ATENDENTE'}</Text>
+                <Text style={[styles.bannerTitle, { fontSize: bannerTitleFontSize }]}>
+                  {isManager ? 'GERENTE' : 'ATENDENTE'}
+                </Text>
                 <View style={{ width: 26 }} />
               </View>
             </View>
 
             <View style={[styles.column, { maxWidth: maxW }]}>
-              <View style={styles.form}>
+              <View style={[styles.form, compact && styles.formCompact, comfyPortrait && styles.formPortrait]}>
                 <Input
                   label="Usuário"
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"
                   returnKeyType="next"
+                  style={[compact && styles.inputCompact, comfyPortrait && styles.inputPortrait]}
+                  inputStyle={[
+                    { fontSize: (compact ? 14 : comfyPortrait ? 17 : 15) * scale },
+                  ]}
                 />
                 <Input
                   label="Senha"
@@ -106,33 +119,73 @@ export default function LoginScreen({ navigation }) {
                   secureTextEntry
                   returnKeyType="done"
                   onSubmitEditing={onSubmit}
+                  style={[compact && styles.inputCompact, comfyPortrait && styles.inputPortrait]}
+                  inputStyle={[
+                    { fontSize: (compact ? 14 : comfyPortrait ? 17 : 15) * scale },
+                  ]}
                 />
 
-                <View style={styles.remember}>
+                <View style={[styles.remember, comfyPortrait && styles.rememberPortrait]}>
                   <Switch
                     value={remember}
                     onValueChange={setRemember}
                     trackColor={{ true: colors.primary, false: '#CCC' }}
                     thumbColor="#FFF"
+                    style={[compact && styles.rememberSwitchCompact, comfyPortrait && styles.rememberSwitchPortrait]}
                   />
-                  <Text style={styles.rememberLabel}>Lembrar usuário</Text>
+                  <Text
+                    style={[
+                      styles.rememberLabel,
+                      { fontSize: rememberLabelFontSize },
+                      compact && styles.rememberLabelCompact,
+                      comfyPortrait && styles.rememberLabelPortrait,
+                    ]}
+                  >
+                    Lembrar usuário
+                  </Text>
                 </View>
 
                 {error ? <Text style={styles.error}>{error}</Text> : null}
 
-                <View style={{ marginTop: 18 }}>
-                  <Button title="ENTRAR" onPress={onSubmit} loading={loading} />
+                <View style={[styles.actions, compact && !isManager && styles.actionsCompact]}>
+                  <Button
+                    title="ENTRAR"
+                    onPress={onSubmit}
+                    loading={loading}
+                    size={buttonSize}
+                    fullWidth
+                    style={[
+                      { height: actionButtonHeight },
+                      isManager && { backgroundColor: headerColor },
+                      isManager && styles.actionFull,
+                      !isManager && compact && styles.actionHalf,
+                    ]}
+                  />
                   {!isManager ? (
-                    <Pressable
-                      onPress={() => navigation.navigate('Register')}
-                      android_ripple={{ color: 'rgba(204,126,74,0.18)' }}
-                      style={({ pressed }) => [
-                        styles.cadastrar,
-                        pressed && Platform.OS !== 'android' && { opacity: 0.7 },
-                      ]}
-                    >
-                      <Text style={styles.cadastrarLabel}>CADASTRAR</Text>
-                    </Pressable>
+                    compact ? (
+                      <Button
+                        title="CADASTRAR"
+                        onPress={() => navigation.navigate('Register')}
+                        variant="outline"
+                        size={buttonSize}
+                        fullWidth
+                        style={styles.actionHalf}
+                      />
+                    ) : (
+                      <Pressable
+                        onPress={() => navigation.navigate('Register')}
+                        android_ripple={{ color: 'rgba(204,126,74,0.18)' }}
+                        style={({ pressed }) => [
+                          styles.cadastrar,
+                          { height: actionButtonHeight },
+                          pressed && Platform.OS !== 'android' && { opacity: 0.7 },
+                        ]}
+                      >
+                        <Text style={[styles.cadastrarLabel, comfyPortrait && styles.cadastrarLabelPortrait]}>
+                          CADASTRAR
+                        </Text>
+                      </Pressable>
+                    )
                   ) : null}
                 </View>
               </View>
@@ -179,20 +232,71 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   bannerBack:  { width: 26, height: 26, justifyContent: 'center', alignItems: 'center' },
-  bannerTitle: { color: '#FFF', fontSize: 22, fontWeight: '900', letterSpacing: 1.5 },
+  bannerTitle: {
+    color: '#FFF',
+    fontWeight: '900',
+    letterSpacing: 1.5,
+  },
 
   form: {
     paddingHorizontal: 22,
     paddingTop: 24,
     paddingBottom: 24,
   },
+  formCompact: {
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 18,
+  },
+  formPortrait: {
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 26,
+  },
+  inputCompact: {
+    marginBottom: 10,
+  },
+  inputPortrait: {
+    marginBottom: 16,
+  },
+  inputTextCompact: {
+    fontSize: 14,
+  },
+  inputTextPortrait: {
+    fontSize: 17,
+  },
   remember: { flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 4 },
-  rememberLabel: { marginLeft: 8, color: colors.textDark, fontSize: 13 },
+  rememberPortrait: { marginTop: 10, marginBottom: 8 },
+  rememberLabel: {
+    marginLeft: 8,
+    color: colors.textDark,
+  },
+  rememberSwitchCompact: {
+    transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }],
+  },
+  rememberSwitchPortrait: {
+    transform: [{ scaleX: 1.08 }, { scaleY: 1.08 }],
+  },
+  rememberLabelCompact: {
+    fontSize: 12,
+  },
+  rememberLabelPortrait: {
+    fontSize: 15,
+  },
   error: { color: colors.danger, fontSize: 13, marginTop: 4 },
+
+  actions: { marginTop: 18 },
+  actionsCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 14,
+  },
+  actionHalf: { flex: 1 },
+  actionFull: { alignSelf: 'stretch' },
 
   cadastrar: {
     marginTop: 12,
-    height: 46,
     borderRadius: radii.md,
     borderWidth: 2,
     borderColor: colors.primary,
@@ -201,6 +305,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden', // contém o ripple dentro das bordas
   },
   cadastrarLabel: { color: colors.primary, fontWeight: '800', letterSpacing: 1, fontSize: 14 },
+  cadastrarPortrait: { marginTop: 14 },
+  cadastrarLabelPortrait: { fontSize: 16 },
 
   footer: { textAlign: 'center', color: colors.textMuted, fontSize: 12, marginTop: 'auto', paddingTop: 24 },
 });
