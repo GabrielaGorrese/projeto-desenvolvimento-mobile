@@ -30,9 +30,11 @@ export default function ConfirmModal({
   loading = false,
   onConfirm,
   onCancel,
+  size = 'md',
 }) {
   const { width, height } = useWindowDimensions();
   const v = VARIANTS[variant] || VARIANTS.primary;
+  const isLarge = size === 'lg';
 
 
   const boxMaxWidth = Math.min(380, width - 48);
@@ -53,20 +55,20 @@ export default function ConfirmModal({
       <View style={styles.overlay}>
         <View style={[styles.box, { maxWidth: boxMaxWidth, maxHeight: boxMaxHeight }]}>
           <View style={[styles.header, { backgroundColor: v.header }]}>
-            <Text style={[styles.headerTitle, { color: headerTitleColor }]} numberOfLines={2}>
+            <Text style={[styles.headerTitle, isLarge && styles.headerTitleLarge, { color: headerTitleColor }]} numberOfLines={2}>
               {title}
             </Text>
           </View>
 
           <ScrollView
             style={styles.scroll}
-            contentContainerStyle={styles.body}
+            contentContainerStyle={[styles.body, isLarge && styles.bodyLarge]}
             bounces={false}
             keyboardShouldPersistTaps="handled"
           >
-            <Feather name={icon || v.icon} size={40} color={v.accent} style={{ marginBottom: 12 }} />
+            <Feather name={icon || v.icon} size={isLarge ? 46 : 40} color={v.accent} style={{ marginBottom: 12 }} />
             {typeof message === 'string'
-              ? <Text style={styles.message}>{message}</Text>
+              ? <Text style={[styles.message, isLarge && styles.messageLarge]}>{message}</Text>
               : message}
           </ScrollView>
 
@@ -75,9 +77,9 @@ export default function ConfirmModal({
               onPress={onCancel}
               disabled={loading}
               android_ripple={{ color: 'rgba(0,0,0,0.08)' }}
-              style={({ pressed }) => [styles.btn, styles.cancelBtn, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.btn, isLarge && styles.btnLarge, styles.cancelBtn, pressed && { opacity: 0.7 }]}
             >
-              <Text style={styles.cancelLabel}>{cancelLabel}</Text>
+              <Text style={[styles.cancelLabel, isLarge && styles.cancelLabelLarge]}>{cancelLabel}</Text>
             </Pressable>
             <Pressable
               onPress={onConfirm}
@@ -85,6 +87,7 @@ export default function ConfirmModal({
               android_ripple={{ color: 'rgba(255,255,255,0.25)' }}
               style={({ pressed }) => [
                 styles.btn,
+                isLarge && styles.btnLarge,
                 { backgroundColor: confirmBg },
                 pressed && { opacity: 0.85 },
                 loading && { opacity: 0.8 },
@@ -117,9 +120,12 @@ const styles = StyleSheet.create({
   },
   header: { paddingVertical: 14, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { ...typography.title, fontSize: 18, textAlign: 'center' },
+  headerTitleLarge: { fontSize: 20 },
   scroll: { flexShrink: 1 },
   body: { paddingHorizontal: 22, paddingTop: 22, paddingBottom: 18, alignItems: 'center' },
+  bodyLarge: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 20 },
   message: { ...typography.body, color: colors.textDark, textAlign: 'center', fontSize: 15 },
+  messageLarge: { fontSize: 16 },
   actions: {
     flexDirection: 'row',
     gap: 10,
@@ -135,7 +141,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  btnLarge: { height: 52 },
   cancelBtn: { backgroundColor: colors.inputBg },
   cancelLabel: { color: colors.textDark, fontWeight: '700', fontSize: 15 },
+  cancelLabelLarge: { fontSize: 16 },
   confirmLabel: { color: '#FFF', fontWeight: '700', fontSize: 15 },
 });

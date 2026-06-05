@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View, Image } from 'react-native';
 import { colors, radii, typography } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
 
 function getGradient(name) {
   const k = (name || '').toLowerCase();
@@ -70,8 +71,12 @@ export default function CategoryCard({ category, onPress, style }) {
 
   return (
     <Pressable onPress={onPress} style={[styles.card, style]}>
-      <View style={[styles.bg, { backgroundColor: c1 }]} />
-      <View style={[styles.bg, { backgroundColor: c2, opacity: 0.55 }]} />
+      <LinearGradient
+        colors={[c1, c2]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.bg}
+      />
       <Image source={image} style={styles.image} resizeMode="contain" />
       <Text style={styles.name} numberOfLines={1}>
         {(category.name || '').toUpperCase()}

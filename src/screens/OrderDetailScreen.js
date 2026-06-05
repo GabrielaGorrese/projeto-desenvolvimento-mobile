@@ -317,11 +317,14 @@ export default function OrderDetailScreen({ route, navigation }) {
       <DarkHeader title={headerTitle} subtitle={headerSubtitle} onBack={() => navigation.popToTop()} />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 220, alignItems: 'center' }} keyboardShouldPersistTaps="handled">
-        <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
-        <View style={styles.statusPill}>
-          <View style={styles.statusDot} />
-          <Text style={styles.statusText}>{readOnly ? 'Fechada' : 'Pendente'}</Text>
+        <View style={styles.statusPillBg}>
+          <View style={styles.statusPill}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>{readOnly ? 'Fechada' : 'Pendente'}</Text>
+          </View>
         </View>
+        <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
+        
 
         <View style={twoCol ? styles.twoColRow : null}>
         <View style={twoCol ? styles.twoColLeft : null}>
@@ -330,7 +333,7 @@ export default function OrderDetailScreen({ route, navigation }) {
           <Row icon="edit-3" text={order?.attendant || user?.username || '—'} />
           {/* Pessoas: editável (incrementa/decrementa) quando comanda aberta */}
           <View style={styles.infoRow}>
-            <Feather name="users" size={14} color={colors.textDark} />
+            <Feather name="users" size={18} color={colors.textDark} />
             <Text style={styles.infoText}>
               {String(people).padStart(2, '0')} {people === 1 ? 'pessoa' : 'pessoas'}
             </Text>
@@ -341,20 +344,30 @@ export default function OrderDetailScreen({ route, navigation }) {
                   android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: 14 }}
                   style={styles.peopleBtn}
                 >
-                  <Feather name="minus" size={14} color={colors.textDark} />
+                  <Feather name="minus" size={18} color={colors.textDark} />
                 </Pressable>
                 <Pressable
                   onPress={() => setPeople((p) => Math.min(99, p + 1))}
                   android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: 14 }}
                   style={styles.peopleBtn}
                 >
-                  <Feather name="plus" size={14} color={colors.textDark} />
+                  <Feather name="plus" size={18} color={colors.textDark} />
                 </Pressable>
               </View>
             ) : null}
           </View>
           <Row icon="clock" text={elapsed} />
         </View>
+
+        <View
+          style={{
+            height: 2,
+            backgroundColor: '#e0e0e0',
+            width: '100%',
+            marginVertical: 10,
+            marginBottom: 24
+          }}
+        />        
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Mesa</Text>
@@ -369,7 +382,7 @@ export default function OrderDetailScreen({ route, navigation }) {
               <Feather name="chevron-down" size={18} color={colors.textMuted} />
             </Pressable>
             <Text style={styles.mesaHint}>
-              <Feather name="info" size={11} color={colors.textMuted} />  Deixe nulo para cadastrar pedido avulso.
+              <Feather name="info" size={18} color={colors.textMuted} />  Deixe nulo para cadastrar pedido avulso.
             </Text>
           </View>
           {showTablePicker ? (
@@ -400,16 +413,29 @@ export default function OrderDetailScreen({ route, navigation }) {
               </ScrollView>
             </View>
           ) : null}
+          </View>
 
-          <Input
-            label="Identificação (opcional)"
-            value={label}
-            onChangeText={setLabel}
-            placeholder='Ex.: "João", "Balcão"'
-            editable={!readOnly}
-            style={{ marginTop: 14 }}
-          />
-        </View>
+          <View
+          style={{
+            height: 2,
+            backgroundColor: '#e0e0e0',
+            width: '100%',
+            marginVertical: 10,
+            marginBottom: 24
+          }}
+        /> 
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Identificação (opcional)</Text>
+            <Input
+              value={label}
+              onChangeText={setLabel}
+              placeholder='Ex.: "João", "Balcão"'
+              editable={!readOnly}
+              style={{ marginTop: 6 }}
+            />
+          </View>
+       
         </View>
 
         <View style={twoCol ? styles.twoColRight : null}>
@@ -453,13 +479,12 @@ export default function OrderDetailScreen({ route, navigation }) {
 
           {!readOnly ? (
             <View style={styles.itemActions}>
-              <Button title="Limpar" variant="ghost" onPress={onClear} icon={<Feather name="x-circle" size={16} color={colors.textDark} />} />
+              <Button title="Limpar" variant="ghost" onPress={onClear} icon={<Feather name="x-circle" size={24} color={colors.textDark} />} />
               <View style={{ width: 12 }} />
               <Button
                 title="Adicionar novo item"
-                variant="outline"
                 onPress={goAddItems}
-                icon={<Feather name="plus-circle" size={16} color={colors.primary} />}
+                icon={<Feather name="plus-circle" size={24} color='#FFF' />}
               />
             </View>
           ) : null}
@@ -551,7 +576,7 @@ export default function OrderDetailScreen({ route, navigation }) {
 function Row({ icon, text }) {
   return (
     <View style={styles.infoRow}>
-      <Feather name={icon} size={14} color={colors.textDark} />
+      <Feather name={icon} size={18} color={colors.textDark} />
       <Text style={styles.infoText}>{text}</Text>
     </View>
   );
@@ -642,6 +667,11 @@ function formatMoney(n) {
 }
 
 const styles = StyleSheet.create({
+  statusPillBg: {
+    backgroundColor: '#fffbec',
+    width: '100%',
+    marginBottom: 32,
+  },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -650,19 +680,20 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     margin: 16,
     borderRadius: radii.md,
+    width: '98%'
   },
-  statusDot:   { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.statusYellow, marginRight: 10 },
-  statusText:  { ...typography.bodyBold, color: colors.textDark },
+  statusDot:   { width: 24, height: 24, borderRadius: 24, backgroundColor: colors.statusYellow, marginRight: 16 },
+  statusText:  { fontSize: 18, fontWeight: 700, color: colors.textDark },
 
   twoColRow:   { flexDirection: 'row', gap: 8 },
   twoColLeft:  { flex: 1 },
   twoColRight: { flex: 1 },
 
-  section:      { paddingHorizontal: 18, marginBottom: 18 },
-  sectionTitle: { ...typography.h3, color: colors.textDark, fontSize: 18, marginBottom: 10 },
+  section:      { paddingHorizontal: 24, marginBottom: 18 },
+  sectionTitle: { ...typography.h3, color: colors.textDark, fontSize: 24, paddingBottom: 12 },
 
   infoRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  infoText: { ...typography.body, color: colors.textDark, marginLeft: 10 },
+  infoText: { fontSize: 18, color: colors.textDark, marginLeft: 10 },
 
   // Controles +/- ao lado do campo de pessoas
   peopleControls: { flexDirection: 'row', marginLeft: 12 },
@@ -679,8 +710,8 @@ const styles = StyleSheet.create({
 
   mesaRow: { flexDirection: 'row', alignItems: 'center' },
   mesaSelect: {
-    width: 110,
-    height: 36,
+    width: 152,
+    height: 48,
     borderRadius: radii.md,
     backgroundColor: colors.inputBg,
     borderWidth: 1,
@@ -689,9 +720,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginTop: 6
   },
-  mesaText:  { color: colors.textDark, fontSize: 14 },
-  mesaHint:  { color: colors.textMuted, fontSize: 11, marginLeft: 10, flex: 1 },
+  mesaText:  { color: colors.textDark, fontSize: 18 },
+  mesaHint:  { color: colors.textMuted, fontSize: 16, marginLeft: 10, flex: 1 },
   tableList: {
     marginTop: 8,
     backgroundColor: '#FFF',

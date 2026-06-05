@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   wrap:  { marginBottom: 14 },
   label: { ...typography.bodyBold, color: colors.textDark, marginBottom: 6, fontSize: 15 },
   field: {
-    height: 46,
+    height: 48,
     backgroundColor: colors.inputBg,
     borderRadius: radii.md,
     borderWidth: 1,

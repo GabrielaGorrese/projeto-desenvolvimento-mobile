@@ -20,7 +20,7 @@ export default function useResponsive() {
 
   // Larguras úteis para conteúdo (centralizado quando a tela é larga)
   const contentMaxWidth =
-      width >= 1200 ? 980
+      width >= 1200 ? 1400
     : width >=  900 ? 760
     : width >=  600 ? 560
     : width;

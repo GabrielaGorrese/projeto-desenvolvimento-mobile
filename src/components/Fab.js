@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, shadow } from '../theme';
+import { colors, shadow, radii } from '../theme';
 
 // FAB posicionado de forma a sempre ficar visível, considerando:
 //  - insets.bottom (gesture/home indicator)
@@ -28,13 +28,12 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 18,
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 64,
+    height: 64,
+    borderRadius: radii.md,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 100,
-    elevation: 10,
+    zIndex: 100
   },
 });

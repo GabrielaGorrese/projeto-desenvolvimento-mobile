@@ -121,14 +121,12 @@ export default function CatalogScreen({ navigation, route }) {
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 160 }}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Categorias</Text>
-            <Text style={styles.sectionCount}>({categories.length})</Text>
-          </View>
+          <View style={{ width: '100%', maxWidth: r.contentMaxWidth, marginTop: 24, alignSelf: 'center' }}>
+          <SectionHeader style={styles.sectionHeader} title="Categorias" count={categories.length} />
 
           <View style={styles.catGrid}>
             {categories.map((c) => (
-              <View key={c.id} style={{ width: `${100 / catCols}%`, paddingHorizontal: 6 }}>
+              <View key={c.id} style={{ width: `${80 / catCols}%`, paddingHorizontal: 1 }}>
                 <CategoryCard
                   category={c}
                   onPress={() => setCategoryId((cur) => cur === c.id ? null : c.id)}
@@ -162,6 +160,7 @@ export default function CatalogScreen({ navigation, route }) {
               <Text style={styles.empty}>Nenhum produto encontrado.</Text>
             ) : null}
           </View>
+          </View>
         </ScrollView>
       )}
 
@@ -181,6 +180,15 @@ export default function CatalogScreen({ navigation, route }) {
         <Fab onPress={() => navigation.navigate('ProductEdit', { id: 'new' })} />
       ) : null}
     </Screen>
+  );
+}
+
+function SectionHeader({ title, count }) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={styles.sectionCount}>({count})</Text>
+    </View>
   );
 }
 
@@ -214,14 +222,12 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    marginTop: 16,
+    paddingHorizontal: 10,
+    marginTop: 36,
     marginBottom: 4,
-    justifyContent: 'space-between',
   },
-  sectionTitle: { ...typography.h3, color: colors.textDark, fontSize: 18 },
-  countRow:     { flexDirection: 'row', alignItems: 'center' },
-  sectionCount: { ...typography.bodyBold, color: colors.primary, marginLeft: 8 },
+  sectionTitle: { ...typography.h3, color: colors.textDark, fontSize: 24 },
+  sectionCount: { ...typography.bodyBold, color: colors.primary, marginLeft: 8, fontSize: 20 },
   addCat:       {
     width: 24, height: 24, borderRadius: 12, backgroundColor: '#F0F0F0',
     alignItems: 'center', justifyContent: 'center',

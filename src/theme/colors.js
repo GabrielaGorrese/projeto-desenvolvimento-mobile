@@ -15,7 +15,7 @@ export const colors = {
   managerDark:   '#A84838',
 
   // Inputs / surface
-  inputBg:       '#EFEFEF',
+  inputBg:       '#fafafa',
   inputBorder:   '#E2E2E2',
   cardBg:        '#F5F2EF',
   divider:       '#ECECEC',
@@ -45,7 +45,7 @@ export const colors = {
   catLanches:       ['#2F8073', '#7CC2A9'],
   catSalgados:      ['#B66E2B', '#E0A052'],
   catDoces:         ['#7B4A8F', '#C087C9'],
-  catCombos:        ['#4A5470', '#8B96B0'],
+  catCombos:        ['#4A5470', '#5b7ecf'],
   catDefault:       ['#555555', '#888888'],
 };
 

@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Image
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -38,6 +39,7 @@ const INITIAL_FILTERS = {
 export default function OrdersScreen({ navigation, route }) {
   const { signOut, isManager } = useAuth();
   const r = useResponsive();
+  const sideGutter = Math.max(8, Math.round((r.width - r.contentMaxWidth) / 2) + 8);
   const [open,    setOpen]    = useState([]);
   const [closed,  setClosed]  = useState([]);
   const [loading, setLoading] = useState(true);
@@ -134,6 +136,18 @@ export default function OrdersScreen({ navigation, route }) {
     }
   }
 
+  // REMOVER
+  /*
+  const placeholderOrder = {
+    id: 'placeholder-1',
+    daily_number: 3,
+    label: 'Mesa 12 - TESTE',
+    attendant: 'Bruno',
+    table_label: '12',
+    color_status: 'green', // green | yellow | red
+    created_at: new Date().toISOString(),
+  };
+*/
   return (
     <Screen background="#FFF" statusBarBg={colors.bgDark} statusBarStyle="light-content">
       <SearchHeader
@@ -143,21 +157,23 @@ export default function OrdersScreen({ navigation, route }) {
         onChangeText={setSearch}
         onFilter={() => setFiltersOpen(true)}
         activeFilters={activeFiltersCount}
+        size="lg"
       />
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 120, alignItems: 'center' }}
+          contentContainerStyle={{ paddingBottom: 104, alignItems: 'center' }}
           refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => { setRefresh(true); load(); }} />}
         >
-        <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
+        <View style={{ width: '100%', maxWidth: r.contentMaxWidth, marginTop: 24 }}>
           {isManager ? (
             <View style={styles.resetWrap}>
               <Button
                 title="Iniciar novo dia (zerar numeração)"
                 variant="outline"
+                size="lg"
                 onPress={() => setResetModal(true)}
                 icon={<Feather name="refresh-ccw" size={16} color={colors.primary} />}
               />
@@ -166,22 +182,74 @@ export default function OrdersScreen({ navigation, route }) {
 
           <SectionHeader title="Pedidos em andamento" count={filteredOpen.length} />
           <Grid>
+            {/*
+            {/* REMOVER 
+             <OrderTile
+                key="placeholder"
+                order={{ ...placeholderOrder, status: 'open' }}
+                isNew
+                size="lg"
+                onPress={() => {}}
+              />
+              <OrderTile
+                key="placeholder"
+                order={{ ...placeholderOrder, status: 'open' }}
+                isNew
+                size="lg"
+                onPress={() => {}}
+              />
+              <OrderTile
+                key="placeholder"
+                order={{ ...placeholderOrder, status: 'open' }}
+                isNew
+                size="lg"
+                onPress={() => {}}
+              />
+              <OrderTile
+                key="placeholder"
+                order={{ ...placeholderOrder, status: 'open' }}
+                isNew
+                size="lg"
+                onPress={() => {}}
+              />
+              <OrderTile
+                key="placeholder"
+                order={{ ...placeholderOrder, status: 'open' }}
+                isNew
+                size="lg"
+                onPress={() => {}}
+              />
+              */}
             {filteredOpen.map((o) => (
+              
               <OrderTile
                 key={o.id}
                 order={{ ...o, status: 'open' }}
                 isNew={o.id === newOrderId}
+                size="lg"
                 onPress={() => navigation.navigate('OrderDetail', { id: o.id })}
               />
             ))}
             {filteredOpen.length === 0 ? (
-              <Text style={styles.empty}>
-                {search || activeFiltersCount > 0
-                  ? 'Nenhuma comanda encontrada com esses filtros.'
-                  : 'Nenhuma comanda aberta.'}
-              </Text>
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                <Image source={require('../../assets/vazio.png')} style={{ width: 64, height: 64 }} resizeMode="contain" />
+                <Text style={styles.empty}>
+                  {search || activeFiltersCount > 0
+                    ? 'Nenhum pedido encontrado com esses filtros'
+                    : 'Nenhum pedido em andamento'}
+                </Text>
+              </View>
             ) : null}
           </Grid>
+
+          <View
+            style={{
+              height: 1,
+              backgroundColor: '#ccc',
+              width: '100%',
+              marginVertical: 10,
+            }}
+          />
 
           <SectionHeader title="Comandas fechadas hoje" count={filteredClosed.length} />
           <Grid>
@@ -189,28 +257,34 @@ export default function OrdersScreen({ navigation, route }) {
               <OrderTile
                 key={o.id}
                 order={{ ...o, status: 'closed' }}
+                size="lg"
                 onPress={() => navigation.navigate('OrderDetail', { id: o.id, readOnly: true })}
               />
             ))}
             {filteredClosed.length === 0 ? (
-              <Text style={styles.empty}>
-                {search || activeFiltersCount > 0
-                  ? 'Nenhuma comanda encontrada com esses filtros.'
-                  : 'Nenhuma comanda fechada hoje.'}
-              </Text>
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                <Image source={require('../../assets/vazio.png')} style={{ width: 64, height: 64 }} resizeMode="contain" />
+                <Text style={styles.empty}>
+                  {search || activeFiltersCount > 0
+                    ? 'Nenhuma comanda encontrada com esses filtros'
+                    : 'Nenhuma comanda fechada hoje'}
+                </Text>
+              </View>
             ) : null}
           </Grid>
         </View>
+        
         </ScrollView>
       )}
 
       <BottomBar current="home" />
-      <Fab onPress={() => navigation.navigate('OrderDetail', { id: 'new' })} />
+      <Fab onPress={() => navigation.navigate('OrderDetail', { id: 'new' })} style={{ right: sideGutter }} />
 
       <FiltersSheet
         visible={filtersOpen}
         onClose={() => setFiltersOpen(false)}
         onClear={() => { clearFilters(); setFiltersOpen(false); }}
+        size="lg"
         sections={[
           {
             key: 'color',
@@ -252,6 +326,7 @@ export default function OrdersScreen({ navigation, route }) {
         visible={createdModal}
         title="Pedido cadastrado"
         message={`Pedido nº ${newOrderNumber} cadastrado com sucesso!`}
+        size="lg"
         onClose={() => { setCreatedModal(false); }}
       />
 
@@ -264,6 +339,7 @@ export default function OrdersScreen({ navigation, route }) {
         confirmLabel="Iniciar novo dia"
         cancelLabel="Cancelar"
         loading={resetting}
+        size="lg"
         onConfirm={doReset}
         onCancel={() => setResetModal(false)}
       />
@@ -273,6 +349,7 @@ export default function OrdersScreen({ navigation, route }) {
         title="Novo dia iniciado"
         message={resetResult || ''}
         okLabel="OK"
+        size="lg"
         onClose={() => setResetResult(null)}
       />
 
@@ -282,6 +359,7 @@ export default function OrdersScreen({ navigation, route }) {
         title="Não foi possível"
         message={resetError || ''}
         okLabel="OK"
+        size="lg"
         onClose={() => setResetError(null)}
       />
     </Screen>
@@ -333,19 +411,19 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    marginTop: 18,
+    paddingHorizontal: 10,
+    marginTop: 36,
     marginBottom: 4,
   },
-  sectionTitle: { ...typography.h3, color: colors.textDark, fontSize: 18 },
-  sectionCount: { ...typography.bodyBold, color: colors.primary, marginLeft: 8 },
+  sectionTitle: { ...typography.h3, color: colors.textDark, fontSize: 24 },
+  sectionCount: { ...typography.bodyBold, color: colors.primary, marginLeft: 8, fontSize: 20 },
 
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 12,
-    marginTop: 4,
+    paddingHorizontal: 4,
+    marginTop: 16,
   },
-  resetWrap: { paddingHorizontal: 18, marginTop: 14 },
-  empty: { padding: 24, color: colors.textMuted, fontStyle: 'italic' },
+  resetWrap: { paddingHorizontal: 10, marginTop: 12 },
+  empty: { padding: 10, color: colors.textMuted, fontSize: 18, paddingBottom: 42 },
 });
