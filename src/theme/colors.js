@@ -49,4 +49,25 @@ export const colors = {
   catDefault:       ['#555555', '#888888'],
 };
 
+export const gradients = {
+  categorias: {
+    refrigerantes: ['#F44336', '#D32F2F'],
+    sucos: ['#FF9800', '#F57C00'],
+    pratos: ['#4CAF50', '#388E3C'],
+    lanches: ['#9C27B0', '#7B1FA2'],
+    salgados: ['#795548', '#5D4037'],
+    doces: ['#E91E63', '#C2185B'],
+    combos: ['#3F51B5', '#303F9F'],
+    default: ['#607D8B', '#455A64'],
+  },
+
+  ui: {
+    primary: ['#bb5e3a', '#CC7E4A'],
+    manager: ['#aa3e2f', '#C25A48'],
+    dark: ['#111111', '#313131'],
+    success: ['#00C853', '#009624'],
+    danger: ['#D50000', '#9B0000'],
+  }
+};
+
 export default colors;

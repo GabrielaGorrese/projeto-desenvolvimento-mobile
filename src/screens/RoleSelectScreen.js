@@ -1,11 +1,18 @@
 import React from 'react';
-import { Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Platform, Pressable, StatusBar, StyleSheet, Text, View, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Logo from '../components/Logo';
 import { colors, radii, typography } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import useResponsive from '../hooks/useResponsive';
+
+import GradientView from '../components/GradientView';
+import { gradients } from '../theme/colors';
+
+const roleImages = {
+  ATENDENTE: require('../../assets/icons/atendente.png'),
+  GERENTE: require('../../assets/icons/gerente.png'),
+};
 
 export default function RoleSelectScreen({ navigation }) {
   const { setSelectedRole } = useAuth();
@@ -18,7 +25,7 @@ export default function RoleSelectScreen({ navigation }) {
     navigation.navigate('Login');
   }
 
-  const cardsRow = r.isLandscape;
+  const cardsRow = false;
   const maxW = r.isLandscape
     ? Math.max(520, Math.min(1200, r.width * 0.78))
     : r.width;
@@ -33,7 +40,7 @@ export default function RoleSelectScreen({ navigation }) {
   const portraitLift = cardsRow ? 0 : -Math.round(Math.max(8, Math.min(18, minSide * 0.03)));
 
   return (
-    <View style={styles.root}>
+    <GradientView colors={gradients.ui.dark} style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bgDark} />
 
       <View style={[styles.darkArea, { paddingTop: insets.top + 56 }]}>
@@ -53,8 +60,7 @@ export default function RoleSelectScreen({ navigation }) {
           <View style={cardsRow ? styles.cardsRow : styles.cardsCol}>
             <RoleCard
               label="ATENDENTE"
-              color={colors.attendant}
-              icon="user"
+              gradient={gradients.ui.primary}
               onPress={() => pick('attendant')}
               wide={!cardsRow}
               cardHeight={cardHeight}
@@ -66,8 +72,7 @@ export default function RoleSelectScreen({ navigation }) {
             />
             <RoleCard
               label="GERENTE"
-              color={colors.manager}
-              icon="shield"
+              gradient={gradients.ui.manager}
               onPress={() => pick('manager')}
               wide={!cardsRow}
               cardHeight={cardHeight}
@@ -85,14 +90,13 @@ export default function RoleSelectScreen({ navigation }) {
           Desenvolvimento SATC | 2026
         </Text>
       </View>
-    </View>
+    </GradientView>
   );
 }
 
 function RoleCard({
   label,
-  color,
-  icon,
+  gradient,
   onPress,
   wide,
   cardHeight,
@@ -102,37 +106,51 @@ function RoleCard({
   labelMarginLeft,
   cardPaddingH,
 }) {
+  const imageSource = roleImages[label] || roleImages.ATENDENTE;
+  const imageSize = Math.round(iconSize * 2.25);
+
   return (
     <View style={[styles.cardWrap, wide ? styles.cardWide : styles.cardFlex]}>
       <Pressable
         onPress={onPress}
         android_ripple={{ color: 'rgba(255,255,255,0.25)' }}
         style={({ pressed }) => [
-          styles.card,
-          { backgroundColor: color },
-          { height: cardHeight, paddingHorizontal: cardPaddingH },
+          styles.cardPressable,
           pressed && Platform.OS !== 'android' && { opacity: 0.78 },
         ]}
       >
-        <View style={[styles.cardIcon, { width: iconWidth }]}>
-          <Feather name={icon} size={iconSize} color="#FFFFFF" />
-        </View>
-        <Text
-          style={[
-            styles.cardLabel,
-            { fontSize: labelFontSize, marginLeft: labelMarginLeft, lineHeight: Math.round(labelFontSize * 1.1) },
-          ]}
-          numberOfLines={1}
+        <GradientView
+          colors={gradient}
+          style={[styles.card, { height: cardHeight, paddingHorizontal: cardPaddingH }]}
         >
-          {label}
-        </Text>
+          <View style={[styles.cardIcon, { width: iconWidth }]}>
+            <Image
+              source={imageSource}
+              style={[styles.cardImage, { width: imageSize, height: imageSize }]}
+              resizeMode="contain"
+            />
+          </View>
+          <Text
+            style={[
+              styles.cardLabel,
+              {
+                fontSize: labelFontSize,
+                marginLeft: imageSize,
+                lineHeight: Math.round(labelFontSize * 1.1),
+              },
+            ]}
+            numberOfLines={1}
+          >
+            {label}
+          </Text>
+        </GradientView>
       </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root:     { flex: 1, backgroundColor: colors.bgDark },
+  root:     { flex: 1 },
   darkArea: { paddingBottom: 26, alignItems: 'center' },
 
   sheet: {
@@ -145,12 +163,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   content:  {
-    width: '100%',
+    width: '70%',
     alignSelf: 'center',
     flex: 1,
     justifyContent: 'center',
   },
-  heading:  { ...typography.h3, color: colors.textDark, marginBottom: 22, fontSize: 22, textAlign: 'center' },
+  heading:  { ...typography.h3, color: colors.textDark, marginBottom: 22, fontSize: 28, textAlign: 'center', marginTop: 18 },
 
   cardsCol: { flexDirection: 'column' },
   cardsRow: { flexDirection: 'row' },
@@ -158,6 +176,7 @@ const styles = StyleSheet.create({
   cardWrap: { marginBottom: 22 },
   cardWide: { width: '100%' },
   cardFlex: { flex: 1, marginHorizontal: 6 },
+  cardPressable: { borderRadius: radii.lg, overflow: 'hidden' },
 
   card: {
     borderRadius: radii.lg,
@@ -165,7 +184,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
   },
-  cardIcon: { alignItems: 'center', justifyContent: 'center' },
+  cardIcon: { position: 'absolute', left: 0, top: '4%' },
+  cardImage: { tintColor: '#FFF' },
   cardLabel: {
     color: '#FFF',
     fontWeight: '900',
