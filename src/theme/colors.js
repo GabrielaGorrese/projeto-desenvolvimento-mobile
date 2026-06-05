@@ -39,13 +39,13 @@ export const colors = {
   danger:        '#D45146',
 
   // Categorias (gradientes do figma)
-  catRefrigerantes: ['#A2382D', '#D5604F'],
+  catRefrigerantes: ['#7a2b22', '#e75f4a'],
   catSucos:         ['#7B9F2D', '#D0C247'],
   catPratos:        ['#3F6E2A', '#7CB256'],
-  catLanches:       ['#2F8073', '#7CC2A9'],
-  catSalgados:      ['#B66E2B', '#E0A052'],
-  catDoces:         ['#7B4A8F', '#C087C9'],
-  catCombos:        ['#4A5470', '#5b7ecf'],
+  catLanches:       ['#1f665a', '#7CC2A9'],
+  catSalgados:      ['#b45d16', '#E0A052'],
+  catDoces:         ['#683196', '#C087C9'],
+  catCombos:        ['#293f7a', '#6b8fe2'],
   catDefault:       ['#555555', '#888888'],
 };
 
@@ -57,7 +57,7 @@ export const gradients = {
     lanches: ['#9C27B0', '#7B1FA2'],
     salgados: ['#795548', '#5D4037'],
     doces: ['#E91E63', '#C2185B'],
-    combos: ['#3F51B5', '#303F9F'],
+    combos: ['#b53f3f', '#303F9F'],
     default: ['#607D8B', '#455A64'],
   },
 

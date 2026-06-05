@@ -84,11 +84,6 @@ export default function RoleSelectScreen({ navigation }) {
             />
           </View>
         </View>
-
-        {/* Footer com paddingBottom = inset da gesture bar + folga */}
-        <Text style={[styles.footer, { marginBottom: insets.bottom + 12 }]}>
-          Desenvolvimento SATC | 2026
-        </Text>
       </View>
     </GradientView>
   );
@@ -156,11 +151,13 @@ const styles = StyleSheet.create({
   sheet: {
     flex: 1,
     backgroundColor: '#FFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     paddingHorizontal: 20,
     paddingTop: 28,
     justifyContent: 'space-between',
+    width: '92%',
+    alignSelf: 'center'
   },
   content:  {
     width: '70%',
@@ -191,7 +188,5 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 1.2,
     fontFamily: typography.familyHeavy,
-  },
-
-  footer: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
+  }
 });

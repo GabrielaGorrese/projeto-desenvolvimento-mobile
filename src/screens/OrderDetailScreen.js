@@ -367,11 +367,14 @@ export default function OrderDetailScreen({ route, navigation }) {
       <DarkHeader title={headerTitle} subtitle={headerSubtitle} onBack={() => navigation.popToTop()} />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 220, alignItems: 'center' }} keyboardShouldPersistTaps="handled">
-        <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
-        <View style={styles.statusPill}>
-          <View style={styles.statusDot} />
-          <Text style={styles.statusText}>{readOnly ? 'Fechada' : 'Pendente'}</Text>
+        <View style={styles.statusPillBg}>
+          <View style={styles.statusPill}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>{readOnly ? 'Fechada' : 'Pendente'}</Text>
+          </View>
         </View>
+
+        <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
 
         <View style={twoCol ? styles.twoColRow : null}>
         <View style={twoCol ? styles.twoColLeft : null}>
@@ -460,14 +463,26 @@ export default function OrderDetailScreen({ route, navigation }) {
               </ScrollView>
             </View>
           ) : null}
+          </View>
 
+          <View
+            style={{
+              height: 2,
+              backgroundColor: '#e0e0e0',
+              width: '100%',
+              marginVertical: 10,
+              marginBottom: 24
+            }}
+          /> 
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Identificação (opcional)</Text>
           <Input
-            label="Identificação (opcional)"
             value={label}
             onChangeText={setLabel}
             placeholder='Ex.: "João", "Balcão"'
             editable={!readOnly}
-            style={{ marginTop: 14 }}
+            style={{ marginTop: 6 }}
           />
         </View>
         </View>
@@ -730,7 +745,7 @@ const styles = StyleSheet.create({
   statusPillBg: {
     backgroundColor: '#fffbec',
     width: '100%',
-    marginBottom: 32,
+    marginBottom: 48,
   },
   statusPill: {
     flexDirection: 'row',
@@ -749,7 +764,7 @@ const styles = StyleSheet.create({
   twoColLeft:  { flex: 1 },
   twoColRight: { flex: 1 },
 
-  section:      { paddingHorizontal: 24, marginBottom: 18 },
+  section:      { paddingHorizontal: 24, marginBottom: 32 },
   sectionTitle: { ...typography.h3, color: colors.textDark, fontSize: 24, paddingBottom: 12 },
 
   infoRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
@@ -841,12 +856,11 @@ const styles = StyleSheet.create({
 
   footer: {
     position: 'absolute',
-    left: 0, right: 0, bottom: 0,
+    width: '100%',
+    alignSelf: 'center', bottom: 0,
     backgroundColor: colors.bgDark,
     paddingHorizontal: 18,
     paddingTop: 14,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
   },
   totalRow: {
     flexDirection: 'row',

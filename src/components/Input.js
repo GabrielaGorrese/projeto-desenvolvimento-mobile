@@ -13,6 +13,8 @@ const Input = forwardRef(function Input(
     keyboardType,
     autoCapitalize = 'none',
     style,
+    labelStyle,
+    fieldStyle,
     inputStyle,
     error,
     rightIcon,
@@ -29,13 +31,14 @@ const Input = forwardRef(function Input(
 
   return (
     <View style={[styles.wrap, style]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Text style={[styles.label, labelStyle]}>{label}</Text> : null}
       <View
         style={[
           styles.field,
           multiline && { height: 'auto', minHeight: 92, paddingVertical: 10 },
           error && { borderColor: colors.danger },
           !editable && { backgroundColor: '#EAEAEA' },
+          fieldStyle,
         ]}
       >
         <TextInput
@@ -54,7 +57,7 @@ const Input = forwardRef(function Input(
         />
         {isPassword ? (
           <Pressable onPress={() => setShowPwd((v) => !v)} hitSlop={8}>
-            <Feather name={showPwd ? 'eye' : 'eye-off'} size={18} color={colors.textMuted} />
+            <Feather name={showPwd ? 'eye' : 'eye-off'} size={24} color={colors.textMuted} />
           </Pressable>
         ) : rightIcon ? (
           <Pressable onPress={onRightIconPress} hitSlop={8}>
