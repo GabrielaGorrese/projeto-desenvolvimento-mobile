@@ -205,9 +205,18 @@ async function getOne(req, res) {
 // POST /api/orders — criar comanda
 // Body: { label?, table_id?, people?, items: [{ product_id, quantity, notes? }] }
 async function create(req, res) {
-  const { label, table_id, people, items = [] } = req.body
+  const { label, table_id, people, items = [], daily_number } = req.body
   const userId = req.user.id
   const peopleParsed = Math.max(1, parseInt(people || 1, 10))
+
+  // Se o front mandar um número escolhido, valida (inteiro de 1 a 6 dígitos).
+  let chosenNumber = null
+  if (daily_number !== undefined && daily_number !== null && daily_number !== '') {
+    chosenNumber = parseInt(daily_number, 10)
+    if (isNaN(chosenNumber) || chosenNumber < 1 || chosenNumber > 999999) {
+      return res.status(400).json({ error: 'daily_number deve ser um inteiro entre 1 e 999999.' })
+    }
+  }
 
   const client = await pool.connect()
   try {
@@ -219,15 +228,40 @@ async function create(req, res) {
     )
     const statusId = statusRows[0].id
 
-    // Próximo número visível da comanda. O UPDATE ... RETURNING trava a linha
-    // do contador até o commit, serializando a numeração (sem corrida) — e se
-    // a transação der ROLLBACK, o incremento é desfeito (sem buracos).
-    const { rows: seqRows } = await client.query(
-      `UPDATE order_sequence SET current_value = current_value + 1
-       WHERE id = 1
-       RETURNING current_value`
-    )
-    const dailyNumber = seqRows[0].current_value
+    // Trava a linha do contador até o commit, serializando a numeração
+    // (sem corrida) — e se a transação der ROLLBACK, o incremento é desfeito.
+    // Se o front passou um número, usamos ele (e avançamos o contador para
+    // max(atual, escolhido) para manter a próxima sugestão coerente).
+    // Caso contrário, atribuímos contador + 1 como antes.
+    let dailyNumber
+    if (chosenNumber !== null) {
+      // Bloqueia se outra comanda ABERTA já está usando esse número.
+      const { rows: dup } = await client.query(
+        `SELECT 1 FROM orders o
+         JOIN   status s ON s.id = o.status_id
+         WHERE  s.name = 'open' AND o.daily_number = $1
+         LIMIT  1`,
+        [chosenNumber]
+      )
+      if (dup.length > 0) {
+        await client.query('ROLLBACK')
+        return res.status(409).json({ error: `Já existe uma comanda aberta com o número ${chosenNumber}.` })
+      }
+      await client.query(
+        `UPDATE order_sequence
+         SET    current_value = GREATEST(current_value, $1)
+         WHERE  id = 1`,
+        [chosenNumber]
+      )
+      dailyNumber = chosenNumber
+    } else {
+      const { rows: seqRows } = await client.query(
+        `UPDATE order_sequence SET current_value = current_value + 1
+         WHERE id = 1
+         RETURNING current_value`
+      )
+      dailyNumber = seqRows[0].current_value
+    }
 
     // Criar a comanda
     const { rows: orderRows } = await client.query(
@@ -504,6 +538,22 @@ async function remove(req, res) {
   }
 }
 
+// GET /api/orders/next-number — sugestão do próximo número para uma nova comanda.
+// Retorna `current_value + 1` do contador (a sugestão padrão; o usuário pode
+// alterar no front antes de confirmar).
+async function nextNumber(req, res) {
+  try {
+    const { rows } = await pool.query(
+      `SELECT current_value FROM order_sequence WHERE id = 1`
+    )
+    const current = rows[0]?.current_value ?? 0
+    return res.json({ next_number: current + 1 })
+  } catch (err) {
+    console.error('[orders.nextNumber]', err)
+    return res.status(500).json({ error: 'Erro interno no servidor.' })
+  }
+}
+
 // POST /api/orders/sequence/reset — "fechar o caixa": zera a numeração visível.
 // A próxima comanda criada volta a ser nº 1. Somente gerente (rota protegida).
 // Bloqueia se houver comandas abertas, para não gerar números duplicados na tela.
@@ -531,4 +581,4 @@ async function resetSequence(req, res) {
   }
 }
 
-module.exports = { getOpenOrders, getClosedOrders, getOne, create, update, close, remove, resetSequence }
+module.exports = { getOpenOrders, getClosedOrders, getOne, create, update, close, remove, resetSequence, nextNumber }

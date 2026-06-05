@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -21,7 +20,7 @@ import { useAuth } from '../contexts/AuthContext';
 import useResponsive from '../hooks/useResponsive';
 
 export default function LoginScreen({ navigation }) {
-  const { selectedRole, signIn, rememberedUsername } = useAuth();
+  const { selectedRole, signIn, signOut, rememberedUsername } = useAuth();
   const r = useResponsive();
   const scale = Math.min(1.4, Math.max(1, r.width / 600));
   const bannerTitleFontSize = 22 * scale;
@@ -54,7 +53,9 @@ export default function LoginScreen({ navigation }) {
     try {
       const user = await signIn({ username: username.trim(), password, remember });
       if (isManager && user.role !== 'manager') {
-        Alert.alert('Acesso negado', 'Esta conta não é de gerente.');
+        // Logou com sucesso mas a conta não é de gerente: desfaz e avisa inline.
+        await signOut();
+        setError('Esta conta não é de gerente.');
       }
     } catch (err) {
       setError(err?.uiMessage || 'Falha no login.');

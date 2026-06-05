@@ -1,6 +1,7 @@
-const path = require('path')
-const fs   = require('fs')
-const pool = require('../db/pool')
+const path   = require('path')
+const fs     = require('fs')
+const pool   = require('../db/pool')
+const socket = require('../utils/socket')
 
 // O campo image pode armazenar:
 //   - filename de upload local (ex.: "1779328178446-833083768.webp")
@@ -122,9 +123,12 @@ async function create(req, res) {
       [name.trim(), description || null, parsedPrice, imageField, category_id]
     )
 
+    const product = { ...rows[0], image: buildImageUrl(req, rows[0].image) }
+    socket.getIO().emit('product:created', product)
+
     return res.status(201).json({
       message: `Produto "${name}" criado com sucesso.`,
-      product: { ...rows[0], image: buildImageUrl(req, rows[0].image) }
+      product
     })
   } catch (err) {
     if (req.file) fs.unlink(req.file.path, () => {})
@@ -198,9 +202,12 @@ async function update(req, res) {
       fs.unlink(oldPath, () => {})
     }
 
+    const product = { ...rows[0], image: buildImageUrl(req, rows[0].image) }
+    socket.getIO().emit('product:updated', product)
+
     return res.json({
       message: 'Produto atualizado.',
-      product: { ...rows[0], image: buildImageUrl(req, rows[0].image) }
+      product
     })
   } catch (err) {
     if (req.file) fs.unlink(req.file.path, () => {})
@@ -229,6 +236,8 @@ async function remove(req, res) {
       return res.status(404).json({ error: 'Produto não encontrado ou já inativo.' })
     }
 
+    socket.getIO().emit('product:deleted', { id: parseInt(id, 10) })
+
     return res.json({ message: `Produto "${rows[0].name}" desativado com sucesso.` })
   } catch (err) {
     console.error('[products.remove]', err)
@@ -251,6 +260,8 @@ async function restore(req, res) {
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Produto não encontrado ou já ativo.' })
     }
+
+    socket.getIO().emit('product:restored', { id: parseInt(id, 10) })
 
     return res.json({ message: `Produto "${rows[0].name}" reativado com sucesso.` })
   } catch (err) {

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View, Image } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { colors, radii, typography } from '../theme';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -61,7 +62,7 @@ function getGradient(name) {
   };
 }
 
-export default function CategoryCard({ category, onPress, style }) {
+export default function CategoryCard({ category, onPress, style, selected, dimmed }) {
   const { gradient, image } = useMemo(
     () => getGradient(category.name),
     [category.name]
@@ -70,17 +71,26 @@ export default function CategoryCard({ category, onPress, style }) {
   const [c1, c2] = gradient;
 
   return (
-    <Pressable onPress={onPress} style={[styles.card, style]}>
-      <LinearGradient
-        colors={[c1, c2]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.bg}
-      />
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.card,
+        selected && styles.cardSelected,
+        dimmed && styles.cardDimmed,
+        style,
+      ]}
+    >
+      <View style={[styles.bg, { backgroundColor: c1 }]} />
+      <View style={[styles.bg, { backgroundColor: c2, opacity: 0.55 }]} />
       <Image source={image} style={styles.image} resizeMode="contain" />
       <Text style={styles.name} numberOfLines={1}>
         {(category.name || '').toUpperCase()}
       </Text>
+      {selected ? (
+        <View style={styles.check}>
+          <Feather name="check" size={14} color={colors.textDark} />
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -94,6 +104,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     margin: 6,
+    // Borda sempre presente (transparente) evita "pulo" de layout ao selecionar.
+    borderWidth: 3,
+    borderColor: 'transparent',
   },
   image: {
     position: 'absolute',
@@ -104,5 +117,19 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   bg: { ...StyleSheet.absoluteFillObject },
+  selectedOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.18)' },
   name: { ...typography.h3, color: '#FFFFFF', fontWeight: '900', letterSpacing: 0.5 },
+
+  // Selo de "selecionada" no canto superior direito.
+  check: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

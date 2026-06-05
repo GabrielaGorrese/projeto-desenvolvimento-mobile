@@ -15,9 +15,15 @@ export async function fetchOrder(id) {
   return data.order;
 }
 
-export async function createOrder({ label, table_id, items = [] }) {
-  const { data } = await api.post('/orders', { label, table_id, items });
+export async function createOrder({ label, table_id, people, items = [], daily_number }) {
+  const { data } = await api.post('/orders', { label, table_id, people, items, daily_number });
   return data.order;
+}
+
+// Sugestão do próximo número da comanda (contador atual + 1).
+export async function fetchNextOrderNumber() {
+  const { data } = await api.get('/orders/next-number');
+  return data.next_number;
 }
 
 export async function updateOrder(id, payload) {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import Screen from '../components/Screen';
@@ -26,6 +26,7 @@ export default function NewProductScreen({ navigation, route }) {
   const [imageUrl,    setImageUrl]    = useState('');     // URL externa
   const [saving,      setSaving]      = useState(false);
   const [success,     setSuccess]     = useState(false);
+  const [errorModal,  setErrorModal]  = useState(null); // { title, message }
 
   useEffect(() => {
     fetchCategories().then(setCategories).catch(() => {});
@@ -47,12 +48,12 @@ export default function NewProductScreen({ navigation, route }) {
 
   async function onSubmit() {
     if (!name.trim() || !price || !categoryId) {
-      Alert.alert('Atenção', 'Preencha nome, categoria e preço.');
+      setErrorModal({ title: 'Atenção', message: 'Preencha nome, categoria e preço.' });
       return;
     }
     const parsedPrice = Number(price.replace(',', '.'));
     if (isNaN(parsedPrice) || parsedPrice < 0) {
-      Alert.alert('Atenção', 'Preço inválido.');
+      setErrorModal({ title: 'Atenção', message: 'Preço inválido.' });
       return;
     }
     setSaving(true);
@@ -68,7 +69,7 @@ export default function NewProductScreen({ navigation, route }) {
       });
       setSuccess(true);
     } catch (err) {
-      Alert.alert('Erro', err?.uiMessage || 'Erro ao cadastrar.');
+      setErrorModal({ title: 'Erro', message: err?.uiMessage || 'Erro ao cadastrar.' });
     } finally { setSaving(false); }
   }
 
@@ -163,6 +164,15 @@ export default function NewProductScreen({ navigation, route }) {
         title="Produto cadastrado"
         message={`Produto "${name}" cadastrado com sucesso!`}
         onClose={() => { setSuccess(false); navigation.goBack(); }}
+      />
+
+      <FeedbackModal
+        visible={!!errorModal}
+        variant="danger"
+        title={errorModal?.title || 'Erro'}
+        message={errorModal?.message || ''}
+        okLabel="OK"
+        onClose={() => setErrorModal(null)}
       />
     </Screen>
   );

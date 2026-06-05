@@ -1,14 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
 import Screen from '../components/Screen';
 import SearchHeader from '../components/SearchHeader';
@@ -22,8 +21,25 @@ import {
   fetchCategories,
 } from '../services/productsService';
 import { useAuth } from '../contexts/AuthContext';
+import { usePendingItems } from '../contexts/PendingItemsContext';
+import { connectSocket } from '../services/socket';
 import useResponsive from '../hooks/useResponsive';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+
+function thumbUrl(url, w = 300) {
+  if (!url || typeof url !== 'string') return url;
+  const sep = url.includes('?') ? '&' : '?';
+  if (url.includes('images.unsplash.com')) {
+    return `${url}${sep}w=${w}&q=60&auto=format&fit=crop`;
+  }
+
+  if (/(?:images\.weserv\.nl|wsrv\.nl)/.test(url)) {
+    return `${url}${sep}w=${w}&q=60`;
+  }
+  return url;
+}
 
 // Tela única servindo dois modos:
 //  - mode="manage"  (gerente): clicar em produto -> visualizar/editar
@@ -32,6 +48,7 @@ export default function CatalogScreen({ navigation, route }) {
   const mode    = route.params?.mode || 'select';
   const orderId = route.params?.orderId;
   const { isManager } = useAuth();
+  const { setPendingItems } = usePendingItems();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
   // Quantas colunas no grid de produtos? Alvo: ~140dp por célula.
@@ -55,12 +72,35 @@ export default function CatalogScreen({ navigation, route }) {
       ]);
       setCategories(cats || []);
       setProducts(prods || []);
+      const urls = (prods || []).map((p) => thumbUrl(p.image, 300)).filter(Boolean);
+      if (urls.length) {
+        Image.prefetch(urls, { cachePolicy: 'memory-disk' }).catch(() => {});
+      }
     } catch (err) {
       console.warn('catalog', err?.uiMessage);
     } finally { setLoading(false); }
   }, [search, categoryId]);
 
-  useEffect(() => { load(); }, [load]);
+
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  useEffect(() => {
+    const s = connectSocket();
+    const reload = () => loadRef.current();
+    s.on('product:created',  reload);
+    s.on('product:updated',  reload);
+    s.on('product:deleted',  reload);
+    s.on('product:restored', reload);
+    return () => {
+      s.off('product:created',  reload);
+      s.off('product:updated',  reload);
+      s.off('product:deleted',  reload);
+      s.off('product:restored', reload);
+    };
+  }, []);
 
   function increment(prod) {
     setCart((c) => {
@@ -91,12 +131,9 @@ export default function CatalogScreen({ navigation, route }) {
       product_name: i.product.name,
       image:        i.product.image,
     }));
-    // Volta para a tela anterior passando os itens via params
-    navigation.navigate({
-      name: 'OrderDetail',
-      params: { id: orderId, addItems: items },
-      merge: true,
-    });
+
+    setPendingItems(orderId, items);
+    navigation.goBack();
   }
 
   function onProductPress(p) {
@@ -120,48 +157,63 @@ export default function CatalogScreen({ navigation, route }) {
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
       ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: 160 }}>
-          <View style={{ width: '100%', maxWidth: r.contentMaxWidth, marginTop: 24, alignSelf: 'center' }}>
-          <SectionHeader style={styles.sectionHeader} title="Categorias" count={categories.length} />
-
-          <View style={styles.catGrid}>
-            {categories.map((c) => (
-              <View key={c.id} style={{ width: `${80 / catCols}%`, paddingHorizontal: 1 }}>
-                <CategoryCard
-                  category={c}
-                  onPress={() => setCategoryId((cur) => cur === c.id ? null : c.id)}
-                  style={categoryId === c.id ? { borderWidth: 3, borderColor: colors.primary } : null}
+        <FlatList
+          // key força recriar a lista quando muda o nº de colunas (rotação),
+          // exigência do numColumns da FlatList.
+          key={`cols-${prodCols}`}
+          data={products}
+          keyExtractor={(p) => String(p.id)}
+          numColumns={prodCols}
+          // Re-renderiza os itens quando o carrinho muda (badge de quantidade).
+          extraData={cart}
+          contentContainerStyle={{ paddingBottom: 160 }}
+          keyboardShouldPersistTaps="handled"
+          // Buffer generoso + não descartar views fora da tela: garante que as
+          // imagens próximas já estejam montadas/carregadas para seleção rápida.
+          initialNumToRender={24}
+          maxToRenderPerBatch={16}
+          windowSize={11}
+          removeClippedSubviews={false}
+          ListHeaderComponent={
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Categorias</Text>
+                <Text style={styles.sectionCount}>({categories.length})</Text>
+              </View>
+              <View style={styles.catGrid}>
+                {categories.map((c) => (
+                  <View key={c.id} style={{ width: `${100 / catCols}%`, paddingHorizontal: 6 }}>
+                    <CategoryCard
+                      category={c}
+                      selected={categoryId === c.id}
+                      dimmed={categoryId != null && categoryId !== c.id}
+                      onPress={() => setCategoryId((cur) => cur === c.id ? null : c.id)}
+                    />
+                  </View>
+                ))}
+              </View>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Todos</Text>
+                <Text style={styles.sectionCount}>({products.length})</Text>
+              </View>
+            </>
+          }
+          ListEmptyComponent={<Text style={styles.empty}>Nenhum produto encontrado.</Text>}
+          renderItem={({ item: p }) => {
+            const qty = cart[p.id]?.qty || 0;
+            return (
+              <View style={{ flex: 1, maxWidth: `${100 / prodCols}%` }}>
+                <ProductCell
+                  product={p}
+                  qty={qty}
+                  selectable={mode === 'select'}
+                  onPress={() => onProductPress(p)}
+                  onMinus={() => decrement(p)}
                 />
               </View>
-            ))}
-          </View>
-
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Todos</Text>
-            <Text style={styles.sectionCount}>({products.length})</Text>
-          </View>
-
-          <View style={styles.prodGrid}>
-            {products.map((p) => {
-              const qty = cart[p.id]?.qty || 0;
-              return (
-                <View key={p.id} style={{ width: `${100 / prodCols}%` }}>
-                  <ProductCell
-                    product={p}
-                    qty={qty}
-                    selectable={mode === 'select'}
-                    onPress={() => onProductPress(p)}
-                    onMinus={() => decrement(p)}
-                  />
-                </View>
-              );
-            })}
-            {products.length === 0 ? (
-              <Text style={styles.empty}>Nenhum produto encontrado.</Text>
-            ) : null}
-          </View>
-          </View>
-        </ScrollView>
+            );
+          }}
+        />
       )}
 
       {mode === 'select' && cartCount > 0 ? (
@@ -174,7 +226,7 @@ export default function CatalogScreen({ navigation, route }) {
         </View>
       ) : null}
 
-      <BottomBar current="home" onChange={() => {}} />
+      <BottomBar current={mode === 'manage' ? 'catalog' : 'home'} />
       {/* FAB depois do BottomBar para ficar visualmente por cima */}
       {mode === 'manage' && isManager ? (
         <Fab onPress={() => navigation.navigate('ProductEdit', { id: 'new' })} />
@@ -197,7 +249,15 @@ function ProductCell({ product, onPress, onMinus, qty, selectable }) {
     <Pressable onPress={onPress} style={styles.prodCell}>
       <View style={styles.prodImg}>
         {product.image ? (
-          <Image source={{ uri: product.image }} style={{ width: '100%', height: '100%', borderRadius: 8 }} />
+          <Image
+            source={{ uri: thumbUrl(product.image, 300) }}
+            style={{ width: '100%', height: '100%', borderRadius: 8 }}
+            contentFit="cover"
+            transition={100}
+            priority="high"
+            cachePolicy="memory-disk"
+            recyclingKey={String(product.id)}
+          />
         ) : (
           <Feather name="image" size={26} color="#BBB" />
         )}
@@ -235,7 +295,6 @@ const styles = StyleSheet.create({
 
   catGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 6, marginTop: 6 },
 
-  prodGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 6 },
   prodCell: {
     padding: 6,
     alignItems: 'center',

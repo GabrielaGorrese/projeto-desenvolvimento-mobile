@@ -30,7 +30,14 @@ export default function OrderTile({ order, onPress, isNew }) {
           pressed && { opacity: isClosed ? 0.55 : 0.85 },
         ]}
       >
-        <Text style={[styles.num, isClosed && { color: '#9C8E84' }]}>{label}</Text>
+        <Text
+          style={[styles.num, isClosed && { color: '#9C8E84' }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.4}
+        >
+          {label}
+        </Text>
       </Pressable>
       {isNew ? (
         <View style={styles.star}>
@@ -51,6 +58,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',  // ripple respeita o border-radius
   },
-  num: { ...typography.h2, color: '#FFFFFF', fontWeight: '900', fontSize: 26 },
+
+  num: { ...typography.h2, color: '#FFFFFF', fontWeight: '900', fontSize: 26, width: '100%', textAlign: 'center', paddingHorizontal: 6 },
   star: { position: 'absolute', top: -8, right: -6 },
 });
