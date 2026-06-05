@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: comandou-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: comandou
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - "./kiosque-api/SQL DO POSTGRES.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d comandou"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  api:
+    build:
+      context: ./kiosque-api
+      dockerfile: Dockerfile
+    container_name: comandou-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: comandou
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: comandou_jwt_secret_troque_em_producao
+      JWT_EXPIRES_IN: 24h
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads_data:/app/src/uploads
+
+volumes:
+  postgres_data:
+  uploads_data:
