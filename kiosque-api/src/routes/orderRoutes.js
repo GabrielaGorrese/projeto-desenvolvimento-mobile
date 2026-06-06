@@ -19,6 +19,8 @@ router.get(   '/:id',      orders.getOne)
 router.post(  '/',         orders.create)
 router.patch( '/:id',      orders.update)
 router.post(  '/:id/close', orders.close)
+// Reabrir comanda fechada — somente gerente (ação sensível sobre conta finalizada).
+router.post(  '/:id/reopen', roleMiddleware('manager'), orders.reopen)
 router.delete('/:id',      orders.remove)
 
 module.exports = router

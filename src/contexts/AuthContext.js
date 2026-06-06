@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loginRequest } from '../services/authService';
+import { loadApiBaseUrl } from '../services/apiConfig';
 
 const STORAGE_TOKEN    = '@comandou:token';
 const STORAGE_USER     = '@comandou:user';
@@ -28,6 +29,8 @@ export function AuthProvider({ children }) {
 
     (async () => {
       try {
+        // Carrega a URL da API primeiro — precisa estar pronta antes de qualquer requisição.
+        await loadApiBaseUrl();
         const [t, u, r] = await Promise.all([
           AsyncStorage.getItem(STORAGE_TOKEN),
           AsyncStorage.getItem(STORAGE_USER),

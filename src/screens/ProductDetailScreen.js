@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Image,
   Keyboard,
   Platform,
@@ -8,12 +9,11 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  View,
   useWindowDimensions,
+  View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import useImagePicker from '../hooks/useImagePicker';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import FeedbackModal from '../components/FeedbackModal';
@@ -28,89 +28,98 @@ import {
 import useResponsive from '../hooks/useResponsive';
 
 
-
 export default function ProductDetailScreen({ route, navigation }) {
-  const { id } = route.params;
-  const r = useResponsive();
-  const insets = useSafeAreaInsets();
-  const [loading,    setLoading]    = useState(true);
-  const [saving,     setSaving]     = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [showCatPicker, setShowCatPicker] = useState(false);
-  const [feedback,   setFeedback]   = useState(null);  // { variant, title, message, onClose }
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting,   setDeleting]   = useState(false);
+  const { id }           = route.params;
+  const r                = useResponsive();
+  const { height: winH } = useWindowDimensions();
+  const pickImage        = useImagePicker();
 
-  const [name,        setName]        = useState('');
-  const [categoryId,  setCategoryId]  = useState(null);
-  const [price,       setPrice]       = useState('');
-  const [description, setDescription] = useState('');
-  // imageUri: arquivo NOVO escolhido na galeria (file:// local)
-  // imageUrl: URL externa (carregada do servidor ou digitada pelo usuário)
-  // originalImage: estado inicial, usado para detectar mudança ao salvar
+  const [loading,       setLoading]       = useState(true);
+  const [saving,        setSaving]        = useState(false);
+  const [categories,    setCategories]    = useState([]);
+  const [showCatPicker, setShowCatPicker] = useState(false);
+  const [feedback,      setFeedback]      = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting,      setDeleting]      = useState(false);
+
+  const [name,          setName]          = useState('');
+  const [categoryId,    setCategoryId]    = useState(null);
+  const [price,         setPrice]         = useState('');
+  const [description,   setDescription]   = useState('');
   const [imageUri,      setImageUri]      = useState(null);
   const [imageUrl,      setImageUrl]      = useState('');
   const [originalImage, setOriginalImage] = useState('');
 
-  const { height: winH } = useWindowDimensions();
-  const [kbHeight, setKbHeight] = useState(0);
-
-  const baseHeightRef = useRef(winH);
-  if (kbHeight === 0) baseHeightRef.current = winH;
+  
+  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const dialogScale  = useRef(new Animated.Value(0.94)).current;
+  const dialogSlide  = useRef(new Animated.Value(28)).current;
+  const dialogAlpha  = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const s = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates?.height || 0));
-    const h = Keyboard.addListener(hideEvt, () => setKbHeight(0));
+    Animated.parallel([
+      Animated.timing(backdropAnim, { toValue: 1, duration: 240, useNativeDriver: true }),
+      Animated.spring(dialogScale,  { toValue: 1, damping: 18, stiffness: 220, useNativeDriver: true }),
+      Animated.timing(dialogSlide,  { toValue: 0, duration: 260, useNativeDriver: true }),
+      Animated.timing(dialogAlpha,  { toValue: 1, duration: 200, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  function handleClose() {
+    Animated.parallel([
+      Animated.timing(backdropAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
+      Animated.timing(dialogScale,  { toValue: 0.94, duration: 160, useNativeDriver: true }),
+      Animated.timing(dialogSlide,  { toValue: 16, duration: 160, useNativeDriver: true }),
+      Animated.timing(dialogAlpha,  { toValue: 0, duration: 160, useNativeDriver: true }),
+    ]).start(() => navigation.goBack());
+  }
+
+
+  const [kbHeight, setKbHeight] = useState(0);
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    const s = Keyboard.addListener('keyboardWillShow', (e) => setKbHeight(e.endCoordinates?.height || 0));
+    const h = Keyboard.addListener('keyboardWillHide', () => setKbHeight(0));
     return () => { s.remove(); h.remove(); };
   }, []);
 
+  const [scrollFade, setScrollFade] = useState(false);
+  const scrollViewH    = useRef(0);
+  const scrollContentH = useRef(0);
+  function recheckFade() {
+    setScrollFade(scrollContentH.current > scrollViewH.current + 10);
+  }
 
-  const windowShrank   = baseHeightRef.current - winH > 120;
-  const lift           = (kbHeight > 0 && !windowShrank) ? kbHeight : 0;
-  const usableHeight   = windowShrank ? winH : baseHeightRef.current - kbHeight;
-  const topGap         = insets.top + 40;
-  const sheetMaxHeight = Math.max(280, usableHeight - topGap);
+  const scrollRef      = useRef(null);
+  const fieldPositions = useRef({});
+  function onFieldLayout(key, e) { fieldPositions.current[key] = e.nativeEvent.layout.y; }
+  function scrollToField(key) {
+    const y = fieldPositions.current[key];
+    if (y == null) return;
+    setTimeout(() => scrollRef.current?.scrollTo({ y: Math.max(0, y - 20), animated: true }), 300);
+  }
+
 
   useEffect(() => {
     (async () => {
       try {
-        const [p, cats] = await Promise.all([
-          fetchProduct(id),
-          fetchCategories(),
-        ]);
+        const [p, cats] = await Promise.all([fetchProduct(id), fetchCategories()]);
         setCategories(cats);
         setName(p.name);
         setCategoryId(p.category_id);
         setPrice(String(p.price).replace('.', ','));
         setDescription(p.description || '');
-        // p.image vem como URL completa (do upload ou externa) ou null
         setImageUrl(p.image || '');
         setOriginalImage(p.image || '');
       } catch (err) {
-        setFeedback({
-          variant: 'danger',
-          title: 'Erro',
-          message: err?.uiMessage || 'Erro ao carregar produto.',
-          onClose: () => navigation.goBack(),
-        });
+        setFeedback({ variant: 'danger', title: 'Erro', message: err?.uiMessage || 'Erro ao carregar produto.', onClose: handleClose });
       } finally { setLoading(false); }
     })();
-  }, [id, navigation]);
+  }, [id]);
 
-  async function pickImage() {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) return;
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.8,
-      allowsEditing: true,
-    });
-    if (!res.canceled) {
-      setImageUri(res.assets[0].uri);
-      setImageUrl(''); // limpa URL ao escolher arquivo
-    }
+  async function handlePickImage() {
+    const uri = await pickImage();
+    if (uri) { setImageUri(uri); setImageUrl(''); }
   }
 
   async function onSave() {
@@ -125,36 +134,13 @@ export default function ProductDetailScreen({ route, navigation }) {
     }
     setSaving(true);
     try {
-      // Decide o que enviar para o servidor:
-      //  - Se há imageUri novo (arquivo escolhido na galeria) → upload
-      //  - Senão se a URL mudou em relação ao original → envia image_url
-      //  - Senão → nada (mantém imagem atual)
       let imageUrlPayload;
-      if (!imageUri && imageUrl !== originalImage) {
-        imageUrlPayload = imageUrl;
-      }
-
-      await saveProduct({
-        id,
-        name, description,
-        price: parsedPrice,
-        category_id: categoryId,
-        imageUri,
-        imageUrl: imageUrlPayload,
-      });
-      setFeedback({
-        variant: 'success',
-        title: 'Produto atualizado',
-        message: 'Alterações salvas com sucesso!',
-        onClose: () => navigation.goBack(),
-      });
+      if (!imageUri && imageUrl !== originalImage) imageUrlPayload = imageUrl;
+      await saveProduct({ id, name, description, price: parsedPrice, category_id: categoryId, imageUri, imageUrl: imageUrlPayload });
+      setFeedback({ variant: 'success', title: 'Produto atualizado', message: 'Alterações salvas com sucesso!', onClose: handleClose });
     } catch (err) {
       setFeedback({ variant: 'danger', title: 'Erro', message: err?.uiMessage || 'Erro ao salvar.' });
     } finally { setSaving(false); }
-  }
-
-  function onDelete() {
-    setConfirmDelete(true);
   }
 
   async function doDelete() {
@@ -162,7 +148,7 @@ export default function ProductDetailScreen({ route, navigation }) {
       setDeleting(true);
       await deleteProduct(id);
       setConfirmDelete(false);
-      navigation.goBack();
+      handleClose();
     } catch (err) {
       setConfirmDelete(false);
       setFeedback({ variant: 'danger', title: 'Erro', message: err?.uiMessage || 'Erro ao excluir.' });
@@ -170,46 +156,83 @@ export default function ProductDetailScreen({ route, navigation }) {
   }
 
   const catName = categories.find((c) => c.id === categoryId)?.name || '';
+  const fld  = { height: 68, paddingHorizontal: 18 };
+  const txt  = { fontSize: 21 };
+  const mFld = { minHeight: 130, paddingHorizontal: 18, paddingVertical: 14 };
+
+  
+  const overlayPadBottom = Platform.OS === 'ios' ? kbHeight : 0;
+  const dialogMaxH = Math.min((winH - overlayPadBottom) * 0.96, 940);
+  const dialogW    = Math.min(r.width * 0.92, 860);
 
   return (
-    <View style={styles.root}>
-      {/* Área escurecida acima do card: tocar fecha o popup */}
-      <Pressable style={styles.backdrop} onPress={() => navigation.goBack()} />
+    <View style={{ flex: 1 }}>
 
-      <View style={styles.sheetWrap} pointerEvents="box-none">
-        <View
+
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFillObject,
+          { backgroundColor: 'rgba(0,0,0,0.60)', opacity: backdropAnim },
+        ]}
+      />
+
+      <Pressable style={StyleSheet.absoluteFillObject} onPress={handleClose} />
+
+
+      <View
+        style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: overlayPadBottom }}
+        pointerEvents="box-none"
+      >
+
+        <Animated.View
           style={[
-            styles.sheet,
+            styles.dialog,
+            { maxHeight: dialogMaxH, width: dialogW },
             {
-              maxHeight: sheetMaxHeight,
-              marginBottom: lift,
-              paddingBottom: kbHeight > 0 ? 10 : insets.bottom + 8,
+              opacity: dialogAlpha,
+              transform: [
+                { scale: dialogScale },
+                { translateY: dialogSlide },
+              ],
             },
           ]}
+          onStartShouldSetResponder={() => true}
         >
+
           <View style={styles.header}>
-            <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={styles.headerBtn}>
-              <Feather name="arrow-left" size={22} color="#FFF" />
+            <Pressable onPress={handleClose} hitSlop={12} style={styles.headerBtn}>
+              <Feather name="arrow-left" size={28} color="#FFF" />
             </Pressable>
             <Text style={styles.headerTitle}>Visualizar produto</Text>
-            <Pressable onPress={onDelete} hitSlop={10} style={styles.headerBtn}>
-              <Feather name="trash-2" size={20} color="#FFF" />
+            <Pressable onPress={() => setConfirmDelete(true)} hitSlop={12} style={styles.headerBtn}>
+              <Feather name="trash-2" size={26} color="#FFF" />
             </Pressable>
           </View>
 
           {loading ? (
-            <ActivityIndicator style={{ marginVertical: 50 }} color={colors.manager} />
+            <ActivityIndicator style={{ marginVertical: 60 }} color={colors.manager} />
           ) : (
             <ScrollView
-              contentContainerStyle={{ padding: 18, paddingBottom: 24, alignItems: 'center' }}
+              ref={scrollRef}
+              contentContainerStyle={{ padding: 24, paddingBottom: 32 }}
               keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator
+              scrollEventThrottle={32}
+              onLayout={e => { scrollViewH.current = e.nativeEvent.layout.height; recheckFade(); }}
+              onContentSizeChange={(_w, h) => { scrollContentH.current = h; recheckFade(); }}
+              onScroll={e => {
+                const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+                setScrollFade(contentOffset.y + layoutMeasurement.height < contentSize.height - 16);
+              }}
             >
-              <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
+              <View onLayout={(e) => onFieldLayout('name', e)}>
                 <FieldRow label="Nome">
-                  <Input value={name} onChangeText={setName} style={{ flex: 1, marginBottom: 0 }} />
+                  <Input value={name} onChangeText={setName} fieldStyle={fld} inputStyle={txt}
+                    onFocus={() => scrollToField('name')} style={{ flex: 1, marginBottom: 0 }} />
                 </FieldRow>
+              </View>
 
+              <View onLayout={(e) => onFieldLayout('category', e)}>
                 <FieldRow label="Categoria">
                   <Pressable
                     onPress={() => setShowCatPicker((v) => !v)}
@@ -220,60 +243,83 @@ export default function ProductDetailScreen({ route, navigation }) {
                 </FieldRow>
                 {showCatPicker ? (
                   <View style={styles.catList}>
-                    <ScrollView
-                      style={{ maxHeight: 200 }}
-                      nestedScrollEnabled
-                      keyboardShouldPersistTaps="handled"
-                    >
+                    <ScrollView style={{ maxHeight: 240 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                       {categories.map((c) => (
-                        <Pressable
-                          key={c.id}
+                        <Pressable key={c.id}
                           onPress={() => { setCategoryId(c.id); setShowCatPicker(false); }}
                           android_ripple={{ color: 'rgba(0,0,0,0.08)' }}
                           style={styles.catOpt}
                         >
-                          <Text style={{ color: colors.textDark }}>{c.name}</Text>
+                          <Text style={styles.catOptText}>{c.name}</Text>
                         </Pressable>
                       ))}
                     </ScrollView>
                   </View>
                 ) : null}
+              </View>
 
+              <View onLayout={(e) => onFieldLayout('price', e)}>
                 <FieldRow label="Preço">
-                  <Input value={price} onChangeText={setPrice} keyboardType="decimal-pad" style={{ flex: 1, marginBottom: 0 }} />
+                  <Input value={price} onChangeText={setPrice} keyboardType="decimal-pad"
+                    fieldStyle={fld} inputStyle={txt} onFocus={() => scrollToField('price')}
+                    style={{ flex: 1, marginBottom: 0 }} />
                 </FieldRow>
+              </View>
 
-                <FieldRow label="Descrição">
-                  <Input value={description} onChangeText={setDescription} multiline style={{ flex: 1, marginBottom: 0 }} />
+              <View onLayout={(e) => onFieldLayout('description', e)}>
+                <FieldRow label="Descrição" stack>
+                  <Input value={description} onChangeText={setDescription} multiline
+                    fieldStyle={mFld} inputStyle={txt} onFocus={() => scrollToField('description')}
+                    style={{ flex: 1, marginBottom: 0 }} />
                 </FieldRow>
+              </View>
 
+              <View onLayout={(e) => onFieldLayout('image', e)}>
                 <FieldRow label="Imagem" stack>
-                  <Pressable onPress={pickImage} style={styles.imageBox}>
+                  <Pressable onPress={handlePickImage} style={styles.imageBox}>
                     {imageUri ? (
-                      <Image source={{ uri: imageUri }} style={{ width: '100%', height: '100%', borderRadius: radii.md }} />
+                      <Image source={{ uri: imageUri }} style={{ width: '100%', height: '100%', borderRadius: radii.md }} resizeMode="cover" />
                     ) : imageUrl && /^https?:\/\//i.test(imageUrl) ? (
-                      <Image source={{ uri: imageUrl }} style={{ width: '100%', height: '100%', borderRadius: radii.md }} />
+                      <Image source={{ uri: imageUrl }} style={{ width: '100%', height: '100%', borderRadius: radii.md }} resizeMode="cover" />
                     ) : (
-                      <Feather name="plus" size={26} color="#888" />
+                      <View style={styles.imagePlaceholder}>
+                        <Feather name="image" size={40} color="#AAA" />
+                        <Text style={styles.imagePlaceholderText}>Selecionar foto</Text>
+                      </View>
                     )}
+                    {(imageUri || (imageUrl && /^https?:\/\//.test(imageUrl))) ? (
+                      <View style={styles.imageOverlay}>
+                        <Feather name="camera" size={18} color="#FFF" />
+                        <Text style={styles.imageOverlayText}>Trocar</Text>
+                      </View>
+                    ) : null}
                   </Pressable>
                   <Input
                     value={imageUrl}
                     onChangeText={(t) => { setImageUrl(t); if (t) setImageUri(null); }}
                     placeholder="Ou cole uma URL"
-                    keyboardType="url"
-                    autoCapitalize="none"
-                    style={{ marginTop: 8, marginBottom: 0 }}
+                    keyboardType="url" autoCapitalize="none"
+                    fieldStyle={fld} inputStyle={txt}
+                    onFocus={() => scrollToField('image')}
+                    style={{ marginTop: 10, marginBottom: 0 }}
                   />
                 </FieldRow>
+              </View>
 
-                <View style={{ marginTop: 22 }}>
-                  <Button title="Salvar" onPress={onSave} loading={saving} />
-                </View>
+              <View style={{ marginTop: 26 }}>
+                <Button title="Salvar" onPress={onSave} loading={saving} />
               </View>
             </ScrollView>
           )}
-        </View>
+
+          {scrollFade ? (
+            <View pointerEvents="none" style={styles.scrollFadeOverlay}>
+              {[0, 0.07, 0.18, 0.38, 0.62, 0.82, 1].map((opacity, i) => (
+                <View key={i} style={{ flex: 1, backgroundColor: '#FFF', opacity }} />
+              ))}
+            </View>
+          ) : null}
+        </Animated.View>
       </View>
 
       <FeedbackModal
@@ -284,7 +330,6 @@ export default function ProductDetailScreen({ route, navigation }) {
         okLabel="OK"
         onClose={() => { const cb = feedback?.onClose; setFeedback(null); cb?.(); }}
       />
-
       <ConfirmModal
         visible={confirmDelete}
         variant="danger"
@@ -305,51 +350,75 @@ function FieldRow({ label, children, stack }) {
   return (
     <View style={[styles.fieldRow, stack && { alignItems: 'flex-start' }]}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={{ flex: 1, marginLeft: 14 }}>{children}</View>
+      <View style={{ flex: 1, marginLeft: 16 }}>{children}</View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
-  // Ocupa a tela toda e ancora o card no fundo (acima do teclado quando aberto).
-  sheetWrap: { flex: 1, justifyContent: 'flex-end' },
-  sheet: {
+  dialog: {
     backgroundColor: '#FFF',
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
+    borderRadius: 20,
     overflow: 'hidden',
-    maxHeight: '92%',
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.30,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 6 },
   },
 
   header: {
     backgroundColor: colors.manager,
-    paddingHorizontal: 14,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  headerBtn:   { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { color: '#FFF', fontSize: 18, fontWeight: '700' },
+  headerBtn:   { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { color: '#FFF', fontSize: 23, fontWeight: '700' },
 
   fieldRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 18,
     borderBottomWidth: 1,
     borderBottomColor: '#F0E9E2',
   },
-  fieldLabel: { width: 78, color: colors.textDark, fontWeight: '700', fontSize: 14 },
+  fieldLabel: { width: 120, color: colors.textDark, fontWeight: '700', fontSize: 21 },
 
-  catChip:     { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 6, alignSelf: 'flex-start' },
-  catChipText: { color: '#FFF', fontWeight: '800', fontSize: 12, letterSpacing: 0.6 },
-  catList:     { marginTop: 6, borderWidth: 1, borderColor: colors.inputBorder, borderRadius: radii.md, backgroundColor: '#FFF', overflow: 'hidden' },
-  catOpt:      { padding: 12, borderBottomWidth: 1, borderBottomColor: '#F2F2F2' },
+  catChip:     { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8, alignSelf: 'flex-start' },
+  catChipText: { color: '#FFF', fontWeight: '800', fontSize: 18, letterSpacing: 0.5 },
+  catList:     { marginTop: 8, borderWidth: 1, borderColor: colors.inputBorder, borderRadius: radii.md, backgroundColor: '#FFF', overflow: 'hidden' },
+  catOpt:      { padding: 20, borderBottomWidth: 1, borderBottomColor: '#F2F2F2' },
+  catOptText:  { color: colors.textDark, fontSize: 19 },
 
   imageBox: {
-    width: 110, height: 110, backgroundColor: '#F2F2F2',
-    borderRadius: radii.md, alignItems: 'center', justifyContent: 'center',
+    width: 168, height: 168,
+    backgroundColor: '#F2F2F2',
+    borderRadius: radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  imagePlaceholder:     { alignItems: 'center' },
+  imagePlaceholderText: { color: '#AAA', fontSize: 15, marginTop: 8 },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0, left: 0, right: 0,
+    height: 40,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    columnGap: 5,
+  },
+  imageOverlayText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
+  scrollFadeOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 52,
   },
 });

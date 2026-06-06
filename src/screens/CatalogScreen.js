@@ -1,15 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import Screen from '../components/Screen';
 import SearchHeader from '../components/SearchHeader';
 import CategoryCard from '../components/CategoryCard';
@@ -22,8 +22,23 @@ import {
   fetchCategories,
 } from '../services/productsService';
 import { useAuth } from '../contexts/AuthContext';
+import { usePendingItems } from '../contexts/PendingItemsContext';
+import { connectSocket } from '../services/socket';
 import useResponsive from '../hooks/useResponsive';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+// Otimiza URLs de imagem externas pedindo uma versão menor (mais rápida e leve).
+function thumbUrl(url, w = 300) {
+  if (!url || typeof url !== 'string') return url;
+  const sep = url.includes('?') ? '&' : '?';
+  if (url.includes('images.unsplash.com')) {
+    return `${url}${sep}w=${w}&q=60&auto=format&fit=crop`;
+  }
+  if (/(?:images\.weserv\.nl|wsrv\.nl)/.test(url)) {
+    return `${url}${sep}w=${w}&q=60`;
+  }
+  return url;
+}
 
 // Tela única servindo dois modos:
 //  - mode="manage"  (gerente): clicar em produto -> visualizar/editar
@@ -32,12 +47,12 @@ export default function CatalogScreen({ navigation, route }) {
   const mode    = route.params?.mode || 'select';
   const orderId = route.params?.orderId;
   const { isManager } = useAuth();
+  const { setPendingItems } = usePendingItems();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
-  // Quantas colunas no grid de produtos? Alvo: ~140dp por célula.
-  const prodCols = Math.max(2, Math.min(8, Math.floor(r.width / 140)));
-  // Categorias: alvo de ~200dp por card.
-  const catCols = 4;
+  const prodCols = Math.max(2, Math.min(7, Math.floor(r.width / 185)));
+  // Categorias: alvo de ~250dp por card.
+  const catCols = Math.max(2, Math.min(4, Math.floor(r.width / 250)));
 
   const [categories, setCategories] = useState([]);
   const [products,   setProducts]   = useState([]);
@@ -55,12 +70,54 @@ export default function CatalogScreen({ navigation, route }) {
       ]);
       setCategories(cats || []);
       setProducts(prods || []);
+      const urls = (prods || []).map((p) => thumbUrl(p.image, 300)).filter(Boolean);
+      if (urls.length) {
+        Image.prefetch(urls, { cachePolicy: 'memory-disk' }).catch(() => {});
+      }
     } catch (err) {
       console.warn('catalog', err?.uiMessage);
     } finally { setLoading(false); }
   }, [search, categoryId]);
 
-  useEffect(() => { load(); }, [load]);
+
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  useEffect(() => {
+    const s = connectSocket();
+    const reload = () => loadRef.current();
+
+    const onUpdated = (product) => {
+      if (product?.id != null) {
+        setCart((c) => (c[product.id] ? { ...c, [product.id]: { ...c[product.id], product } } : c));
+      }
+      reload();
+    };
+    const onDeleted = ({ id } = {}) => {
+      if (id != null) {
+        setCart((c) => {
+          if (!c[id]) return c;
+          const next = { ...c };
+          delete next[id];
+          return next;
+        });
+      }
+      reload();
+    };
+
+    s.on('product:created',  reload);
+    s.on('product:updated',  onUpdated);
+    s.on('product:deleted',  onDeleted);
+    s.on('product:restored', reload);
+    return () => {
+      s.off('product:created',  reload);
+      s.off('product:updated',  onUpdated);
+      s.off('product:deleted',  onDeleted);
+      s.off('product:restored', reload);
+    };
+  }, []);
 
   function increment(prod) {
     setCart((c) => {
@@ -91,12 +148,9 @@ export default function CatalogScreen({ navigation, route }) {
       product_name: i.product.name,
       image:        i.product.image,
     }));
-    // Volta para a tela anterior passando os itens via params
-    navigation.navigate({
-      name: 'OrderDetail',
-      params: { id: orderId, addItems: items },
-      merge: true,
-    });
+
+    setPendingItems(orderId, items);
+    navigation.goBack();
   }
 
   function onProductPress(p) {
@@ -108,10 +162,10 @@ export default function CatalogScreen({ navigation, route }) {
   }
 
   return (
-    <Screen background="#FFF" statusBarBg={colors.bgDark} statusBarStyle="light-content" edges={['top']}>
+    <Screen background="#FFF" statusBarBg={colors.bgDark} statusBarStyle="light-content" edges={['top']} avoidKeyboard={false}>
       <SearchHeader
         onBack={() => navigation.goBack()}
-        placeholder="Produto"
+        placeholder="Buscar produto..."
         value={search}
         onChangeText={setSearch}
         onSubmit={load}
@@ -121,7 +175,7 @@ export default function CatalogScreen({ navigation, route }) {
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 160 }}>
-          <View style={{ width: '100%', maxWidth: r.contentMaxWidth, marginTop: 24, alignSelf: 'center' }}>
+          <View style={{ width: '100%', marginTop: 24, alignSelf: 'center' }}>
           <SectionHeader style={styles.sectionHeader} title="Categorias" count={categories.length} />
 
           <View style={styles.catGrid}>
@@ -183,7 +237,7 @@ export default function CatalogScreen({ navigation, route }) {
         </View>
       ) : null}
 
-      <BottomBar current="home" onChange={() => {}} />
+      <BottomBar current={mode === 'manage' ? 'catalog' : 'home'} />
       {/* FAB depois do BottomBar para ficar visualmente por cima */}
       {mode === 'manage' && isManager ? (
         <Fab onPress={() => navigation.navigate('ProductEdit', { id: 'new' })} />
@@ -206,9 +260,16 @@ function ProductCell({ product, onPress, onMinus, qty, selectable }) {
     <Pressable onPress={onPress} style={styles.prodCell}>
       <View style={styles.prodImg}>
         {product.image ? (
-          <Image source={{ uri: product.image }} style={{ width: '100%', height: '100%', borderRadius: 8 }} />
+          <Image
+            source={{ uri: thumbUrl(product.image, 300) }}
+            style={{ width: '100%', height: '100%', borderRadius: 8 }}
+            contentFit="cover"
+            transition={150}
+            cachePolicy="memory-disk"
+            recyclingKey={String(product.id)}
+          />
         ) : (
-          <Feather name="image" size={26} color="#BBB" />
+          <Feather name="image" size={34} color="#BBB" />
         )}
         {qty > 0 ? (
           <View style={styles.qtyBadge}>
@@ -220,7 +281,7 @@ function ProductCell({ product, onPress, onMinus, qty, selectable }) {
       <Text style={styles.prodPrice}>R$ {Number(product.price).toFixed(2).replace('.', ',')}</Text>
       {selectable && qty > 0 ? (
         <Pressable onPress={onMinus} style={styles.minusBtn} hitSlop={8}>
-          <Feather name="minus" size={14} color="#FFF" />
+          <Feather name="minus" size={18} color="#FFF" />
         </Pressable>
       ) : null}
     </Pressable>
@@ -246,27 +307,27 @@ const styles = StyleSheet.create({
 
   prodGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 6 },
   prodCell: {
-    padding: 6,
+    padding: 8,
     alignItems: 'center',
   },
   prodImg: {
     width: '100%',
     aspectRatio: 1,
     backgroundColor: '#F0EBE6',
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  prodName:  { ...typography.caption, marginTop: 6, color: colors.textDark, textAlign: 'center', fontSize: 11 },
-  prodPrice: { color: colors.primary, fontWeight: '700', fontSize: 12, marginTop: 2 },
+  prodName:  { ...typography.caption, marginTop: 8, color: colors.textDark, textAlign: 'center', fontSize: 15 },
+  prodPrice: { color: colors.primary, fontWeight: '700', fontSize: 16, marginTop: 4 },
 
   qtyBadge: {
-    position: 'absolute', top: 4, right: 4, minWidth: 22, height: 22, borderRadius: 11,
-    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
+    position: 'absolute', top: 6, right: 6, minWidth: 30, height: 30, borderRadius: 15,
+    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6,
   },
-  qtyBadgeText: { color: '#FFF', fontWeight: '800', fontSize: 11 },
+  qtyBadgeText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
   minusBtn: {
-    position: 'absolute', top: 6, left: 6, width: 22, height: 22, borderRadius: 11,
+    position: 'absolute', top: 8, left: 8, width: 30, height: 30, borderRadius: 15,
     backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center',
   },
 
@@ -285,7 +346,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     zIndex: 50,
   },
-  cartCount: { color: colors.textDark, fontWeight: '700', fontSize: 14, marginRight: 8 },
+  cartCount: { color: colors.textDark, fontWeight: '700', fontSize: 17, marginRight: 8 },
 
-  empty: { padding: 24, color: colors.textMuted, fontStyle: 'italic' },
+  empty: { padding: 24, color: colors.textMuted, fontStyle: 'italic', fontSize: 16 },
 });

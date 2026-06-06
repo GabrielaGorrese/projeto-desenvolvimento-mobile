@@ -141,8 +141,17 @@ INSERT INTO "category" ("name") VALUES
   ('Porções'),
   ('Combos');
 
--- Usuário admin criado via: npm run seed
--- O script de seed gera o hash correto de bcrypt em tempo de execução.
+-- Usuários pré-cadastrados (hash bcrypt gerado com bcryptjs, custo 10).
+--   gerente   / gerente123    (perfil manager)
+--   atendente / atendente123  (perfil attendant)
+-- Troque as senhas em produção (login → o app não expõe troca; use a API).
+INSERT INTO "users" ("username", "password_hash", "role_id") VALUES
+  ('gerente',
+   '$2b$10$MjTgWDtgvLL6TwOvHJJ1SefdUQxq2pm9R4Bxz/DXtum5QZRI4ArEK',
+   (SELECT id FROM "role" WHERE name = 'manager')),
+  ('atendente',
+   '$2b$10$kp4f.JgNtbPJpLvWcwGbM.a1bt4FYdKSKdPhQKGxFFl1m77SKl8Si',
+   (SELECT id FROM "role" WHERE name = 'attendant'));
 
 
 -- -------------------------------------------------------------

@@ -29,11 +29,11 @@ import { connectSocket } from '../services/socket';
 import { useAuth } from '../contexts/AuthContext';
 import useResponsive from '../hooks/useResponsive';
 
-// Valores iniciais dos filtros — 'all' significa "sem filtro nesta dimensão".
+
 const INITIAL_FILTERS = {
-  color:     'all', // green | yellow | red | all
-  attendant: 'all', // username | all
-  table:     'all', // table_label | 'none' (sem mesa) | all
+  color:     'all', 
+  attendant: 'all', 
+  table:     'all', 
 };
 
 export default function OrdersScreen({ navigation, route }) {
@@ -73,8 +73,7 @@ export default function OrdersScreen({ navigation, route }) {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
-
+ 
   useFocusEffect(useCallback(() => {
     load();
   }, [load]));
@@ -149,7 +148,7 @@ export default function OrdersScreen({ navigation, route }) {
   };
 */
   return (
-    <Screen background="#FFF" statusBarBg={colors.bgDark} statusBarStyle="light-content">
+    <Screen background="#FFF" statusBarBg={colors.bgDark} statusBarStyle="light-content" avoidKeyboard={false}>
       <SearchHeader
         onBack={() => signOut()}
         placeholder="Nº da comanda, atendente ou identificação..."
@@ -164,22 +163,12 @@ export default function OrdersScreen({ navigation, route }) {
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 104, alignItems: 'center' }}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 120, alignItems: 'center' }}
           refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => { setRefresh(true); load(); }} />}
         >
-        <View style={{ width: '100%', maxWidth: r.contentMaxWidth, marginTop: 24 }}>
-          {isManager ? (
-            <View style={styles.resetWrap}>
-              <Button
-                title="Iniciar novo dia (zerar numeração)"
-                variant="outline"
-                size="lg"
-                onPress={() => setResetModal(true)}
-                icon={<Feather name="refresh-ccw" size={16} color={colors.primary} />}
-              />
-            </View>
-          ) : null}
-
+        <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
+        
           <SectionHeader title="Pedidos em andamento" count={filteredOpen.length} />
           <Grid>
             {/*

@@ -225,39 +225,37 @@ export default function LoginScreen({ navigation }) {
                       !isManager && compact && styles.actionHalf,
                     ]}
                   />
-                  {!isManager ? (
-                    compact ? (
-                      <Button
-                        title="CADASTRAR"
-                        onPress={() => navigation.navigate('Register')}
-                        variant="outline"
-                        size={buttonSize}
-                        fullWidth
-                        textStyle={{ fontSize: actionButtonFontSize }}
-                        style={[{ height: actionButtonHeight }, styles.actionHalf]}
-                      />
-                    ) : (
-                      <Pressable
-                        onPress={() => navigation.navigate('Register')}
-                        android_ripple={{ color: 'rgba(204,126,74,0.18)' }}
-                        style={({ pressed }) => [
-                          styles.cadastrar,
-                          { height: actionButtonHeight },
-                          pressed && Platform.OS !== 'android' && { opacity: 0.7 },
+                  {compact ? (
+                    <Button
+                      title="CADASTRAR"
+                      onPress={() => navigation.navigate('Register')}
+                      variant="outline"
+                      size={buttonSize}
+                      fullWidth
+                      textStyle={{ fontSize: actionButtonFontSize }}
+                      style={[{ height: actionButtonHeight }, styles.actionHalf]}
+                    />
+                  ) : (
+                    <Pressable
+                      onPress={() => navigation.navigate('Register')}
+                      android_ripple={{ color: 'rgba(204,126,74,0.18)' }}
+                      style={({ pressed }) => [
+                        styles.cadastrar,
+                        { height: actionButtonHeight },
+                        pressed && Platform.OS !== 'android' && { opacity: 0.7 },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.cadastrarLabel,
+                          { fontSize: actionButtonFontSize },
+                          comfyPortrait && styles.cadastrarLabelPortrait,
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.cadastrarLabel,
-                            { fontSize: actionButtonFontSize },
-                            comfyPortrait && styles.cadastrarLabelPortrait,
-                          ]}
-                        >
-                          CADASTRAR
-                        </Text>
-                      </Pressable>
-                    )
-                  ) : null}
+                        CADASTRAR
+                      </Text>
+                    </Pressable>
+                  )}
                 </View>
               </View>
             </View>

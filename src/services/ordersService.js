@@ -36,6 +36,11 @@ export async function closeOrder(id) {
   return data.order;
 }
 
+export async function reopenOrder(id) {
+  const { data } = await api.post(`/orders/${id}/reopen`);
+  return data.order;
+}
+
 export async function deleteOrder(id) {
   const { data } = await api.delete(`/orders/${id}`);
   return data;

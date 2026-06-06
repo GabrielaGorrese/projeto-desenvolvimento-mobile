@@ -12,6 +12,7 @@ export default function SearchHeader({
   onSubmit,
   onFilter,
   activeFilters = 0,
+  placeholder = 'Nº da comanda, atendente ou identificação...',
 }) {
   return (
     <BaseHeader
@@ -26,7 +27,7 @@ export default function SearchHeader({
         <View style={styles.search}>
           <Feather name="search" size={20} color={colors.textMuted} />
           <TextInput
-            placeholder="Nº da comanda, atendente ou identificação..."
+            placeholder={placeholder}
             placeholderTextColor={colors.textMuted}
             value={value}
             onChangeText={onChangeText}

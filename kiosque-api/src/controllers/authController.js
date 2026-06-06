@@ -88,6 +88,51 @@ async function register(req, res) {
   }
 }
 
+// Auto-cadastro PÚBLICO. Qualquer pessoa pode criar uma conta de atendente OU
+// de gerente (perfil vem no body; default 'attendant').
+async function registerAttendant(req, res) {
+  const { username, password, role } = req.body
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'username e password são obrigatórios.' })
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'A senha deve ter ao menos 6 caracteres.' })
+  }
+
+  const wantedRole = role === 'manager' ? 'manager' : 'attendant'
+
+  try {
+    const { rows: roleRows } = await pool.query(
+      `SELECT id FROM role WHERE name = $1`, [wantedRole]
+    )
+    if (roleRows.length === 0) {
+      return res.status(500).json({ error: 'Perfil não configurado.' })
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10)
+
+    const { rows } = await pool.query(
+      `INSERT INTO users (username, password_hash, role_id)
+       VALUES ($1, $2, $3)
+       RETURNING id, username, is_active, created_at`,
+      [username.trim(), passwordHash, roleRows[0].id]
+    )
+
+    return res.status(201).json({
+      message: `Usuário ${username} criado com sucesso.`,
+      user: rows[0]
+    })
+
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Username já está em uso.' })
+    }
+    console.error('[registerAttendant]', err)
+    return res.status(500).json({ error: 'Erro interno no servidor.' })
+  }
+}
+
 // Listar usuários — nunca retorna password_hash
 async function getAll(req, res) {
   try {
@@ -163,4 +208,4 @@ async function changePassword(req, res) {
   }
 }
 
-module.exports = { login, register, getAll, deleteUser, changePassword }
+module.exports = { login, register, registerAttendant, getAll, deleteUser, changePassword }

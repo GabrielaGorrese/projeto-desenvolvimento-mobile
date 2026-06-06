@@ -1,4 +1,5 @@
-const pool = require('../db/pool')
+const pool   = require('../db/pool')
+const socket = require('../utils/socket')
 
 async function getAll(req, res) {
   try {
@@ -24,6 +25,7 @@ async function create(req, res) {
       `INSERT INTO table_seat (label) VALUES ($1) RETURNING *`,
       [label.trim()]
     )
+    socket.getIO().emit('table:created', rows[0])
     return res.status(201).json({ message: `Mesa "${label}" criada.`, table: rows[0] })
   } catch (err) {
     if (err.code === '23505') {
@@ -94,6 +96,7 @@ async function deleteTable(req, res) {
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Mesa não encontrada.' })
     }
+    socket.getIO().emit('table:deleted', { id: parseInt(id, 10) })
     return res.json({ message: 'Mesa excluída com sucesso.' })
   } catch (err) {
     if (err.message && err.message.includes('comandas abertas')) {

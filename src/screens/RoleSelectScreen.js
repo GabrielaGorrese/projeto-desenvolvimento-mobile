@@ -1,5 +1,6 @@
 import React from 'react';
 import { Platform, Pressable, StatusBar, StyleSheet, Text, View, Image } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Logo from '../components/Logo';
 import { colors, radii, typography } from '../theme';
@@ -45,6 +46,14 @@ export default function RoleSelectScreen({ navigation }) {
 
       <View style={[styles.darkArea, { paddingTop: insets.top + 56 }]}>
         <Logo size="md" />
+        <Pressable
+          onPress={() => navigation.navigate('ApiConfig')}
+          hitSlop={12}
+          style={[styles.gear, { top: insets.top + 12 }]}
+          android_ripple={{ color: 'rgba(255,255,255,0.2)', borderless: true, radius: 22 }}
+        >
+          <Feather name="settings" size={24} color="#FFFFFF" />
+        </Pressable>
       </View>
 
       <View style={styles.sheet}>
@@ -147,6 +156,7 @@ function RoleCard({
 const styles = StyleSheet.create({
   root:     { flex: 1 },
   darkArea: { paddingBottom: 26, alignItems: 'center' },
+  gear:     { position: 'absolute', right: 16, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 
   sheet: {
     flex: 1,

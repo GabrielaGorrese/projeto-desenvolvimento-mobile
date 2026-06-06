@@ -14,6 +14,7 @@ import OrderDetailScreen   from '../screens/OrderDetailScreen';
 import CatalogScreen       from '../screens/CatalogScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import NewProductScreen    from '../screens/NewProductScreen';
+import ApiConfigScreen     from '../screens/ApiConfigScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -36,6 +37,7 @@ export default function RootNavigator() {
             <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
             <Stack.Screen name="Login"      component={LoginScreen} />
             <Stack.Screen name="Register"   component={RegisterScreen} />
+            <Stack.Screen name="ApiConfig"  component={ApiConfigScreen} />
           </>
         ) : (
           <>
