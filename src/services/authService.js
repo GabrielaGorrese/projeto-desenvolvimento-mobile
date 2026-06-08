@@ -5,8 +5,9 @@ export async function loginRequest(username, password) {
   return data;
 }
 
+// Auto-cadastro público (não exige login). role: 'attendant' (default) ou 'manager'.
 export async function registerRequest({ username, password, role }) {
-  const { data } = await api.post('/auth/users', { username, password, role });
+  const { data } = await api.post('/auth/users/attendant', { username, password, role });
   return data;
 }
 

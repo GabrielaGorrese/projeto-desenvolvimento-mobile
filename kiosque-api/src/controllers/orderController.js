@@ -39,15 +39,14 @@ const ORDER_SELECT = `
   LEFT   JOIN order_item oi ON oi.order_id = o.id
 `
 
-// Monta URL absoluta da imagem do produto (mesma convenção do productController).
-// Retorna null se o produto não tem imagem cadastrada.
-function buildImageUrl(req, filename) {
-  if (!filename || !req) return null
-  return `${req.protocol}://${req.get('host')}/uploads/products/${filename}`
+
+function buildImageUrl(req, image) {
+  if (!image || !req) return null
+  if (/^https?:\/\//i.test(image)) return image
+  return `${req.protocol}://${req.get('host')}/uploads/products/${image}`
 }
 
-// Retorna os itens de uma comanda com info do produto (incluindo imagem).
-// `req` é opcional — se fornecido, retorna URL absoluta no campo image.
+
 async function fetchItems(client, orderId, req) {
   const { rows } = await client.query(
     `SELECT oi.id, oi.quantity, oi.unit_price, oi.notes,
@@ -207,7 +206,11 @@ async function getOne(req, res) {
 async function create(req, res) {
   const { label, table_id, people, items = [], daily_number } = req.body
   const userId = req.user.id
-  const peopleParsed = Math.max(1, parseInt(people || 1, 10))
+
+  const peopleParsed = parseInt(people ?? 1, 10)
+  if (isNaN(peopleParsed) || peopleParsed < 1) {
+    return res.status(400).json({ error: 'people deve ser um inteiro >= 1.' })
+  }
 
   // Se o front mandar um número escolhido, valida (inteiro de 1 a 6 dígitos).
   let chosenNumber = null
@@ -228,14 +231,14 @@ async function create(req, res) {
     )
     const statusId = statusRows[0].id
 
-    // Trava a linha do contador até o commit, serializando a numeração
-    // (sem corrida) — e se a transação der ROLLBACK, o incremento é desfeito.
-    // Se o front passou um número, usamos ele (e avançamos o contador para
-    // max(atual, escolhido) para manter a próxima sugestão coerente).
-    // Caso contrário, atribuímos contador + 1 como antes.
     let dailyNumber
     if (chosenNumber !== null) {
-      // Bloqueia se outra comanda ABERTA já está usando esse número.
+      await client.query(
+        `UPDATE order_sequence
+         SET    current_value = GREATEST(current_value, $1)
+         WHERE  id = 1`,
+        [chosenNumber]
+      )
       const { rows: dup } = await client.query(
         `SELECT 1 FROM orders o
          JOIN   status s ON s.id = o.status_id
@@ -247,12 +250,6 @@ async function create(req, res) {
         await client.query('ROLLBACK')
         return res.status(409).json({ error: `Já existe uma comanda aberta com o número ${chosenNumber}.` })
       }
-      await client.query(
-        `UPDATE order_sequence
-         SET    current_value = GREATEST(current_value, $1)
-         WHERE  id = 1`,
-        [chosenNumber]
-      )
       dailyNumber = chosenNumber
     } else {
       const { rows: seqRows } = await client.query(
@@ -313,6 +310,9 @@ async function create(req, res) {
     if (err.message && err.message.includes('inativo')) {
       return res.status(400).json({ error: err.message })
     }
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Já existe uma comanda aberta com esse número.' })
+    }
     console.error('[orders.create]', err)
     return res.status(500).json({ error: 'Erro interno no servidor.' })
   } finally {
@@ -362,8 +362,8 @@ async function update(req, res) {
     if (label     !== undefined) { params.push(label);    updates.push(`label = $${params.length}`)    }
     if (table_id  !== undefined) { params.push(table_id); updates.push(`table_id = $${params.length}`) }
     if (people    !== undefined) {
-      const p = Math.max(1, parseInt(people, 10))
-      if (isNaN(p)) {
+      const p = parseInt(people, 10)
+      if (isNaN(p) || p < 1) {
         await client.query('ROLLBACK')
         return res.status(400).json({ error: 'people deve ser um número inteiro >= 1.' })
       }
@@ -512,6 +512,46 @@ async function close(req, res) {
   }
 }
 
+// POST /api/orders/:id/reopen — reabrir comanda fechada (volta para 'open')
+async function reopen(req, res) {
+  const { id } = req.params
+
+  try {
+    const { rows } = await pool.query(
+      `UPDATE orders
+       SET    status_id = (SELECT id FROM status WHERE name = 'open'),
+              closed_at = NULL,
+              total     = 0
+       WHERE  id = $1
+         AND  status_id = (SELECT id FROM status WHERE name = 'closed')
+       RETURNING id`,
+      [id]
+    )
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Comanda não encontrada ou não está fechada.' })
+    }
+
+    const { rows: full } = await pool.query(
+      ORDER_SELECT + `WHERE o.id = $1 GROUP BY o.id, s.name, u.username, t.label`, [id]
+    )
+    const items = await fetchItems(pool, id, req)
+    const order = { ...full[0], items }
+
+    socket.getIO().emit('order:updated', order)
+
+    return res.json({ message: 'Comanda reaberta com sucesso.', order })
+
+  } catch (err) {
+    // Conflito com o índice único: já existe comanda aberta com este número.
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Já existe uma comanda aberta com este número. Não é possível reabrir.' })
+    }
+    console.error('[orders.reopen]', err)
+    return res.status(500).json({ error: 'Erro interno no servidor.' })
+  }
+}
+
 // DELETE /api/orders/:id — excluir comanda (somente se aberta)
 async function remove(req, res) {
   const { id } = req.params
@@ -581,4 +621,4 @@ async function resetSequence(req, res) {
   }
 }
 
-module.exports = { getOpenOrders, getClosedOrders, getOne, create, update, close, remove, resetSequence, nextNumber }
+module.exports = { getOpenOrders, getClosedOrders, getOne, create, update, close, reopen, remove, resetSequence, nextNumber }

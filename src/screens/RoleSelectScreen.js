@@ -1,5 +1,6 @@
 import React from 'react';
 import { Platform, Pressable, StatusBar, StyleSheet, Text, View, Image } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Logo from '../components/Logo';
 import { colors, radii, typography } from '../theme';
@@ -45,6 +46,14 @@ export default function RoleSelectScreen({ navigation }) {
 
       <View style={[styles.darkArea, { paddingTop: insets.top + 56 }]}>
         <Logo size="md" />
+        <Pressable
+          onPress={() => navigation.navigate('ApiConfig')}
+          hitSlop={12}
+          style={[styles.gear, { top: insets.top + 12 }]}
+          android_ripple={{ color: 'rgba(255,255,255,0.2)', borderless: true, radius: 22 }}
+        >
+          <Feather name="settings" size={24} color="#FFFFFF" />
+        </Pressable>
       </View>
 
       <View style={styles.sheet}>
@@ -84,11 +93,6 @@ export default function RoleSelectScreen({ navigation }) {
             />
           </View>
         </View>
-
-        {/* Footer com paddingBottom = inset da gesture bar + folga */}
-        <Text style={[styles.footer, { marginBottom: insets.bottom + 12 }]}>
-          Desenvolvimento SATC | 2026
-        </Text>
       </View>
     </GradientView>
   );
@@ -152,15 +156,18 @@ function RoleCard({
 const styles = StyleSheet.create({
   root:     { flex: 1 },
   darkArea: { paddingBottom: 26, alignItems: 'center' },
+  gear:     { position: 'absolute', right: 16, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 
   sheet: {
     flex: 1,
     backgroundColor: '#FFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     paddingHorizontal: 20,
     paddingTop: 28,
     justifyContent: 'space-between',
+    width: '92%',
+    alignSelf: 'center'
   },
   content:  {
     width: '70%',
@@ -191,7 +198,5 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 1.2,
     fontFamily: typography.familyHeavy,
-  },
-
-  footer: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
+  }
 });

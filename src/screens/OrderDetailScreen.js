@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import Screen from '../components/Screen';
@@ -23,13 +24,16 @@ import {
   createOrder,
   updateOrder,
   closeOrder,
+  reopenOrder,
   deleteOrder,
 } from '../services/ordersService';
-import { fetchTables } from '../services/tablesService';
+import { fetchTables, createTable, deleteTable } from '../services/tablesService';
 import { connectSocket } from '../services/socket';
 import { useAuth } from '../contexts/AuthContext';
 import { usePendingItems } from '../contexts/PendingItemsContext';
 import useResponsive from '../hooks/useResponsive';
+import ScrollFade from '../components/ScrollFade';
+import { formatMoney } from '../utils/format';
 import useElapsedTime from '../hooks/useElapsedTime';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,11 +45,32 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function OrderDetailScreen({ route, navigation }) {
   const { id, readOnly } = route.params || {};
   const isNew = id === 'new' || id == null;
-  const { user } = useAuth();
+  const { user, isManager } = useAuth();
   const { takePendingItems } = usePendingItems();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
   const twoCol = r.isLandscape && r.width >= 800;
+
+  const sz = useMemo(() => ({
+    section:   r.isTablet ? 26 : 19,
+    body:      r.isTablet ? 20 : 15,
+    bodyBold:  r.isTablet ? 20 : 15,
+    caption:   r.isTablet ? 16 : 13,
+    inputH:    r.isTablet ? 66 : 50,
+    inputPad:  r.isTablet ? 20 : 14,
+    iconSize:  r.isTablet ? 22 : 16,
+    peopleBtn: r.isTablet ? 42 : 30,
+    mesaH:     r.isTablet ? 60 : 42,
+    mesaMinW:  r.isTablet ? 190 : 130,
+    itemImg:   r.isTablet ? 84 : 58,
+    itemName:  r.isTablet ? 20 : 15,
+    itemPrice: r.isTablet ? 16 : 12,
+    itemTotal: r.isTablet ? 21 : 15,
+    qtyBtn:    r.isTablet ? 42 : 30,
+    qtyVal:    r.isTablet ? 21 : 15,
+    totalBig:  r.isTablet ? 40 : 28,
+    totalSub:  r.isTablet ? 20 : 14,
+  }), [r.isTablet]);
 
   const [order,   setOrder]   = useState(null);
   const [items,   setItems]   = useState([]); // itens locais (modo "new")
@@ -59,8 +84,15 @@ export default function OrderDetailScreen({ route, navigation }) {
   const [loading,  setLoading] = useState(!isNew);
   const [busy,     setBusy]    = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
-  const [errorModal, setErrorModal] = useState(null); // { title, message }
-  const [confirmClear, setConfirmClear] = useState(false); // confirmação "limpar comanda"
+  const [errorModal, setErrorModal] = useState(null);
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  const [showNewTable,      setShowNewTable]      = useState(false);
+  const [newTableLabel,     setNewTableLabel]      = useState('');
+  const [creatingTable,     setCreatingTable]      = useState(false);
+
+  const [confirmDeleteTable, setConfirmDeleteTable] = useState(null);
+  const [deletingTable,      setDeletingTable]      = useState(false);
 
   // Flag para ignorar o evento order:closed disparado pelo próprio fechamento
   // deste atendente — só queremos o aviso quando OUTRO fecha a comanda.
@@ -97,9 +129,21 @@ export default function OrderDetailScreen({ route, navigation }) {
 
   useEffect(() => { loadOrder(); }, [loadOrder]);
 
-  // Carrega mesas para o seletor
   useEffect(() => {
     fetchTables().then(setTables).catch(() => {});
+
+    const s = connectSocket();
+    const onCreated = (table) => setTables((prev) => [...prev, table]);
+    const onDeleted = ({ id }) => {
+      setTables((prev) => prev.filter((t) => t.id !== id));
+      setTableId((cur) => (cur === id ? null : cur));
+    };
+    s.on('table:created', onCreated);
+    s.on('table:deleted', onDeleted);
+    return () => {
+      s.off('table:created', onCreated);
+      s.off('table:deleted', onDeleted);
+    };
   }, []);
 
 
@@ -317,6 +361,19 @@ export default function OrderDetailScreen({ route, navigation }) {
     } finally { setBusy(false); }
   }
 
+  async function confirmReopen() {
+    try {
+      setBusy(true);
+      await reopenOrder(id);
+      setConfirmModal(null);
+      // Reabre a mesma comanda em modo editável.
+      navigation.replace('OrderDetail', { id });
+    } catch (err) {
+      setConfirmModal(null);
+      setErrorModal({ title: 'Erro', message: err?.uiMessage || 'Erro ao reabrir comanda.' });
+    } finally { setBusy(false); }
+  }
+
   function onClear() {
     if (isNew) {
       setItems([]);
@@ -344,6 +401,41 @@ export default function OrderDetailScreen({ route, navigation }) {
     navigation.navigate('AddItems', { orderId: isNew ? 'new' : id });
   }
 
+  async function doDeleteTable() {
+    if (!confirmDeleteTable) return;
+    try {
+      setDeletingTable(true);
+      await deleteTable(confirmDeleteTable.id);
+      setTables((prev) => prev.filter((t) => t.id !== confirmDeleteTable.id));
+      if (tableId === confirmDeleteTable.id) setTableId(null);
+      setConfirmDeleteTable(null);
+    } catch (err) {
+      setConfirmDeleteTable(null);
+      const is409 = err?.response?.status === 409;
+      setErrorModal({
+        title: 'Não foi possível excluir',
+        message: is409
+          ? 'Esta mesa possui comandas abertas. Feche todas as comandas desta mesa antes de excluí-la.'
+          : err?.uiMessage || 'Erro ao excluir a mesa.',
+      });
+    } finally { setDeletingTable(false); }
+  }
+
+  async function doCreateTable() {
+    if (!newTableLabel.trim()) return;
+    try {
+      setCreatingTable(true);
+      const t = await createTable(newTableLabel.trim());
+      setTables((prev) => [...prev, t]);
+      setTableId(t.id);
+      setNewTableLabel('');
+      setShowNewTable(false);
+      setShowTablePicker(false);
+    } catch (err) {
+      setErrorModal({ title: 'Erro', message: err?.uiMessage || 'Erro ao criar mesa.' });
+    } finally { setCreatingTable(false); }
+  }
+
   if (loading) {
     return (
       <Screen background={colors.bgScreen} statusBarBg={colors.bgDark} statusBarStyle="light-content">
@@ -366,44 +458,67 @@ export default function OrderDetailScreen({ route, navigation }) {
     >
       <DarkHeader title={headerTitle} subtitle={headerSubtitle} onBack={() => navigation.popToTop()} />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 220, alignItems: 'center' }} keyboardShouldPersistTaps="handled">
-        <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
+      <ScrollFade
+        ref={scrollRef}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 220 + kbHeight, alignItems: 'center' }}
+        keyboardShouldPersistTaps="handled"
+        fadeColor="#FFFFFF"
+      >
+        <View ref={contentRef} style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
         <View style={styles.statusPill}>
           <View style={styles.statusDot} />
           <Text style={styles.statusText}>{readOnly ? 'Fechada' : 'Pendente'}</Text>
         </View>
 
+        {isNew ? (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { fontSize: sz.section }]}>Número da comanda</Text>
+            <Input
+              ref={numberInputRef}
+              value={dailyNumber}
+              onChangeText={updateDailyNumber}
+              keyboardType="number-pad"
+              maxLength={6}
+              placeholder="Ex.: 1, 2, 3..."
+              onFocus={() => scrollInputIntoView(numberInputRef)}
+              fieldStyle={{ height: sz.inputH, paddingHorizontal: sz.inputPad }}
+              inputStyle={{ fontSize: sz.body }}
+              style={{ maxWidth: r.isTablet ? 280 : 200 }}
+            />
+          </View>
+        ) : null}
+
         <View style={twoCol ? styles.twoColRow : null}>
         <View style={twoCol ? styles.twoColLeft : null}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informações</Text>
-          <Row icon="edit-3" text={order?.attendant || user?.username || '—'} />
-          {/* Pessoas: editável (incrementa/decrementa) quando comanda aberta */}
+          <Text style={[styles.sectionTitle, { fontSize: sz.section }]}>Informações</Text>
+          <Row icon="edit-3" text={order?.attendant || user?.username || '—'} sz={sz} />
           <View style={styles.infoRow}>
-            <Feather name="users" size={18} color={colors.textDark} />
-            <Text style={styles.infoText}>
+            <Feather name="users" size={sz.iconSize} color={colors.textDark} />
+            <Text style={[styles.infoText, { fontSize: sz.body }]}>
               {String(people).padStart(2, '0')} {people === 1 ? 'pessoa' : 'pessoas'}
             </Text>
             {!readOnly ? (
               <View style={styles.peopleControls}>
                 <Pressable
                   onPress={() => setPeople((p) => Math.max(1, p - 1))}
-                  android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: 14 }}
-                  style={styles.peopleBtn}
+                  android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: sz.peopleBtn / 2 }}
+                  style={[styles.peopleBtn, { width: sz.peopleBtn, height: sz.peopleBtn, borderRadius: sz.peopleBtn / 2 }]}
                 >
-                  <Feather name="minus" size={18} color={colors.textDark} />
+                  <Feather name="minus" size={sz.iconSize} color={colors.textDark} />
                 </Pressable>
                 <Pressable
                   onPress={() => setPeople((p) => Math.min(99, p + 1))}
-                  android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: 14 }}
-                  style={styles.peopleBtn}
+                  android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: sz.peopleBtn / 2 }}
+                  style={[styles.peopleBtn, { width: sz.peopleBtn, height: sz.peopleBtn, borderRadius: sz.peopleBtn / 2 }]}
                 >
-                  <Feather name="plus" size={18} color={colors.textDark} />
+                  <Feather name="plus" size={sz.iconSize} color={colors.textDark} />
                 </Pressable>
               </View>
             ) : null}
           </View>
-          <Row icon="clock" text={elapsed} />
+          <Row icon="clock" text={elapsed} sz={sz} />
         </View>
 
         <View
@@ -417,25 +532,25 @@ export default function OrderDetailScreen({ route, navigation }) {
         />        
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mesa</Text>
+          <Text style={[styles.sectionTitle, { fontSize: sz.section }]}>Mesa</Text>
           <View style={styles.mesaRow}>
             <Pressable
               onPress={() => !readOnly && setShowTablePicker((v) => !v)}
-              style={styles.mesaSelect}
+              style={[styles.mesaSelect, { height: sz.mesaH, minWidth: sz.mesaMinW }]}
             >
-              <Text style={[styles.mesaText, !tableLabel && { color: colors.textMuted }]}>
+              <Text style={[styles.mesaText, { fontSize: sz.body }, !tableLabel && { color: colors.textMuted }]}>
                 {tableLabel || 'Selecionar...'}
               </Text>
               <Feather name="chevron-down" size={18} color={colors.textMuted} />
             </Pressable>
-            <Text style={styles.mesaHint}>
-              <Feather name="info" size={18} color={colors.textMuted} />  Deixe nulo para cadastrar pedido avulso.
+            <Text style={[styles.mesaHint, { fontSize: sz.caption }]}>
+              <Feather name="info" size={sz.caption} color={colors.textMuted} />  Deixe nulo para pedido avulso.
             </Text>
           </View>
           {showTablePicker ? (
             <View style={styles.tableList}>
               <ScrollView
-                style={{ maxHeight: 240 }}
+                style={{ maxHeight: 280 }}
                 nestedScrollEnabled
                 showsVerticalScrollIndicator
                 keyboardShouldPersistTaps="handled"
@@ -445,36 +560,103 @@ export default function OrderDetailScreen({ route, navigation }) {
                   android_ripple={{ color: 'rgba(0,0,0,0.08)' }}
                   style={styles.tableOpt}
                 >
-                  <Text style={{ color: colors.textMuted }}>Sem mesa</Text>
+                  <Text style={styles.tableOptText}>Sem mesa</Text>
                 </Pressable>
                 {tables.filter((t) => t.is_active).map((t) => (
-                  <Pressable
-                    key={t.id}
-                    onPress={() => { setTableId(t.id); setShowTablePicker(false); }}
-                    android_ripple={{ color: 'rgba(0,0,0,0.08)' }}
-                    style={styles.tableOpt}
-                  >
-                    <Text style={{ color: colors.textDark }}>{t.label}</Text>
-                  </Pressable>
+                  <View key={t.id} style={styles.tableOptRow}>
+                    <Pressable
+                      onPress={() => { setTableId(t.id); setShowTablePicker(false); }}
+                      android_ripple={{ color: 'rgba(0,0,0,0.08)' }}
+                      style={{ flex: 1, padding: 16 }}
+                    >
+                      <Text style={[styles.tableOptText, { color: colors.textDark }]}>{t.label}</Text>
+                    </Pressable>
+                    {isManager && !readOnly ? (
+                      <Pressable
+                        onPress={() => setConfirmDeleteTable(t)}
+                        hitSlop={8}
+                        style={styles.tableDeleteBtn}
+                        android_ripple={{ color: 'rgba(255,0,0,0.08)', borderless: true, radius: 20 }}
+                      >
+                        <Feather name="trash-2" size={18} color={colors.danger} />
+                      </Pressable>
+                    ) : null}
+                  </View>
                 ))}
               </ScrollView>
+
+              {/* Criação rápida de mesa — visível apenas para gerentes */}
+              {isManager && !readOnly ? (
+                showNewTable ? (
+                  <View style={styles.newTableRow}>
+                    <Input
+                      value={newTableLabel}
+                      onChangeText={setNewTableLabel}
+                      placeholder="Nome da mesa..."
+                      autoFocus
+                      fieldStyle={{ height: 48, paddingHorizontal: 14 }}
+                      inputStyle={{ fontSize: 16 }}
+                      style={{ flex: 1, marginBottom: 0 }}
+                    />
+                    <Pressable
+                      onPress={doCreateTable}
+                      style={styles.newTableConfirm}
+                      android_ripple={{ color: 'rgba(255,255,255,0.3)' }}
+                    >
+                      {creatingTable
+                        ? <ActivityIndicator size="small" color="#FFF" />
+                        : <Feather name="check" size={20} color="#FFF" />}
+                    </Pressable>
+                    <Pressable
+                      onPress={() => { setShowNewTable(false); setNewTableLabel(''); }}
+                      style={[styles.newTableConfirm, { backgroundColor: '#888', marginLeft: 6 }]}
+                    >
+                      <Feather name="x" size={20} color="#FFF" />
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Pressable
+                    onPress={() => setShowNewTable(true)}
+                    style={styles.newTableAdd}
+                    android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+                  >
+                    <Feather name="plus" size={18} color={colors.primary} />
+                    <Text style={styles.newTableAddText}>Nova mesa</Text>
+                  </Pressable>
+                )
+              ) : null}
             </View>
           ) : null}
+          </View>
 
+          <View
+            style={{
+              height: 2,
+              backgroundColor: '#e0e0e0',
+              width: '100%',
+              marginVertical: 10,
+              marginBottom: 24
+            }}
+          /> 
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Identificação (opcional)</Text>
           <Input
-            label="Identificação (opcional)"
             value={label}
             onChangeText={setLabel}
             placeholder='Ex.: "João", "Balcão"'
             editable={!readOnly}
-            style={{ marginTop: 14 }}
+            onFocus={() => scrollInputIntoView(labelInputRef)}
+            fieldStyle={{ height: sz.inputH, paddingHorizontal: sz.inputPad }}
+            inputStyle={{ fontSize: sz.body }}
+            style={{ marginTop: 16 }}
           />
         </View>
         </View>
 
         <View style={twoCol ? styles.twoColRight : null}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Pedidos</Text>
+          <Text style={[styles.sectionTitle, { fontSize: sz.section }]}>Pedidos</Text>
           {items.length === 0 ? (
             <Text style={styles.empty}>Nenhum item adicionado.</Text>
           ) : (() => {
@@ -485,6 +667,7 @@ export default function OrderDetailScreen({ route, navigation }) {
                 key={it.id || `local-${idx}`}
                 item={it}
                 readOnly={readOnly}
+                sz={sz}
                 onIncrement={() => {
                   if (it.id) changeServerItemQty(it.id, (it.quantity || 1) + 1);
                   else       incrementLocalItem(idx);
@@ -526,20 +709,25 @@ export default function OrderDetailScreen({ route, navigation }) {
         </View>
         </View>
         </View>
-      </ScrollView>
+      </ScrollFade>
 
-      {/* Esconde o rodapé (Total + ações) enquanto o teclado está aberto:
-          libera espaço e evita os botões flutuando no meio da tela ao digitar. */}
-      {kbHeight === 0 ? (
-      <View style={[styles.footer, { paddingBottom: 22 + insets.bottom }]}>
+      <View
+        style={[
+          styles.footer,
+          {
+            bottom: kbHeight,
+            paddingBottom: kbHeight > 0 ? 16 : 22 + insets.bottom,
+          },
+        ]}
+      >
         <View style={styles.totalRow}>
           <View>
-            <Text style={styles.totalLabel}>Total:</Text>
-            <Text style={styles.totalValue}>R$ {formatMoney(total)}</Text>
+            <Text style={[styles.totalLabel, { fontSize: sz.totalSub }]}>Total:</Text>
+            <Text style={[styles.totalValue, { fontSize: sz.totalBig }]}>R$ {formatMoney(total)}</Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.totalSubLabel}>Total por pessoa ({people}):</Text>
-            <Text style={styles.totalSubValue}>R$ {formatMoney(perPerson)}</Text>
+            <Text style={[styles.totalSubLabel, { fontSize: sz.caption }]}>Total por pessoa ({people}):</Text>
+            <Text style={[styles.totalSubValue, { fontSize: sz.totalSub }]}>R$ {formatMoney(perPerson)}</Text>
           </View>
         </View>
         {!readOnly ? (
@@ -571,9 +759,15 @@ export default function OrderDetailScreen({ route, navigation }) {
               </View>
             </View>
           )
+        ) : isManager ? (
+          <Button
+            title="Reabrir comanda"
+            onPress={() => setConfirmModal('reopen')}
+            loading={busy}
+            icon={<Feather name="rotate-ccw" size={20} color="#FFF" />}
+          />
         ) : null}
       </View>
-      ) : null}
 
       <FeedbackModal
         visible={confirmModal === 'close'}
@@ -629,74 +823,91 @@ export default function OrderDetailScreen({ route, navigation }) {
         onConfirm={doClear}
         onCancel={() => setConfirmClear(false)}
       />
+
+      <ConfirmModal
+        visible={!!confirmDeleteTable}
+        variant="danger"
+        title={`Excluir mesa "${confirmDeleteTable?.label}"?`}
+        message="Se esta mesa tiver comandas abertas, a exclusão será bloqueada automaticamente pelo sistema."
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        destructive
+        loading={deletingTable}
+        onConfirm={doDeleteTable}
+        onCancel={() => setConfirmDeleteTable(null)}
+      />
+
+      <ConfirmModal
+        visible={confirmModal === 'reopen'}
+        title="Reabrir comanda?"
+        message="A comanda voltará para 'aberta' e poderá ser editada novamente."
+        confirmLabel="Reabrir"
+        cancelLabel="Cancelar"
+        loading={busy}
+        onConfirm={confirmReopen}
+        onCancel={() => setConfirmModal(null)}
+      />
     </Screen>
   );
 }
 
-function Row({ icon, text }) {
+function Row({ icon, text, sz = {} }) {
   return (
     <View style={styles.infoRow}>
-      <Feather name={icon} size={18} color={colors.textDark} />
-      <Text style={styles.infoText}>{text}</Text>
+      <Feather name={icon} size={sz.iconSize || 14} color={colors.textDark} />
+      <Text style={[styles.infoText, sz.body && { fontSize: sz.body }]}>{text}</Text>
     </View>
   );
 }
 
-function ItemCard({ item, onRemove, onIncrement, onDecrement, readOnly }) {
-  const total = Number(item.unit_price) * Number(item.quantity);
+function ItemCard({ item, onRemove, onIncrement, onDecrement, readOnly, sz = {} }) {
+  const total   = Number(item.unit_price) * Number(item.quantity);
+  const imgSize = sz.itemImg || 52;
+  const qtySize = sz.qtyBtn  || 28;
   return (
     <View style={styles.itemCard}>
-      <View style={styles.itemImg}>
+      <View style={[styles.itemImg, { width: imgSize, height: imgSize }]}>
         {item.image ? (
           <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%', borderRadius: 8 }} />
         ) : (
-          <Feather name="image" size={26} color="#BBB" />
+          <Feather name="image" size={imgSize * 0.4} color="#BBB" />
         )}
       </View>
-      <View style={{ flex: 1, marginHorizontal: 10 }}>
-        <Text style={styles.itemName} numberOfLines={2}>{item.product_name}</Text>
-        <Text style={styles.itemQty}>R$ {formatMoney(item.unit_price)} cada</Text>
+      <View style={{ flex: 1, marginHorizontal: 12 }}>
+        <Text style={[styles.itemName, { fontSize: sz.itemName || 13 }]} numberOfLines={2}>{item.product_name}</Text>
+        <Text style={[styles.itemQty, { fontSize: sz.itemPrice || 11 }]}>R$ {formatMoney(item.unit_price)} cada</Text>
 
         {!readOnly ? (
           <View style={styles.qtyControls}>
             <Pressable
               onPress={onDecrement}
-              android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: 16 }}
-              style={({ pressed }) => [
-                styles.qtyBtn,
-                pressed && { opacity: 0.7 },
-              ]}
+              android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: qtySize / 2 }}
+              style={({ pressed }) => [styles.qtyBtn, { width: qtySize, height: qtySize, borderRadius: qtySize / 2 }, pressed && { opacity: 0.7 }]}
             >
-              <Feather name="minus" size={16} color={colors.textDark} />
+              <Feather name="minus" size={qtySize * 0.5} color={colors.textDark} />
             </Pressable>
-            <Text style={styles.qtyValue}>{item.quantity}</Text>
+            <Text style={[styles.qtyValue, { fontSize: sz.qtyVal || 14 }]}>{item.quantity}</Text>
             <Pressable
               onPress={onIncrement}
-              android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: 16 }}
-              style={({ pressed }) => [
-                styles.qtyBtn,
-                pressed && { opacity: 0.7 },
-              ]}
+              android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: qtySize / 2 }}
+              style={({ pressed }) => [styles.qtyBtn, { width: qtySize, height: qtySize, borderRadius: qtySize / 2 }, pressed && { opacity: 0.7 }]}
             >
-              <Feather name="plus" size={16} color={colors.textDark} />
+              <Feather name="plus" size={qtySize * 0.5} color={colors.textDark} />
             </Pressable>
           </View>
         ) : (
-          <Text style={styles.itemQty}>Qtd: {item.quantity}</Text>
+          <Text style={[styles.itemQty, { fontSize: sz.itemPrice || 11 }]}>Qtd: {item.quantity}</Text>
         )}
       </View>
       <View style={{ alignItems: 'flex-end' }}>
-        <Text style={styles.itemTotal}>R$ {formatMoney(total)}</Text>
+        <Text style={[styles.itemTotal, { fontSize: sz.itemTotal || 14 }]}>R$ {formatMoney(total)}</Text>
         {!readOnly ? (
           <Pressable
             onPress={onRemove}
             android_ripple={{ color: 'rgba(255,255,255,0.3)', borderless: true, radius: 18 }}
-            style={({ pressed }) => [
-              styles.itemEdit,
-              pressed && { opacity: 0.7 },
-            ]}
+            style={({ pressed }) => [styles.itemEdit, pressed && { opacity: 0.7 }]}
           >
-            <Feather name="trash-2" size={14} color="#FFF" />
+            <Feather name="trash-2" size={sz.iconSize || 14} color="#FFF" />
           </Pressable>
         ) : null}
       </View>
@@ -722,142 +933,140 @@ function mergeItems(prev, incoming) {
   return Array.from(map.values());
 }
 
-function formatMoney(n) {
-  return Number(n || 0).toFixed(2).replace('.', ',');
-}
-
 const styles = StyleSheet.create({
   statusPillBg: {
     backgroundColor: '#fffbec',
     width: '100%',
-    marginBottom: 32,
+    marginBottom: 48,
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF6D6',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    margin: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    margin: 18,
     borderRadius: radii.md,
     width: '98%'
   },
-  statusDot:   { width: 24, height: 24, borderRadius: 24, backgroundColor: colors.statusYellow, marginRight: 16 },
-  statusText:  { fontSize: 18, fontWeight: 700, color: colors.textDark },
+  statusDot:  { width: 14, height: 14, borderRadius: 7, backgroundColor: colors.statusYellow, marginRight: 12 },
+  statusText: { ...typography.bodyBold, color: colors.textDark, fontSize: 16 },
 
   twoColRow:   { flexDirection: 'row', gap: 8 },
   twoColLeft:  { flex: 1 },
   twoColRight: { flex: 1 },
 
-  section:      { paddingHorizontal: 24, marginBottom: 18 },
-  sectionTitle: { ...typography.h3, color: colors.textDark, fontSize: 24, paddingBottom: 12 },
+  section:      { paddingHorizontal: 20, marginBottom: 22 },
+  sectionTitle: { ...typography.h3, color: colors.textDark, fontSize: 22, marginBottom: 14 },
 
-  infoRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  infoText: { fontSize: 18, color: colors.textDark, marginLeft: 10 },
+  infoRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  infoText: { ...typography.body, color: colors.textDark, marginLeft: 12, fontSize: 17 },
 
-  // Controles +/- ao lado do campo de pessoas
-  peopleControls: { flexDirection: 'row', marginLeft: 12 },
+  peopleControls: { flexDirection: 'row', marginLeft: 14 },
   peopleBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 34, height: 34, borderRadius: 17,
     backgroundColor: '#EFEAE4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 3,
+    alignItems: 'center', justifyContent: 'center',
+    marginHorizontal: 4,
     overflow: 'hidden',
   },
 
-  mesaRow: { flexDirection: 'row', alignItems: 'center' },
+  mesaRow:   { flexDirection: 'row', alignItems: 'center' },
   mesaSelect: {
-    width: 152,
-    height: 48,
+    height: 52,
+    minWidth: 160,
     borderRadius: radii.md,
     backgroundColor: colors.inputBg,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 6
   },
-  mesaText:  { color: colors.textDark, fontSize: 18 },
-  mesaHint:  { color: colors.textMuted, fontSize: 16, marginLeft: 10, flex: 1 },
-  tableList: {
-    marginTop: 8,
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: colors.inputBorder,
-    borderRadius: radii.md,
-    overflow: 'hidden',
+  mesaText:     { color: colors.textDark, fontSize: 17 },
+  mesaHint:     { color: colors.textMuted, fontSize: 13, marginLeft: 12, flex: 1 },
+  tableList:      { marginTop: 8, backgroundColor: '#FFF', borderWidth: 1, borderColor: colors.inputBorder, borderRadius: radii.md, overflow: 'hidden' },
+  tableOpt:       { padding: 16, borderBottomWidth: 1, borderBottomColor: '#F2F2F2' },
+  tableOptText:   { fontSize: 16, color: colors.textMuted },
+  tableOptRow:    { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F2F2F2' },
+  tableDeleteBtn: { paddingHorizontal: 18, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
+
+  newTableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F0EBE4',
+    gap: 8,
   },
-  tableOpt:  { padding: 12, borderBottomWidth: 1, borderBottomColor: '#F2F2F2' },
+  newTableConfirm: {
+    width: 48, height: 48, borderRadius: 10,
+    backgroundColor: colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  newTableAdd: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#F0EBE4',
+    gap: 8,
+  },
+  newTableAddText: { color: colors.primary, fontWeight: '700', fontSize: 15 },
 
   itemCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FAF7F2',
     borderRadius: radii.md,
-    padding: 10,
-    marginBottom: 10,
+    padding: 14,
+    marginBottom: 12,
   },
-  itemImg:   { width: 56, height: 56, borderRadius: 8, backgroundColor: '#EEE', alignItems: 'center', justifyContent: 'center' },
-  itemName:  { ...typography.bodyBold, color: colors.textDark, fontSize: 14 },
-  itemQty:   { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-  itemTotal: { color: colors.primary, fontWeight: '800', fontSize: 15 },
+  itemImg:   { width: 70, height: 70, borderRadius: 10, backgroundColor: '#EEE', alignItems: 'center', justifyContent: 'center' },
+  itemName:  { ...typography.bodyBold, color: colors.textDark, fontSize: 17 },
+  itemQty:   { color: colors.textMuted, fontSize: 14, marginTop: 3 },
+  itemTotal: { color: colors.primary, fontWeight: '800', fontSize: 18 },
   itemEdit:  {
-    marginTop: 6, width: 26, height: 26, borderRadius: 6,
+    marginTop: 8, width: 32, height: 32, borderRadius: 8,
     backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
     overflow: 'hidden',
   },
 
-  // Controles + / − para alterar quantidade do item
-  qtyControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-  },
+  qtyControls: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   qtyBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 36, height: 36, borderRadius: 18,
     backgroundColor: '#EFEAE4',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
     overflow: 'hidden',
   },
   qtyValue: {
-    minWidth: 32,
+    minWidth: 36,
     textAlign: 'center',
     color: colors.textDark,
     fontWeight: '800',
-    fontSize: 15,
-    marginHorizontal: 6,
+    fontSize: 18,
+    marginHorizontal: 8,
   },
 
-  itemActions: { flexDirection: 'row', marginTop: 4 },
-  empty: { color: colors.textMuted, fontStyle: 'italic', paddingVertical: 8 },
+  itemActions: { flexDirection: 'row', marginTop: 6 },
+  empty:       { color: colors.textMuted, fontStyle: 'italic', paddingVertical: 10, fontSize: 16 },
 
   footer: {
     position: 'absolute',
-    left: 0, right: 0, bottom: 0,
+    width: '100%',
+    alignSelf: 'center', bottom: 0,
     backgroundColor: colors.bgDark,
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 12,
-  },
-  // Layout dos dois botões no footer (Salvar + Fechar) em telas existentes
+  totalRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 14 },
   footerActions: { flexDirection: 'row', alignItems: 'center' },
-  totalLabel:    { color: '#FFF', fontSize: 14 },
-  totalValue:    { color: colors.primary, fontSize: 28, fontWeight: '900' },
-  totalSubLabel: { color: '#CCC', fontSize: 11 },
-  totalSubValue: { color: '#FFF', fontSize: 14 },
+  totalLabel:    { color: '#FFF', fontSize: 17 },
+  totalValue:    { color: colors.primary, fontSize: 34, fontWeight: '900' },
+  totalSubLabel: { color: '#CCC', fontSize: 14 },
+  totalSubValue: { color: '#FFF', fontSize: 17 },
 });

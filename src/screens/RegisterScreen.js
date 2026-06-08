@@ -7,9 +7,14 @@ import DarkHeader from '../components/DarkHeader';
 import FeedbackModal from '../components/FeedbackModal';
 import { colors, typography } from '../theme';
 import { registerRequest } from '../services/authService';
+import { useAuth } from '../contexts/AuthContext';
 
 
 export default function RegisterScreen({ navigation }) {
+  const { selectedRole } = useAuth();
+  const role = selectedRole === 'manager' ? 'manager' : 'attendant';
+  const roleLabel = role === 'manager' ? 'gerente' : 'atendente';
+
   const [username,  setUsername]  = useState('');
   const [password,  setPassword]  = useState('');
   const [confirm,   setConfirm]   = useState('');
@@ -24,18 +29,18 @@ export default function RegisterScreen({ navigation }) {
 
     setError(''); setLoading(true);
     try {
-      await registerRequest({ username: username.trim(), password, role: 'attendant' });
+      await registerRequest({ username: username.trim(), password, role });
       setSuccess(true);
     } catch (err) {
-      setError(err?.uiMessage || 'Não foi possível cadastrar. Peça ao gerente para criar a conta.');
+      setError(err?.uiMessage || 'Não foi possível cadastrar.');
     } finally { setLoading(false); }
   }
 
   return (
     <Screen scroll background={colors.bgScreen} keyboardOffset={0}>
       <DarkHeader
-        title="Cadastrar atendente"
-        subtitle="Crie sua conta de atendente"
+        title={`Cadastrar ${roleLabel}`}
+        subtitle={`Crie sua conta de ${roleLabel}`}
         onBack={() => navigation.goBack()}
       />
       <View style={styles.body}>

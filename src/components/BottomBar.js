@@ -36,8 +36,11 @@ export default function BottomBar({ current = 'home' }) {
     );
   };
 
+
+  const bottomPad = Math.min(insets.bottom, 48);
+
   return (
-    <View style={[styles.wrap, { paddingBottom: insets.bottom }]}>
+    <View style={[styles.wrap, { paddingBottom: bottomPad }]}>
       <View style={styles.inner}>
         <Item name="home" icon="home" />
         {isManager ? <Item name="catalog" icon="grid" /> : null}
