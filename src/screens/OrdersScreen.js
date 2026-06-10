@@ -111,6 +111,11 @@ export default function OrdersScreen({ navigation, route }) {
   const filteredOpen   = applyFilters(open,   search, filters);
   const filteredClosed = applyFilters(closed, search, filters);
 
+  // Uma comanda aberta pode estar em Pendentes e Entregues ao mesmo tempo
+  // (entrega parcial). Derivado dos contadores que o back retorna.
+  const pendentes = filteredOpen.filter((o) => (o.pending_count   ?? 0) > 0);
+  const entregues = filteredOpen.filter((o) => (o.delivered_count ?? 0) > 0);
+
   // Conta quantos filtros estão ativos (≠ 'all') — vira badge sobre o ícone.
   const activeFiltersCount = Object.values(filters).filter((v) => v !== 'all').length;
 
@@ -169,76 +174,42 @@ export default function OrdersScreen({ navigation, route }) {
         >
         <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
         
-          <SectionHeader title="Pedidos em andamento" count={filteredOpen.length} />
+          <SectionHeader title="Pedidos pendentes" count={pendentes.length} />
           <Grid>
-            {/*
-            {/* REMOVER 
-             <OrderTile
-                key="placeholder"
-                order={{ ...placeholderOrder, status: 'open' }}
-                isNew
-                size="lg"
-                onPress={() => {}}
-              />
-              <OrderTile
-                key="placeholder"
-                order={{ ...placeholderOrder, status: 'open' }}
-                isNew
-                size="lg"
-                onPress={() => {}}
-              />
-              <OrderTile
-                key="placeholder"
-                order={{ ...placeholderOrder, status: 'open' }}
-                isNew
-                size="lg"
-                onPress={() => {}}
-              />
-              <OrderTile
-                key="placeholder"
-                order={{ ...placeholderOrder, status: 'open' }}
-                isNew
-                size="lg"
-                onPress={() => {}}
-              />
-              <OrderTile
-                key="placeholder"
-                order={{ ...placeholderOrder, status: 'open' }}
-                isNew
-                size="lg"
-                onPress={() => {}}
-              />
-              */}
-            {filteredOpen.map((o) => (
-              
+            {pendentes.map((o) => (
               <OrderTile
                 key={o.id}
                 order={{ ...o, status: 'open' }}
                 isNew={o.id === newOrderId}
+                partial={(o.delivered_count ?? 0) > 0}
                 size="lg"
                 onPress={() => navigation.navigate('OrderDetail', { id: o.id })}
               />
             ))}
-            {filteredOpen.length === 0 ? (
-              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-                <Image source={require('../../assets/vazio.png')} style={{ width: 64, height: 64 }} resizeMode="contain" />
-                <Text style={styles.empty}>
-                  {search || activeFiltersCount > 0
-                    ? 'Nenhum pedido encontrado com esses filtros'
-                    : 'Nenhum pedido em andamento'}
-                </Text>
-              </View>
+            {pendentes.length === 0 ? (
+              <EmptySection text={search || activeFiltersCount > 0 ? 'Nenhum pedido encontrado com esses filtros' : 'Nenhum pedido pendente'} />
             ) : null}
           </Grid>
 
-          <View
-            style={{
-              height: 1,
-              backgroundColor: '#ccc',
-              width: '100%',
-              marginVertical: 10,
-            }}
-          />
+          <Divider />
+
+          <SectionHeader title="Pedidos entregues" count={entregues.length} />
+          <Grid>
+            {entregues.map((o) => (
+              <OrderTile
+                key={o.id}
+                order={{ ...o, status: 'open' }}
+                partial={(o.pending_count ?? 0) > 0}
+                size="lg"
+                onPress={() => navigation.navigate('OrderDetail', { id: o.id })}
+              />
+            ))}
+            {entregues.length === 0 ? (
+              <EmptySection text={search || activeFiltersCount > 0 ? 'Nenhum pedido encontrado com esses filtros' : 'Nenhum pedido entregue'} />
+            ) : null}
+          </Grid>
+
+          <Divider />
 
           <SectionHeader title="Comandas fechadas hoje" count={filteredClosed.length} />
           <Grid>
@@ -251,14 +222,7 @@ export default function OrdersScreen({ navigation, route }) {
               />
             ))}
             {filteredClosed.length === 0 ? (
-              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-                <Image source={require('../../assets/vazio.png')} style={{ width: 64, height: 64 }} resizeMode="contain" />
-                <Text style={styles.empty}>
-                  {search || activeFiltersCount > 0
-                    ? 'Nenhuma comanda encontrada com esses filtros'
-                    : 'Nenhuma comanda fechada hoje'}
-                </Text>
-              </View>
+              <EmptySection text={search || activeFiltersCount > 0 ? 'Nenhuma comanda encontrada com esses filtros' : 'Nenhuma comanda fechada hoje'} />
             ) : null}
           </Grid>
         </View>
@@ -366,6 +330,19 @@ function SectionHeader({ title, count }) {
 
 function Grid({ children }) {
   return <View style={styles.grid}>{children}</View>;
+}
+
+function Divider() {
+  return <View style={{ height: 1, backgroundColor: '#ccc', width: '100%', marginVertical: 10 }} />;
+}
+
+function EmptySection({ text }) {
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <Image source={require('../../assets/vazio.png')} style={{ width: 64, height: 64 }} resizeMode="contain" />
+      <Text style={styles.empty}>{text}</Text>
+    </View>
+  );
 }
 
 // Aplica busca textual + filtros estruturados a um array de comandas.

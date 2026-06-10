@@ -31,6 +31,24 @@ export async function updateOrder(id, payload) {
   return data.order;
 }
 
+// Marca itens como entregues (array de item_id).
+export async function deliverItems(id, itemIds) {
+  const { data } = await api.patch(`/orders/${id}`, { deliver_items: itemIds });
+  return data.order;
+}
+
+// Volta itens para pendente (array de item_id).
+export async function undeliverItems(id, itemIds) {
+  const { data } = await api.patch(`/orders/${id}`, { undeliver_items: itemIds });
+  return data.order;
+}
+
+// Marca todos os itens da comanda como entregues.
+export async function deliverAll(id) {
+  const { data } = await api.patch(`/orders/${id}`, { deliver_all: true });
+  return data.order;
+}
+
 export async function closeOrder(id) {
   const { data } = await api.post(`/orders/${id}/close`);
   return data.order;

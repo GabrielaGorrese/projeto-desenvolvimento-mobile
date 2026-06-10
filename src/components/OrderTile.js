@@ -6,7 +6,7 @@ import { colors, radii, typography } from '../theme';
 // Card numerado verde/amarelo/vermelho (abertas) ou cinza (fechadas).
 // Mostra o número visível da comanda (daily_number, reinicia ao fechar o caixa).
 // Cai no id como fallback para comandas antigas sem daily_number.
-export default function OrderTile({ order, onPress, isNew }) {
+export default function OrderTile({ order, onPress, isNew, partial }) {
   const bg = order.status === 'closed'
     ? colors.statusClosed
     : order.color_status === 'red'
@@ -44,6 +44,11 @@ export default function OrderTile({ order, onPress, isNew }) {
           <Feather name="star" size={18} color="#E8C44E" />
         </View>
       ) : null}
+      {partial ? (
+        <View style={styles.partial}>
+          <Text style={styles.partialText}>PARCIAL</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -61,4 +66,17 @@ const styles = StyleSheet.create({
 
   num: { ...typography.h2, color: '#FFFFFF', fontWeight: '900', fontSize: 26, width: '100%', textAlign: 'center', paddingHorizontal: 6 },
   star: { position: 'absolute', top: -8, right: -6 },
+
+  // Faixa "PARCIAL": comanda que está em Pendentes e Entregues ao mesmo tempo.
+  partial: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    right: 6,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 6,
+    paddingVertical: 2,
+    alignItems: 'center',
+  },
+  partialText: { color: '#FFF', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
 });

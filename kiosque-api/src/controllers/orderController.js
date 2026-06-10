@@ -31,6 +31,8 @@ const ORDER_SELECT = `
       ELSE 'red'
     END                                           AS color_status,
     COALESCE(SUM(oi.quantity), 0)::int            AS items_count,
+    COUNT(oi.id) FILTER (WHERE oi.delivered = FALSE)::int AS pending_count,
+    COUNT(oi.id) FILTER (WHERE oi.delivered = TRUE)::int  AS delivered_count,
     COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS subtotal
   FROM   orders   o
   JOIN   status   s ON s.id = o.status_id
@@ -49,7 +51,7 @@ function buildImageUrl(req, image) {
 
 async function fetchItems(client, orderId, req) {
   const { rows } = await client.query(
-    `SELECT oi.id, oi.quantity, oi.unit_price, oi.notes,
+    `SELECT oi.id, oi.quantity, oi.unit_price, oi.notes, oi.delivered,
             p.id AS product_id, p.name AS product_name, p.image AS product_image,
             c.name AS category_name
      FROM   order_item oi
@@ -329,7 +331,8 @@ async function create(req, res) {
 // }
 async function update(req, res) {
   const { id } = req.params
-  const { label, table_id, discount, people, add_items, update_items, remove_items } = req.body
+  const { label, table_id, discount, people, add_items, update_items, remove_items,
+          deliver_items, undeliver_items, deliver_all } = req.body
 
   const client = await pool.connect()
   try {
@@ -449,6 +452,25 @@ async function update(req, res) {
       await client.query(
         `DELETE FROM order_item WHERE id = ANY($1::int[]) AND order_id = $2`,
         [remove_items, id]
+      )
+    }
+
+    // Entregar / desfazer entrega de itens
+    if (deliver_all === true) {
+      await client.query(
+        `UPDATE order_item SET delivered = TRUE WHERE order_id = $1`, [id]
+      )
+    }
+    if (Array.isArray(deliver_items) && deliver_items.length > 0) {
+      await client.query(
+        `UPDATE order_item SET delivered = TRUE WHERE order_id = $1 AND id = ANY($2::int[])`,
+        [id, deliver_items]
+      )
+    }
+    if (Array.isArray(undeliver_items) && undeliver_items.length > 0) {
+      await client.query(
+        `UPDATE order_item SET delivered = FALSE WHERE order_id = $1 AND id = ANY($2::int[])`,
+        [id, undeliver_items]
       )
     }
 

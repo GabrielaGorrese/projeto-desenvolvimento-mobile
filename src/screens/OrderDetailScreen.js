@@ -28,6 +28,7 @@ import {
   deleteOrder,
 } from '../services/ordersService';
 import { fetchTables, createTable, deleteTable } from '../services/tablesService';
+import { getShowTable, getShowLabel } from '../services/appSettings';
 import { connectSocket } from '../services/socket';
 import { useAuth } from '../contexts/AuthContext';
 import { usePendingItems } from '../contexts/PendingItemsContext';
@@ -49,6 +50,10 @@ export default function OrderDetailScreen({ route, navigation }) {
   const { takePendingItems } = usePendingItems();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
+
+  // Campos opcionais (ligados/desligados nas configurações). Lidos no mount.
+  const showTable = getShowTable();
+  const showLabel = getShowLabel();
   const twoCol = r.isLandscape && r.width >= 800;
 
   const sz = useMemo(() => ({
@@ -180,11 +185,20 @@ export default function OrderDetailScreen({ route, navigation }) {
       if (String(payload?.id) !== String(id)) return; // outra comanda
       setConfirmModal('alreadyClosed');
     };
+    // Atualização ao vivo (ex.: outro tablet entregou/alterou itens desta comanda).
+    // Atualiza só os itens — não mexe em label/pessoas que o usuário pode estar editando.
+    const onUpdated = (payload) => {
+      if (String(payload?.id) !== String(id)) return;
+      setOrder(payload);
+      setItems(payload.items || []);
+    };
     s.on('order:closed', onGone);
     s.on('order:deleted', onGone);
+    s.on('order:updated', onUpdated);
     return () => {
       s.off('order:closed', onGone);
       s.off('order:deleted', onGone);
+      s.off('order:updated', onUpdated);
     };
   }, [id, isNew, readOnly]);
 
@@ -220,6 +234,9 @@ export default function OrderDetailScreen({ route, navigation }) {
     ? Math.max(0, totalRaw - Number(order.discount))
     : totalRaw;
   const perPerson = total / Math.max(1, people);
+
+  // Só é possível fechar a comanda quando todos os itens já foram entregues.
+  const allDelivered = items.length > 0 && items.every((it) => it.delivered);
 
   const tableLabel = tables.find((t) => t.id === tableId)?.label;
 
@@ -282,6 +299,21 @@ export default function OrderDetailScreen({ route, navigation }) {
       setErrorModal({ title: 'Erro', message: err?.uiMessage || 'Erro ao remover item.' });
     } finally { setBusy(false); }
   }
+
+  // Entrega de itens (apenas comandas já criadas). Reaproveita o PATCH /orders/:id.
+  async function applyOrderPatch(payload, errMsg) {
+    try {
+      setBusy(true);
+      const updated = await updateOrder(id, payload);
+      setOrder(updated);
+      setItems(updated.items || []);
+    } catch (err) {
+      setErrorModal({ title: 'Erro', message: err?.uiMessage || errMsg });
+    } finally { setBusy(false); }
+  }
+  const deliverItem    = (itemId) => applyOrderPatch({ deliver_items: [itemId] },   'Erro ao entregar item.');
+  const undeliverItem  = (itemId) => applyOrderPatch({ undeliver_items: [itemId] }, 'Erro ao desfazer entrega.');
+  const deliverAllItems = ()      => applyOrderPatch({ deliver_all: true },          'Erro ao entregar itens.');
 
   async function onPrimary() {
     if (readOnly) return;
@@ -531,6 +563,7 @@ export default function OrderDetailScreen({ route, navigation }) {
           }}
         />        
 
+        {showTable ? (
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { fontSize: sz.section }]}>Mesa</Text>
           <View style={styles.mesaRow}>
@@ -628,17 +661,9 @@ export default function OrderDetailScreen({ route, navigation }) {
             </View>
           ) : null}
           </View>
+        ) : null}
 
-          <View
-            style={{
-              height: 2,
-              backgroundColor: '#e0e0e0',
-              width: '100%',
-              marginVertical: 10,
-              marginBottom: 24
-            }}
-          /> 
-
+        {showLabel ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Identificação (opcional)</Text>
           <Input
@@ -652,6 +677,7 @@ export default function OrderDetailScreen({ route, navigation }) {
             style={{ marginTop: 16 }}
           />
         </View>
+        ) : null}
         </View>
 
         <View style={twoCol ? styles.twoColRight : null}>
@@ -660,37 +686,49 @@ export default function OrderDetailScreen({ route, navigation }) {
           {items.length === 0 ? (
             <Text style={styles.empty}>Nenhum item adicionado.</Text>
           ) : (() => {
-            // Em landscape (twoCol), a lista de itens tem rolagem própria
-            // limitada por maxHeight; em portrait, deixa rolar com a página.
-            const itemCards = items.map((it, idx) => (
-              <ItemCard
-                key={it.id || `local-${idx}`}
-                item={it}
-                readOnly={readOnly}
-                sz={sz}
-                onIncrement={() => {
-                  if (it.id) changeServerItemQty(it.id, (it.quantity || 1) + 1);
-                  else       incrementLocalItem(idx);
-                }}
-                onDecrement={() => {
-                  if (it.id) changeServerItemQty(it.id, (it.quantity || 1) - 1);
-                  else       decrementLocalItem(idx);
-                }}
-                onRemove={() => (it.id ? removeServerItem(it.id) : removeLocalItem(idx))}
-              />
-            ));
+            // Separa em duas listas: pendentes e entregues. Mantém o índice
+            // original (necessário para os itens locais de comanda nova).
+            const pendingCards = [];
+            const deliveredCards = [];
+            items.forEach((it, idx) => {
+              const card = (
+                <ItemCard
+                  key={it.id || `local-${idx}`}
+                  item={it}
+                  readOnly={readOnly}
+                  sz={sz}
+                  onIncrement={() => {
+                    if (it.id) changeServerItemQty(it.id, (it.quantity || 1) + 1);
+                    else       incrementLocalItem(idx);
+                  }}
+                  onDecrement={() => {
+                    if (it.id) changeServerItemQty(it.id, (it.quantity || 1) - 1);
+                    else       decrementLocalItem(idx);
+                  }}
+                  onRemove={() => (it.id ? removeServerItem(it.id) : removeLocalItem(idx))}
+                  onDeliver={it.id ? () => deliverItem(it.id) : null}
+                  onUndeliver={it.id ? () => undeliverItem(it.id) : null}
+                />
+              );
+              if (it.delivered) deliveredCards.push(card); else pendingCards.push(card);
+            });
 
-            return twoCol ? (
-              <ScrollView
-                style={{ maxHeight: 460 }}
-                nestedScrollEnabled
-                showsVerticalScrollIndicator
-                keyboardShouldPersistTaps="handled"
-              >
-                {itemCards}
-              </ScrollView>
-            ) : (
-              <View>{itemCards}</View>
+            return (
+              <View>
+                <View style={styles.subHeaderRow}>
+                  <Text style={[styles.subHeader, { fontSize: sz.body }]}>Itens pendentes ({pendingCards.length})</Text>
+                  {!readOnly && !isNew && pendingCards.length > 0 ? (
+                    <Pressable onPress={deliverAllItems} hitSlop={8} style={styles.deliverAllBtn} android_ripple={{ color: 'rgba(0,0,0,0.06)' }}>
+                      <Feather name="check-circle" size={18} color={colors.primary} />
+                      <Text style={styles.deliverAllText}>Entregar todos</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+                {pendingCards.length ? pendingCards : <Text style={styles.emptySub}>Nenhum item pendente.</Text>}
+
+                <Text style={[styles.subHeader, { fontSize: sz.body, marginTop: 18 }]}>Itens entregues ({deliveredCards.length})</Text>
+                {deliveredCards.length ? deliveredCards : <Text style={styles.emptySub}>Nenhum item entregue.</Text>}
+              </View>
             );
           })()}
 
@@ -737,7 +775,7 @@ export default function OrderDetailScreen({ route, navigation }) {
               onPress={onPrimary}
               loading={busy}
             />
-          ) : (
+          ) : allDelivered ? (
             <View style={styles.footerActions}>
               <View style={{ flex: 1 }}>
                 <Button
@@ -758,6 +796,20 @@ export default function OrderDetailScreen({ route, navigation }) {
                 />
               </View>
             </View>
+          ) : (
+            <>
+              <Button
+                title="Salvar alterações"
+                variant="outline"
+                onPress={onSave}
+                loading={busy}
+                textStyle={{ color: '#FFF' }}
+                style={{ borderColor: '#FFF' }}
+              />
+              <Text style={styles.closeHint}>
+                Entregue todos os itens para poder fechar a comanda.
+              </Text>
+            </>
           )
         ) : isManager ? (
           <Button
@@ -860,12 +912,13 @@ function Row({ icon, text, sz = {} }) {
   );
 }
 
-function ItemCard({ item, onRemove, onIncrement, onDecrement, readOnly, sz = {} }) {
+function ItemCard({ item, onRemove, onIncrement, onDecrement, onDeliver, onUndeliver, readOnly, sz = {} }) {
   const total   = Number(item.unit_price) * Number(item.quantity);
   const imgSize = sz.itemImg || 52;
   const qtySize = sz.qtyBtn  || 28;
+  const delivered = !!item.delivered;
   return (
-    <View style={styles.itemCard}>
+    <View style={[styles.itemCard, delivered && styles.itemCardDelivered]}>
       <View style={[styles.itemImg, { width: imgSize, height: imgSize }]}>
         {item.image ? (
           <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%', borderRadius: 8 }} />
@@ -898,9 +951,30 @@ function ItemCard({ item, onRemove, onIncrement, onDecrement, readOnly, sz = {} 
         ) : (
           <Text style={[styles.itemQty, { fontSize: sz.itemPrice || 11 }]}>Qtd: {item.quantity}</Text>
         )}
+
+        {/* Botão entregar / desfazer entrega (só comandas já criadas) */}
+        {!readOnly && (onDeliver || onUndeliver) ? (
+          delivered ? (
+            <Pressable onPress={onUndeliver} hitSlop={6} style={styles.undeliverBtn} android_ripple={{ color: 'rgba(0,0,0,0.06)' }}>
+              <Feather name="rotate-ccw" size={15} color={colors.textMuted} />
+              <Text style={styles.undeliverText}>Desfazer entrega</Text>
+            </Pressable>
+          ) : (
+            <Pressable onPress={onDeliver} hitSlop={6} style={styles.deliverBtn} android_ripple={{ color: 'rgba(255,255,255,0.25)' }}>
+              <Feather name="check" size={15} color="#FFF" />
+              <Text style={styles.deliverText}>Entregar</Text>
+            </Pressable>
+          )
+        ) : null}
       </View>
       <View style={{ alignItems: 'flex-end' }}>
         <Text style={[styles.itemTotal, { fontSize: sz.itemTotal || 14 }]}>R$ {formatMoney(total)}</Text>
+        {delivered ? (
+          <View style={styles.deliveredTag}>
+            <Feather name="check-circle" size={13} color="#1E9E54" />
+            <Text style={styles.deliveredTagText}>Entregue</Text>
+          </View>
+        ) : null}
         {!readOnly ? (
           <Pressable
             onPress={onRemove}
@@ -1024,6 +1098,34 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
   },
+  // Item entregue: leve destaque verde à esquerda.
+  itemCardDelivered: {
+    backgroundColor: '#F1F8F3',
+    borderLeftWidth: 4,
+    borderLeftColor: '#1E9E54',
+  },
+
+  // Cabeçalhos das sublistas (pendentes / entregues)
+  subHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  subHeader:    { ...typography.bodyBold, color: colors.textDark, fontWeight: '800' },
+  emptySub:     { color: colors.textMuted, fontStyle: 'italic', paddingVertical: 6, marginBottom: 6 },
+
+  deliverAllBtn:  { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 6 },
+  deliverAllText: { color: colors.primary, fontWeight: '700', fontSize: 14 },
+
+  // Botão "Entregar" dentro do card pendente
+  deliverBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+    backgroundColor: '#1E9E54', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 7, marginTop: 10, overflow: 'hidden',
+  },
+  deliverText: { color: '#FFF', fontWeight: '800', fontSize: 13 },
+  // Botão "Desfazer entrega" dentro do card entregue
+  undeliverBtn:  { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 6, marginTop: 8 },
+  undeliverText: { color: colors.textMuted, fontWeight: '700', fontSize: 13 },
+  // Selo "Entregue" no canto do card
+  deliveredTag:     { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+  deliveredTagText: { color: '#1E9E54', fontWeight: '800', fontSize: 12 },
   itemImg:   { width: 70, height: 70, borderRadius: 10, backgroundColor: '#EEE', alignItems: 'center', justifyContent: 'center' },
   itemName:  { ...typography.bodyBold, color: colors.textDark, fontSize: 17 },
   itemQty:   { color: colors.textMuted, fontSize: 14, marginTop: 3 },
@@ -1051,6 +1153,7 @@ const styles = StyleSheet.create({
   },
 
   itemActions: { flexDirection: 'row', marginTop: 6 },
+  closeHint:   { color: '#E8C44E', fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 8 },
   empty:       { color: colors.textMuted, fontStyle: 'italic', paddingVertical: 10, fontSize: 16 },
 
   footer: {

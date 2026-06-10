@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import Screen from '../components/Screen';
 import DarkHeader from '../components/DarkHeader';
@@ -8,6 +8,7 @@ import Button from '../components/Button';
 import FeedbackModal from '../components/FeedbackModal';
 import { colors, radii, typography } from '../theme';
 import { getApiBaseUrl, setApiBaseUrl, normalizeBaseUrl } from '../services/apiConfig';
+import { getShowTable, getShowLabel, setShowTable, setShowLabel } from '../services/appSettings';
 import { reconnectSocket } from '../services/socket';
 
 // Testa se o servidor responde, com timeout manual (o fetch do RN não tem timeout nativo).
@@ -32,9 +33,18 @@ export default function ApiConfigScreen({ navigation }) {
   const [status, setStatus] = useState(null);
   const [feedback, setFeedback] = useState(null);
 
+  // Flags de campos opcionais da comanda
+  const [showTable, setShowTableState] = useState(false);
+  const [showLabel, setShowLabelState] = useState(false);
+
   useEffect(() => {
     setUrl(getApiBaseUrl());
+    setShowTableState(getShowTable());
+    setShowLabelState(getShowLabel());
   }, []);
+
+  function toggleTable(v) { setShowTableState(v); setShowTable(v); }
+  function toggleLabel(v) { setShowLabelState(v); setShowLabel(v); }
 
   async function onTest() {
     const normalized = normalizeBaseUrl(url);
@@ -121,6 +131,35 @@ export default function ApiConfigScreen({ navigation }) {
             <Button title="Salvar" onPress={onSave} />
           </View>
 
+          {/* ── Campos opcionais da comanda ── */}
+          <Text style={styles.sectionLabel}>Campos da comanda</Text>
+
+          <View style={styles.toggleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.toggleTitle}>Mesa</Text>
+              <Text style={styles.toggleDesc}>Exibe o seletor de mesa na comanda.</Text>
+            </View>
+            <Switch
+              value={showTable}
+              onValueChange={toggleTable}
+              trackColor={{ true: colors.primary, false: '#CCC' }}
+              thumbColor="#FFF"
+            />
+          </View>
+
+          <View style={styles.toggleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.toggleTitle}>Identificação</Text>
+              <Text style={styles.toggleDesc}>Exibe o campo de identificação/descrição da comanda.</Text>
+            </View>
+            <Switch
+              value={showLabel}
+              onValueChange={toggleLabel}
+              trackColor={{ true: colors.primary, false: '#CCC' }}
+              thumbColor="#FFF"
+            />
+          </View>
+
         </View>
       </ScrollView>
 
@@ -148,4 +187,15 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   statusText: { flex: 1, fontSize: 14, fontWeight: '600' },
+
+  sectionLabel: { ...typography.bodyBold, color: colors.textDark, fontSize: 17, marginTop: 32, marginBottom: 4 },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0EBE4',
+  },
+  toggleTitle: { ...typography.bodyBold, color: colors.textDark, fontSize: 16 },
+  toggleDesc:  { color: colors.textMuted, fontSize: 13, marginTop: 2 },
 });
