@@ -23,7 +23,7 @@ import {
 } from '../services/productsService';
 import { useAuth } from '../contexts/AuthContext';
 import { usePendingItems } from '../contexts/PendingItemsContext';
-import { connectSocket } from '../services/socket';
+import { onSocket } from '../services/socket';
 import useResponsive from '../hooks/useResponsive';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -61,9 +61,9 @@ export default function CatalogScreen({ navigation, route }) {
   const [categoryId, setCategoryId] = useState(null);
   const [cart,       setCart]       = useState({}); // {product_id: { product, qty }}
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [cats, prods] = await Promise.all([
         fetchCategories(),
         fetchProducts({ search: search.trim() || undefined, category_id: categoryId || undefined }),
@@ -86,8 +86,7 @@ export default function CatalogScreen({ navigation, route }) {
   const loadRef = useRef(load);
   loadRef.current = load;
   useEffect(() => {
-    const s = connectSocket();
-    const reload = () => loadRef.current();
+    const reload = () => loadRef.current({ silent: true });
 
     const onUpdated = (product) => {
       if (product?.id != null) {
@@ -107,16 +106,13 @@ export default function CatalogScreen({ navigation, route }) {
       reload();
     };
 
-    s.on('product:created',  reload);
-    s.on('product:updated',  onUpdated);
-    s.on('product:deleted',  onDeleted);
-    s.on('product:restored', reload);
-    return () => {
-      s.off('product:created',  reload);
-      s.off('product:updated',  onUpdated);
-      s.off('product:deleted',  onDeleted);
-      s.off('product:restored', reload);
-    };
+    const subs = [
+      onSocket('product:created',  reload),
+      onSocket('product:updated',  onUpdated),
+      onSocket('product:deleted',  onDeleted),
+      onSocket('product:restored', reload),
+    ];
+    return () => subs.forEach((off) => off());
   }, []);
 
   function increment(prod) {

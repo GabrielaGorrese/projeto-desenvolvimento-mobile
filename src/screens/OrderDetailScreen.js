@@ -29,13 +29,12 @@ import {
 } from '../services/ordersService';
 import { fetchTables, createTable, deleteTable } from '../services/tablesService';
 import { getShowTable, getShowLabel } from '../services/appSettings';
-import { connectSocket } from '../services/socket';
+import { onSocket } from '../services/socket';
 import { useAuth } from '../contexts/AuthContext';
 import { usePendingItems } from '../contexts/PendingItemsContext';
 import useResponsive from '../hooks/useResponsive';
 import ScrollFade from '../components/ScrollFade';
 import { formatMoney } from '../utils/format';
-import useElapsedTime from '../hooks/useElapsedTime';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -137,18 +136,16 @@ export default function OrderDetailScreen({ route, navigation }) {
   useEffect(() => {
     fetchTables().then(setTables).catch(() => {});
 
-    const s = connectSocket();
     const onCreated = (table) => setTables((prev) => [...prev, table]);
     const onDeleted = ({ id }) => {
       setTables((prev) => prev.filter((t) => t.id !== id));
       setTableId((cur) => (cur === id ? null : cur));
     };
-    s.on('table:created', onCreated);
-    s.on('table:deleted', onDeleted);
-    return () => {
-      s.off('table:created', onCreated);
-      s.off('table:deleted', onDeleted);
-    };
+    const subs = [
+      onSocket('table:created', onCreated),
+      onSocket('table:deleted', onDeleted),
+    ];
+    return () => subs.forEach((off) => off());
   }, []);
 
 
@@ -179,7 +176,6 @@ export default function OrderDetailScreen({ route, navigation }) {
   // aberta aqui, mostra um aviso com saída em vez de deixar o usuário preso.
   useEffect(() => {
     if (isNew || readOnly) return;
-    const s = connectSocket();
     const onGone = (payload) => {
       if (closingSelfRef.current) return;            // foi este atendente
       if (String(payload?.id) !== String(id)) return; // outra comanda
@@ -192,14 +188,12 @@ export default function OrderDetailScreen({ route, navigation }) {
       setOrder(payload);
       setItems(payload.items || []);
     };
-    s.on('order:closed', onGone);
-    s.on('order:deleted', onGone);
-    s.on('order:updated', onUpdated);
-    return () => {
-      s.off('order:closed', onGone);
-      s.off('order:deleted', onGone);
-      s.off('order:updated', onUpdated);
-    };
+    const subs = [
+      onSocket('order:closed', onGone),
+      onSocket('order:deleted', onGone),
+      onSocket('order:updated', onUpdated),
+    ];
+    return () => subs.forEach((off) => off());
   }, [id, isNew, readOnly]);
 
 
@@ -245,10 +239,6 @@ export default function OrderDetailScreen({ route, navigation }) {
   const createdDateStr = createdDate.toLocaleDateString('pt-BR');
   const createdTimeStr = createdDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const createdAt = `${createdDateStr} às ${createdTimeStr}`;
-
-  // Timer de tempo decorrido. Para automaticamente quando a comanda fecha
-  // (usa closed_at como fim). Em comandas novas, conta desde Date.now().
-  const elapsed = useElapsedTime(order?.created_at, order?.closed_at);
 
   function removeLocalItem(idx) {
     setItems((prev) => prev.filter((_, i) => i !== idx));
@@ -550,7 +540,7 @@ export default function OrderDetailScreen({ route, navigation }) {
               </View>
             ) : null}
           </View>
-          <Row icon="clock" text={elapsed} sz={sz} />
+          <Row icon="clock" text={`Aberta às ${createdTimeStr}`} sz={sz} />
         </View>
 
         <View

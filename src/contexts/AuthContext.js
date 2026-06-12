@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loginRequest } from '../services/authService';
 import { loadApiBaseUrl } from '../services/apiConfig';
 import { loadAppSettings } from '../services/appSettings';
+import { setUnauthorizedHandler } from '../services/api';
 
 const STORAGE_TOKEN    = '@comandou:token';
 const STORAGE_USER     = '@comandou:user';
@@ -78,6 +79,11 @@ export function AuthProvider({ children }) {
     setUser(null);
     setSelectedRole(null);
   }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => { signOut(); });
+    return () => setUnauthorizedHandler(null);
+  }, [signOut]);
 
   const value = {
     user,

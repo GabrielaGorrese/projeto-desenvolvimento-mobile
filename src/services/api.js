@@ -6,6 +6,13 @@ import { getApiBaseUrl } from './apiConfig';
 // usuário pode trocá-la pela tela de configuração sem reiniciar o app.
 const api = axios.create({ timeout: 15000 });
 
+let onUnauthorized = null;
+let unauthorizedFiring = false;
+
+export function setUnauthorizedHandler(fn) {
+  onUnauthorized = fn;
+}
+
 api.interceptors.request.use(async (config) => {
   config.baseURL = `${getApiBaseUrl()}/api`;
 
@@ -24,6 +31,14 @@ api.interceptors.response.use(
             || err?.message
             || 'Erro de comunicação com o servidor.';
     err.uiMessage = msg;
+
+    const hadAuth = !!err?.config?.headers?.Authorization;
+    if (err?.response?.status === 401 && hadAuth && onUnauthorized && !unauthorizedFiring) {
+      unauthorizedFiring = true;
+      onUnauthorized();
+      setTimeout(() => { unauthorizedFiring = false; }, 1000);
+    }
+
     return Promise.reject(err);
   }
 );

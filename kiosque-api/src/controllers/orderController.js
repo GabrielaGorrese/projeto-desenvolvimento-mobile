@@ -67,6 +67,30 @@ async function fetchItems(client, orderId, req) {
   }))
 }
 
+// Busca os itens de várias comandas de uma vez (evita N+1 na listagem)
+// e devolve um mapa { order_id: [itens...] }.
+async function fetchItemsByOrder(orderIds, req) {
+  if (!orderIds.length) return {}
+  const { rows } = await pool.query(
+    `SELECT oi.id, oi.order_id, oi.quantity, oi.unit_price, oi.notes, oi.delivered,
+            p.id AS product_id, p.name AS product_name, p.image AS product_image,
+            c.name AS category_name
+     FROM   order_item oi
+     JOIN   product  p ON p.id = oi.product_id
+     JOIN   category c ON c.id = p.category_id
+     WHERE  oi.order_id = ANY($1::int[])
+     ORDER  BY oi.id ASC`,
+    [orderIds]
+  )
+  const byOrder = {}
+  for (const r of rows) {
+    const item = { ...r, image: buildImageUrl(req, r.product_image) }
+    if (!byOrder[r.order_id]) byOrder[r.order_id] = []
+    byOrder[r.order_id].push(item)
+  }
+  return byOrder
+}
+
 // GET /api/orders — comandas abertas, paginadas
 // Query params:
 //   ?page=1   (default 1)
@@ -98,6 +122,10 @@ async function getOpenOrders(req, res) {
     const total       = parseInt(countResult.rows[0].total, 10)
     const total_pages = Math.ceil(total / limit) || 1
 
+    const orders     = dataResult.rows
+    const itemsByOrder = await fetchItemsByOrder(orders.map(o => o.id), req)
+    orders.forEach(o => { o.items = itemsByOrder[o.id] || [] })
+
     return res.json({
       page,
       limit,
@@ -105,7 +133,7 @@ async function getOpenOrders(req, res) {
       total_pages,
       has_prev: page > 1,
       has_next: page < total_pages,
-      orders:   dataResult.rows
+      orders
     })
   } catch (err) {
     console.error('[orders.getOpenOrders]', err)
