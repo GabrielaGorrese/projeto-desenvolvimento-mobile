@@ -57,7 +57,7 @@ const Input = forwardRef(function Input(
         />
         {isPassword ? (
           <Pressable onPress={() => setShowPwd((v) => !v)} hitSlop={8}>
-            <Feather name={showPwd ? 'eye' : 'eye-off'} size={24} color={colors.textMuted} />
+            <Feather name={showPwd ? 'eye' : 'eye-off'} size={28} color={colors.textMuted} />
           </Pressable>
         ) : rightIcon ? (
           <Pressable onPress={onRightIconPress} hitSlop={8}>
@@ -81,9 +81,9 @@ const styles = StyleSheet.create({
     borderColor: colors.inputBorder,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
   },
-  input: { flex: 1, color: colors.textDark, fontSize: 15, padding: 0 },
+  input: { flex: 1, color: colors.textDark, fontSize: 16, padding: 0 },
   error: { color: colors.danger, fontSize: 12, marginTop: 4 },
 });
 

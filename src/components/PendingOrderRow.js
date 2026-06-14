@@ -1,9 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, radii, shadow, typography } from '../theme';
-
-const DELIVER_GREEN = '#1E9E54';
 
 export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliverAll, isNew, partial }) {
   const [busyAll, setBusyAll] = useState(false);
@@ -62,6 +60,11 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
           >
             {label}
           </Text>
+          {timeStr ? (
+            <View style={styles.timeRow}>
+              <Text style={styles.timeText}>{timeStr}</Text>
+            </View>
+          ) : null}
           {partial ? (
             <View style={styles.partial}>
               <Text style={styles.partialText}>PARCIAL</Text>
@@ -69,16 +72,10 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
           ) : null}
           {isNew ? (
             <View style={styles.star}>
-              <Feather name="star" size={16} color={colors.statusYellow} />
+              <Image source={require('../../assets/novo.png')} style={styles.newBadge} resizeMode="contain" />
             </View>
           ) : null}
         </View>
-        {timeStr ? (
-          <View style={styles.timeRow}>
-            <Feather name="clock" size={12} color={colors.textMuted} />
-            <Text style={styles.timeText}>{timeStr}</Text>
-          </View>
-        ) : null}
       </View>
 
       <View style={styles.items}>
@@ -91,7 +88,13 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
               const last = idx === pendingItems.length - 1;
               return (
                 <View key={it.id ?? idx} style={[styles.itemRow, !last && styles.itemDivider]}>
-                  <View style={styles.bullet} />
+                  <View style={styles.itemThumb}>
+                    {it.image ? (
+                      <Image source={{ uri: it.image }} style={styles.itemImage} resizeMode="cover" />
+                    ) : (
+                      <Feather name="image" size={22} color="#B8B1AA" />
+                    )}
+                  </View>
                   <Text style={styles.itemText}>
                     {it.product_name}
                     {Number(it.quantity) > 1 ? (
@@ -101,13 +104,13 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
                   <Pressable
                     onPress={() => deliverOne(it.id)}
                     hitSlop={8}
-                    android_ripple={{ color: 'rgba(255,255,255,0.3)', borderless: true, radius: 18 }}
+                    android_ripple={{ color: 'rgba(204,126,74,0.14)', borderless: false }}
                     style={({ pressed }) => [styles.checkBtn, (busy || busyAll || pressed) && { opacity: 0.7 }]}
                   >
                     {busy ? (
-                      <ActivityIndicator size="small" color="#FFF" />
+                      <ActivityIndicator size="small" color={colors.primary} />
                     ) : (
-                      <Feather name="check" size={18} color="#FFF" />
+                      <Feather name="check" size={22} color={colors.primary} />
                     )}
                   </Pressable>
                 </View>
@@ -117,24 +120,25 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
             {pendingItems.length > 1 ? (
               <Pressable
                 onPress={deliverEverything}
-                android_ripple={{ color: 'rgba(255,255,255,0.25)' }}
+                android_ripple={{ color: 'rgba(204,126,74,0.14)' }}
                 style={({ pressed }) => [styles.deliverAllBtn, (busyAll || pressed) && { opacity: 0.85 }]}
               >
                 {busyAll ? (
-                  <ActivityIndicator size="small" color="#FFF" />
+                  <ActivityIndicator size="small" color={colors.primary} />
                 ) : (
                   <>
-                    <Feather name="check-circle" size={17} color="#FFF" />
+                    <Feather name="check-circle" size={18} color={colors.primary} />
                     <Text style={styles.deliverAllText}>Entregar todos</Text>
                   </>
                 )}
               </Pressable>
             ) : null}
+
           </>
         )}
       </View>
 
-      <Feather name="chevron-right" size={22} color={colors.textMuted} />
+      <Feather name="chevron-right" size={22} color={colors.textMuted} style={styles.chevron} />
     </Pressable>
   );
 }
@@ -142,7 +146,7 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     backgroundColor: colors.bgLight,
     borderRadius: radii.lg,
     paddingVertical: 14,
@@ -152,30 +156,44 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     ...shadow.card,
   },
-  left: { alignItems: 'center', width: 66 },
+  left: { alignItems: 'center', width: 66, alignSelf: 'stretch' },
   numBox: {
     width: 66,
-    height: 78,
-    borderRadius: radii.md,
+    flex: 1,
+    minHeight: 128,
+    borderTopLeftRadius: radii.md,
+    borderBottomLeftRadius: radii.md,
+    borderTopRightRadius: 4,
+    borderBottomRightRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 7 },
-  timeText: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
+  chevron: { alignSelf: 'center' },
+  timeRow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timeText: { color: '#FFF', fontSize: 15, fontWeight: '400', textAlign: 'center' },
   num: {
     ...typography.h2,
     color: colors.textOnDark,
     fontWeight: '900',
-    fontSize: 28,
+    fontSize: 32,
     width: '100%',
     textAlign: 'center',
     paddingHorizontal: 4,
+    paddingBottom: 16
   },
   star: { position: 'absolute', top: 3, right: 3 },
+  newBadge: { width: 28, height: 28 },
   partial: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 28,
     left: 0,
     right: 0,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -188,38 +206,51 @@ const styles = StyleSheet.create({
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 9,
+    paddingVertical: 11,
   },
   itemDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#ECE6DE',
   },
-  bullet: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-    marginRight: 12,
+  itemThumb: {
+    width: 72,
+    height: 72,
+    borderRadius: radii.md,
+    backgroundColor: '#F0ECE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E6DED6',
+  },
+  itemImage: {
+    width: '100%',
+    height: '100%',
   },
   itemText: {
     flex: 1,
     ...typography.body,
     color: colors.textDark,
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 26,
+    fontWeight: '800',
   },
   itemQty: {
     color: colors.primary,
     fontWeight: '800',
+    fontSize: 22,
   },
   checkBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: DELIVER_GREEN,
+    width: 46,
+    height: 46,
+    borderRadius: 30,
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 10,
+    marginRight: 10,
     overflow: 'hidden',
   },
   deliverAllBtn: {
@@ -228,14 +259,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignSelf: 'flex-start',
     gap: 8,
-    minHeight: 38,
-    backgroundColor: DELIVER_GREEN,
+    minHeight: 44,
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: colors.primary,
     borderRadius: radii.md,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
     marginTop: 10,
     overflow: 'hidden',
   },
-  deliverAllText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
-  emptyItem: { color: colors.textMuted, fontStyle: 'italic', fontSize: 15 },
+  deliverAllText: { color: colors.primary, fontWeight: '800', fontSize: 18 },
+  emptyItem: { color: colors.textMuted, fontStyle: 'italic', fontSize: 17 },
 });

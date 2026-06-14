@@ -17,76 +17,50 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import Logo from '../components/Logo';
-import { colors, radii } from '../theme';
+import { colors, radii, typography } from '../theme';
 import GradientView from '../components/GradientView';
 import { gradients } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
 import useResponsive from '../hooks/useResponsive';
+import SettingsButton from '../components/SettingsButton';
 
 export default function LoginScreen({ navigation }) {
   const { selectedRole, signIn, signOut, rememberedUsername } = useAuth();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
-  const role     = selectedRole || 'attendant';
+  const role = selectedRole || 'attendant';
   const isManager = role === 'manager';
   const headerColor = isManager ? colors.manager : colors.attendant;
-  const maxW = r.isLandscape
-    ? Math.max(420, Math.min(1100, r.width * 0.65))
-    : r.width;
+  const minSide = Math.min(r.width, r.height);
+  const panelWidth = Math.min(900, r.width * 0.9);
+  const panelHorizontalPadding = Math.round(Math.max(20, Math.min(52, minSide * 0.05)));
+  const bannerWidth = panelWidth;
+  const brandBottom = Math.round(Math.max(44, Math.min(82, minSide * 0.08)));
+  const maxW = panelWidth - panelHorizontalPadding * 2;
   const compact = r.isTablet && r.isLandscape;
   const comfyPortrait = r.isPortrait;
   const scale = Math.min(1.4, Math.max(1, r.width / 600));
-  const bannerTitleFontSize = 24 * scale;
-  const rememberLabelFontSize = (compact ? 15 : comfyPortrait ? 17 : 16) * scale;
+  const bannerTitleFontSize = 26 * scale;
+  const rememberLabelFontSize = (compact ? 15 : comfyPortrait ? 18 : 18) * scale;
   const errorFontSize = (compact ? 14 : 15) * scale;
-  const inputFontSize = (compact ? 16 : comfyPortrait ? 18 : 17) * scale;
-  const inputLabelFontSize = (compact ? 16 : comfyPortrait ? 18 : 17) * scale;
-  const inputHeight = compact ? 52 : comfyPortrait ? 60 : 56;
-  const actionButtonHeight = compact ? 54 : comfyPortrait ? 68 : 8;
-  const actionButtonFontSize = (compact ? 15 : comfyPortrait ? 18 : 17) * scale;
+  const inputFontSize = (compact ? 16 : comfyPortrait ? 20 : 20) * scale;
+  const inputLabelFontSize = (compact ? 16 : comfyPortrait ? 20 : 20) * scale;
+  const inputHeight = compact ? 52 : comfyPortrait ? 72 : 72;
+  const actionButtonHeight = compact ? 62 : comfyPortrait ? 82 : 82;
+  const actionButtonFontSize = (compact ? 17 : comfyPortrait ? 21 : 20) * scale;
+  const actionButtonRadius = 12;
   const buttonSize = comfyPortrait ? 'lg' : compact ? 'sm' : 'md';
-  const sheetTranslateY = useRef(new Animated.Value(0)).current;
   const maxKeyboardLift = Math.round(Math.min(compact ? 150 : 260, Math.max(120, r.height * 0.32)));
 
   const [username, setUsername] = useState(rememberedUsername || '');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(!!rememberedUsername);
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState('');
-
-  useEffect(() => {
-    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    function animateSheet(toValue, duration = 220) {
-      Animated.timing(sheetTranslateY, {
-        toValue,
-        duration,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
-    }
-
-    
-    const showSub = Keyboard.addListener(showEvt, (event) => {
-      const keyboardHeight = event.endCoordinates?.height || 0;
-      const offset = keyboardHeight * 0.35
-      const lift = Math.min(maxKeyboardLift + offset, Math.max(0, keyboardHeight - insets.bottom + 12));
-      animateSheet(-lift, event.duration || 220);
-    });
-    const hideSub = Keyboard.addListener(hideEvt, (event) => {
-      animateSheet(0, event.duration || 180);
-    });
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, [insets.bottom, maxKeyboardLift, sheetTranslateY]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   async function onSubmit() {
     if (!username.trim() || !password) {
-      setError('Informe usuário e senha.');
+      setError('Informe usu\u00e1rio e senha.');
       return;
     }
     setError('');
@@ -94,9 +68,8 @@ export default function LoginScreen({ navigation }) {
     try {
       const user = await signIn({ username: username.trim(), password, remember });
       if (isManager && user.role !== 'manager') {
-        // Logou com sucesso mas a conta não é de gerente: desfaz e avisa inline.
         await signOut();
-        setError('Esta conta não é de gerente.');
+        setError('Esta conta n\u00e3o \u00e9 de gerente.');
       }
     } catch (err) {
       setError(err?.uiMessage || 'Falha no login.');
@@ -108,42 +81,44 @@ export default function LoginScreen({ navigation }) {
   return (
     <GradientView colors={gradients.ui.dark} style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bgDark} />
-      <View style={[styles.topArea, { paddingTop: insets.top + 56 }]}>
-        <Logo size="md" />
-      </View>
 
-      <View style={styles.sheetBackground} />
+      <SettingsButton navigation={navigation} />
 
-      {/* Sheet branco que ocupa todo o resto da tela */}
-      <Animated.View
-        style={[
-          styles.sheetMover,
-          { transform: [{ translateY: sheetTranslateY }] },
+      <ScrollView
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + 82, paddingBottom: insets.bottom + 42 },
         ]}
       >
-        <View style={styles.sheetShadow}>
-          <View style={styles.sheet}>
-          <ScrollView
-            contentContainerStyle={styles.scroll}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Banner laranja full-width: o conteúdo dentro é que centraliza */}
-            <GradientView colors={isManager ? gradients.ui.manager : gradients.ui.primary} style={styles.banner}>
-              <View style={[styles.bannerInner, { maxWidth: maxW }]}>
-                <Pressable
-                  hitSlop={10}
-                  onPress={() => navigation.goBack()}
-                  android_ripple={{ color: 'rgba(255,255,255,0.2)', borderless: true, radius: 18 }}
-                  style={styles.bannerBack}
-                >
-                  <Feather name="arrow-left" size={32} color="#FFF" />
-                </Pressable>
-                <Text style={[styles.bannerTitle, { fontSize: bannerTitleFontSize }]}>
-                  {isManager ? 'GERENTE' : 'ATENDENTE'}
-                </Text>
-                <View style={{ width: 26 }} />
-              </View>
+        <View style={[styles.brand, { marginBottom: brandBottom }]}>
+          <Logo size="lg" subtitle="Boas vindas!" />
+        </View>
+          <View style={[styles.panel, { width: panelWidth, paddingHorizontal: panelHorizontalPadding }]}>
+            <GradientView
+              colors={isManager ? gradients.ui.manager : gradients.ui.primary}
+              style={[
+                styles.banner,
+                {
+                  width: bannerWidth,
+                  marginHorizontal: -panelHorizontalPadding,
+                },
+              ]}
+            >
+              <Pressable
+                hitSlop={10}
+                onPress={() => navigation.goBack()}
+                android_ripple={{ color: 'rgba(255,255,255,0.2)', borderless: true, radius: 18 }}
+                style={styles.bannerBack}
+              >
+                <Feather name="arrow-left" size={42} color="#FFF" />
+              </Pressable>
+              <Text style={[styles.bannerTitle, { fontSize: bannerTitleFontSize }]}>
+                {isManager ? 'GERENTE' : 'ATENDENTE'}
+              </Text>
+              <View style={styles.bannerSpacer} />
             </GradientView>
 
             <View style={[styles.column, { maxWidth: maxW }]}>
@@ -157,9 +132,7 @@ export default function LoginScreen({ navigation }) {
                   style={[compact && styles.inputCompact, comfyPortrait && styles.inputPortrait]}
                   labelStyle={{ fontSize: inputLabelFontSize }}
                   fieldStyle={{ height: inputHeight, paddingHorizontal: compact ? 15 : 18, marginBottom: 8 }}
-                  inputStyle={[
-                    { fontSize: inputFontSize },
-                  ]}
+                  inputStyle={[{ fontSize: inputFontSize }]}
                 />
                 <Input
                   label="Senha"
@@ -171,39 +144,34 @@ export default function LoginScreen({ navigation }) {
                   style={[compact && styles.inputCompact, comfyPortrait && styles.inputPortrait]}
                   labelStyle={{ fontSize: inputLabelFontSize }}
                   fieldStyle={{ height: inputHeight, paddingHorizontal: compact ? 15 : 18, marginBottom: 8 }}
-                  inputStyle={[
-                    { fontSize: inputFontSize },
-                  ]}
+                  inputStyle={[{ fontSize: inputFontSize }]}
                 />
 
                 <View style={[styles.rememberRow, comfyPortrait && styles.rememberPortrait]}>
                   <View style={styles.remember}>
-                  <Switch
-                    value={remember}
-                    onValueChange={setRemember}
-                    trackColor={{ true: colors.primary, false: '#CCC' }}
-                    thumbColor="#FFF"
-                    style={[compact && styles.rememberSwitchCompact, comfyPortrait && styles.rememberSwitchPortrait]}
-                  />
-                  <Text
-                    style={[
-                      styles.rememberLabel,
-                      { fontSize: rememberLabelFontSize },
-                      compact && styles.rememberLabelCompact,
-                      comfyPortrait && styles.rememberLabelPortrait,
-                    ]}
-                  >
-                    Lembrar usuário
-                  </Text>
+                    <Switch
+                      value={remember}
+                      onValueChange={setRemember}
+                      trackColor={{ true: colors.primary, false: '#CCC' }}
+                      thumbColor="#FFF"
+                      style={[compact && styles.rememberSwitchCompact, comfyPortrait && styles.rememberSwitchPortrait]}
+                    />
+                    <Text
+                      style={[
+                        styles.rememberLabel,
+                        { fontSize: rememberLabelFontSize },
+                        compact && styles.rememberLabelCompact,
+                        comfyPortrait && styles.rememberLabelPortrait,
+                      ]}
+                    >
+                      Lembrar usuário
+                    </Text>
                   </View>
 
                   {error ? (
                     <View style={styles.errorBadge}>
                       <Feather name="alert-triangle" size={20} color={colors.danger} />
-                      <Text
-                        style={[styles.error, { fontSize: errorFontSize }]}
-                        numberOfLines={1}
-                      >
+                      <Text style={[styles.error, { fontSize: errorFontSize }]} numberOfLines={1}>
                         {error}
                       </Text>
                     </View>
@@ -220,6 +188,7 @@ export default function LoginScreen({ navigation }) {
                     textStyle={{ fontSize: actionButtonFontSize }}
                     style={[
                       { height: actionButtonHeight },
+                      { borderRadius: actionButtonRadius },
                       isManager && { backgroundColor: headerColor },
                       isManager && styles.actionFull,
                       !isManager && compact && styles.actionHalf,
@@ -233,7 +202,10 @@ export default function LoginScreen({ navigation }) {
                       size={buttonSize}
                       fullWidth
                       textStyle={{ fontSize: actionButtonFontSize }}
-                      style={[{ height: actionButtonHeight }, styles.actionHalf]}
+                      style={[
+                        { height: actionButtonHeight, borderRadius: actionButtonRadius },
+                        styles.actionHalf,
+                      ]}
                     />
                   ) : (
                     <Pressable
@@ -241,7 +213,7 @@ export default function LoginScreen({ navigation }) {
                       android_ripple={{ color: 'rgba(204,126,74,0.18)' }}
                       style={({ pressed }) => [
                         styles.cadastrar,
-                        { height: actionButtonHeight },
+                        { height: actionButtonHeight, borderRadius: actionButtonRadius },
                         pressed && Platform.OS !== 'android' && { opacity: 0.7 },
                       ]}
                     >
@@ -259,99 +231,92 @@ export default function LoginScreen({ navigation }) {
                 </View>
               </View>
             </View>
-          </ScrollView>
           </View>
+
+        <View style={styles.security}>
+          <Text style={styles.securityText}>{'Desenvolvimento SATC | 2026'}</Text>
         </View>
-      </Animated.View>
+      </ScrollView>
     </GradientView>
   );
 }
 
 const styles = StyleSheet.create({
-  root:     { flex: 1 },
-  topArea:  { paddingBottom: 26, alignItems: 'center' },
-  sheetMover: { flex: 1 },
-  sheetShadow: {
+  root: {
     flex: 1,
-    width: '92%',
-    alignSelf: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    elevation: 8,
   },
-
-  sheetBackground: {
-    width: '92%',
-    alignSelf: 'center',
-    position: 'absolute',
-    bottom: 0,
-
-    height: 600,
-    backgroundColor: '#FFF',
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
   },
-
-  // Sheet branco — ocupa todo o espaço abaixo do logo até o fim da tela
-  sheet: {
-    flex: 1,
-    backgroundColor: '#FFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
+  brand: {
+    alignItems: 'center',
+    marginBottom: 82,
   },
-
-  scroll:   { flexGrow: 1, alignItems: 'center', paddingBottom: 24 },
-  column:   { width: '100%' },
+  panelMover: {
+    alignItems: 'center',
+  },
+  panel: {
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    paddingHorizontal: 54,
+    paddingBottom: 58,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 14 },
+        shadowOpacity: 0.24,
+        shadowRadius: 22,
+      },
+      android: {
+        elevation: 14,
+      },
+    }),
+  },
+  column: {
+    alignSelf: 'stretch',
+    width: '100%',
+  },
 
   banner: {
     width: '100%',
-    paddingVertical: 18,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginBottom: 32,
-    alignItems: 'center',
-  },
-  bannerInner: {
-    width: '100%',
+    minHeight: 124,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    marginBottom: 34,
+    paddingHorizontal: 36,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    marginBottom: 36
   },
-  bannerBack:  { width: 36, height: 90, justifyContent: 'center', alignItems: 'center' },
+  bannerBack: { width: 44, height: 56, justifyContent: 'center', alignItems: 'center' },
+  bannerSpacer: { width: 44 },
   bannerTitle: {
-      color: '#FFF',
-      fontWeight: '900',
-      letterSpacing: 1.2
+    color: '#FFF',
+    fontFamily: typography.familyHeavy,
+    fontWeight: '900',
+    letterSpacing: 1.2,
   },
 
   form: {
-    paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 28,
+    paddingTop: 8,
+    paddingBottom: 0,
   },
   formCompact: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
+    paddingTop: 0,
   },
   formPortrait: {
-    paddingHorizontal: 28,
-    paddingTop: 32,
-    paddingBottom: 30,
+    paddingTop: 4,
   },
   inputCompact: {
-    marginBottom: 10,
+    marginTop: 6,
+    marginBottom: 6,
   },
   inputPortrait: {
-    marginBottom: 16,
-  },
-  inputTextCompact: {
-    fontSize: 14,
-  },
-  inputTextPortrait: {
-    fontSize: 17,
+    marginTop: 2,
+    marginBottom: 6,
   },
   rememberRow: {
     flexDirection: 'row',
@@ -361,19 +326,27 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 12,
   },
-  remember: { flexDirection: 'row', alignItems: 'center', flexShrink: 0 },
-  rememberPortrait: { marginTop: 12, marginBottom: 10 },
+  remember: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  rememberPortrait: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
   rememberLabel: {
-    marginLeft: 8,
+    marginLeft: 20,
     color: colors.textDark,
   },
   rememberSwitchCompact: {
-    transform: [{ scaleX: 1.4 }, { scaleY: 1.4 }],
+    transform: [{ scaleX: 1.8 }, { scaleY: 1.8 }],
     marginRight: 12,
   },
   rememberSwitchPortrait: {
-    transform: [{ scaleX: 1.08 }, { scaleY: 1.08 }],
-    marginRight: 12,
+    transform: [{ scaleX: 1.8 }, { scaleY: 1.8 }],
+    marginRight: 16,
+    paddingLeft: 8
   },
   rememberLabelCompact: {},
   rememberLabelPortrait: {},
@@ -387,28 +360,61 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 6,
   },
-  error: { color: colors.danger, flexShrink: 1, fontSize: 13, marginTop: 0, textAlign: 'right' },
+  error: {
+    color: colors.danger,
+    flexShrink: 1,
+    fontSize: 13,
+    marginTop: 0,
+    textAlign: 'right',
+  },
 
-  actions: { marginTop: 22 },
+  actions: {
+    marginTop: 22,
+  },
   actionsCompact: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     marginTop: 14,
   },
-  actionHalf: { flex: 1 },
-  actionFull: { alignSelf: 'stretch' },
+  actionHalf: {
+    flex: 1,
+  },
+  actionFull: {
+    alignSelf: 'stretch',
+  },
 
   cadastrar: {
-    marginTop: 14,
-    borderRadius: radii.md,
+    marginTop: 20,
+    borderRadius: radii.lg,
     borderWidth: 2,
     borderColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden', // contém o ripple dentro das bordas
+    overflow: 'hidden',
   },
-  cadastrarLabel: { color: colors.primary, fontWeight: '800', letterSpacing: 1, fontSize: 17 },
-  cadastrarPortrait: { marginTop: 14 },
-  cadastrarLabelPortrait: {}
+  cadastrarLabel: {
+    color: colors.primary,
+    fontWeight: '800',
+    letterSpacing: 1,
+    fontSize: 17,
+  },
+  cadastrarPortrait: {
+    marginTop: 14,
+  },
+  cadastrarLabelPortrait: {},
+  security: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 40,
+    paddingHorizontal: 24,
+  },
+  securityText: {
+    marginTop: 16,
+    marginLeft: 20,
+    color: 'rgba(255,255,255,0.72)',
+    fontFamily: typography.family,
+    fontSize: 21,
+    lineHeight: 28,
+  },
 });

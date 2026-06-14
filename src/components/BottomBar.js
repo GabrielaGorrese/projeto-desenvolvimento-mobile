@@ -8,7 +8,7 @@ import { colors } from '../theme';
 
 // Tabbar inferior. Navega sozinha (useNavigation), então as telas só informam
 // qual item está ativo via `current`. O item de catálogo (gerenciar produtos)
-// aparece apenas para gerentes.
+// fica clicavel apenas para gerentes.
 //   current: 'home' (comandas) | 'catalog' (produtos)
 export default function BottomBar({ current = 'home' }) {
   const navigation = useNavigation();
@@ -21,17 +21,19 @@ export default function BottomBar({ current = 'home' }) {
     if (name === 'catalog') navigation.navigate('Products');
   }
 
-  const Item = ({ name, icon }) => {
+  const Item = ({ name, icon, disabled = false }) => {
     const active = current === name;
+    const iconColor = disabled ? '#5F5F5F' : active ? colors.primary : '#B8B8B8';
     return (
       <Pressable
         onPress={() => go(name)}
         style={styles.item}
+        disabled={disabled}
         hitSlop={8}
-        android_ripple={{ color: 'rgba(0,0,0,0.08)', borderless: true, radius: 28 }}
+        android_ripple={disabled ? null : { color: 'rgba(255,255,255,0.14)', borderless: true, radius: 28 }}
       >
-        <Feather name={icon} size={22} color={active ? colors.primary : '#7A7A7A'} />
-        {active ? <View style={styles.dot} /> : null}
+        <Feather name={icon} size={36} color={iconColor} />
+        {active && !disabled ? <View style={styles.dot} /> : null}
       </Pressable>
     );
   };
@@ -41,7 +43,8 @@ export default function BottomBar({ current = 'home' }) {
     <View style={[styles.wrap, { paddingBottom: insets.bottom }]}>
       <View style={styles.inner}>
         <Item name="home" icon="home" />
-        {isManager ? <Item name="catalog" icon="grid" /> : null}
+        <View style={styles.fabGap} pointerEvents="none" />
+        <Item name="catalog" icon="grid" disabled={!isManager} />
       </View>
     </View>
   );
@@ -50,10 +53,17 @@ export default function BottomBar({ current = 'home' }) {
 const styles = StyleSheet.create({
   wrap: {
     borderTopWidth: 1,
-    borderTopColor: '#EFEFEF',
-    backgroundColor: '#FFF',
+    borderTopColor: colors.bgDark,
+    backgroundColor: colors.bgDark,
   },
-  inner: { height: 56, flexDirection: 'row' },
+  inner: {
+    height: 96,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 46,
+  },
   item:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  fabGap: { width: 104 },
   dot:   { width: 6, height: 6, borderRadius: 3, marginTop: 4, backgroundColor: colors.primary },
 });

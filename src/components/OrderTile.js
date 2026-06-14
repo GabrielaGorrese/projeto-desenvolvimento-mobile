@@ -56,15 +56,15 @@ export default function OrderTile({ order, onPress, isNew, partial }) {
 const styles = StyleSheet.create({
   wrap:  { margin: 6 },
   tile:  {
-    width: 78,
-    height: 96,
+    width: 96,
+    height: 128,
     borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',  // ripple respeita o border-radius
   },
 
-  num: { ...typography.h2, color: '#FFFFFF', fontWeight: '900', fontSize: 26, width: '100%', textAlign: 'center', paddingHorizontal: 6 },
+  num: { ...typography.h2, color: '#FFFFFF', fontWeight: '900', fontSize: 32, width: '100%', textAlign: 'center', paddingHorizontal: 6 },
   star: { position: 'absolute', top: -8, right: -6 },
 
   // Faixa "PARCIAL": comanda que está em Pendentes e Entregues ao mesmo tempo.

@@ -62,8 +62,8 @@ export const gradients = {
   },
 
   ui: {
-    primary: ['#bb5e3a', '#CC7E4A'],
-    manager: ['#aa3e2f', '#C25A48'],
+    primary: ['#c44e31', '#CC7E4A'],
+    manager: ['#b93128', '#C25A48'],
     dark: ['#111111', '#313131'],
     success: ['#00C853', '#009624'],
     danger: ['#D50000', '#9B0000'],

@@ -13,7 +13,7 @@ export default function BaseHeader({
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.wrap, { paddingTop: insets.top + 16 }, style]}>
+    <View style={[styles.wrap, { paddingTop: insets.top + 24 }, style]}>
       <View style={[styles.row, contentStyle]}>
         {/* LEFT */}
         {left || <View style={styles.leftPlaceholder} />}
@@ -33,19 +33,20 @@ export default function BaseHeader({
 const styles = StyleSheet.create({
   wrap: {
     backgroundColor: colors.bgDark,
-    paddingHorizontal: 12,
-    paddingBottom: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 32,
   },
 
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 18,
+    minHeight: 76,
   },
 
   leftPlaceholder: {
-    width: 54,
-    height: 54,
+    width: 72,
+    height: 72,
   },
 
   center: {

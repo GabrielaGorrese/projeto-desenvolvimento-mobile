@@ -19,13 +19,13 @@ export default function SearchHeader({
       left={
         onBack ? (
           <Pressable onPress={onBack} style={styles.back}>
-            <Feather name="arrow-left" size={30} color="#FFF" />
+            <Feather name="arrow-left" size={42} color="#FFF" />
           </Pressable>
         ) : null
       }
       center={
         <View style={styles.search}>
-          <Feather name="search" size={20} color={colors.textMuted} />
+          <Feather name="search" size={26} color={colors.textMuted} />
           <TextInput
             placeholder={placeholder}
             placeholderTextColor={colors.textMuted}
@@ -39,7 +39,7 @@ export default function SearchHeader({
       right={
         onFilter && (
           <Pressable onPress={onFilter} style={styles.filterBtn}>
-            <Feather name="sliders" size={24} color="#FFF" />
+            <Feather name="sliders" size={30} color="#FFF" />
 
             {activeFilters > 0 && (
               <View style={styles.badge}>
@@ -55,18 +55,18 @@ export default function SearchHeader({
 
 const styles = StyleSheet.create({
   back: {
-    width: 54,
-    height: 54,
+    width: 72,
+    height: 72,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   search: {
     flex: 1,
-    backgroundColor: '#3A3636',
-    borderRadius: radii.md,
-    paddingHorizontal: 12,
-    height: 54,
+    backgroundColor: colors.bgDarkSoft,
+    borderRadius: 12,
+    paddingHorizontal: 22,
+    height: 72,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -74,32 +74,36 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     color: '#FFF',
-    fontSize: 18,
-    marginLeft: 8,
+    fontSize: 22,
+    lineHeight: 28,
+    marginLeft: 12,
   },
 
   filterBtn: {
-    width: 54,
-    height: 54,
-    borderRadius: radii.sm,
+    width: 72,
+    height: 72,
+    borderRadius: 12,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 24,
   },
 
   badge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
+    top: -4,
+    right: -4,
     backgroundColor: colors.danger,
-    borderRadius: 10,
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
     paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   badgeText: {
     color: '#FFF',
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 'bold',
   },
 });

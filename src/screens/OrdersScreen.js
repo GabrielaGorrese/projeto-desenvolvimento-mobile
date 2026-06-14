@@ -11,14 +11,12 @@ import {
   View,
   Image
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import Screen from '../components/Screen';
 import SearchHeader from '../components/SearchHeader';
 import OrderTile from '../components/OrderTile';
 import PendingOrderRow from '../components/PendingOrderRow';
 import BottomBar from '../components/BottomBar';
-import Button from '../components/Button';
 import Fab from '../components/Fab';
 import FeedbackModal from '../components/FeedbackModal';
 import ConfirmModal from '../components/ConfirmModal';
@@ -54,10 +52,9 @@ const SMOOTH_LAYOUT = {
 };
 
 export default function OrdersScreen({ navigation, route }) {
-  const { signOut, isManager } = useAuth();
+  const { signOut } = useAuth();
   const r = useResponsive();
   const contentWidth = r.isTablet ? Math.min(r.width - 32, 1100) : r.contentMaxWidth;
-  const sideGutter = Math.max(8, Math.round((r.width - contentWidth) / 2) + 8);
   const [open,    setOpen]    = useState([]);
   const [closed,  setClosed]  = useState([]);
   const [loading, setLoading] = useState(true);
@@ -222,7 +219,7 @@ export default function OrdersScreen({ navigation, route }) {
       ) : (
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 120, alignItems: 'center' }}
+          contentContainerStyle={styles.scrollContent}
           refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => { setRefresh(true); load(); }} />}
         >
         <View style={{ width: '100%', maxWidth: contentWidth }}>
@@ -285,7 +282,10 @@ export default function OrdersScreen({ navigation, route }) {
       )}
 
       <BottomBar current="home" />
-      <Fab onPress={() => navigation.navigate('OrderDetail', { id: 'new' })} style={{ right: sideGutter }} />
+      <Fab
+        onPress={() => navigation.navigate('OrderDetail', { id: 'new' })}
+        centeredOnBottomBar
+      />
 
       <FiltersSheet
         visible={filtersOpen}
@@ -397,13 +397,13 @@ function Grid({ children }) {
 }
 
 function Divider() {
-  return <View style={{ height: 1, backgroundColor: '#ccc', width: '100%', marginVertical: 10 }} />;
+  return <View style={styles.divider} />;
 }
 
 function EmptySection({ text }) {
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <Image source={require('../../assets/vazio.png')} style={{ width: 64, height: 64 }} resizeMode="contain" />
+    <View style={styles.emptyWrap}>
+      <Image source={require('../../assets/vazio.png')} style={{ width: 76, height: 76, marginTop: 12 }} resizeMode="contain" />
       <Text style={styles.empty}>{text}</Text>
     </View>
   );
@@ -439,26 +439,52 @@ function applyFilters(arr, term, filters) {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    paddingHorizontal: 64,
+    paddingTop: 34,
+    paddingBottom: 120,
+    alignItems: 'center',
+  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    marginTop: 36,
-    marginBottom: 4,
+    paddingHorizontal: 0,
+    marginTop: 0,
+    marginBottom: 14,
   },
-  sectionTitle: { ...typography.h3, color: colors.textDark, fontSize: 24 },
-  sectionCount: { ...typography.bodyBold, color: colors.primary, marginLeft: 8, fontSize: 20 },
+  sectionTitle: { ...typography.bodyBold, color: colors.textDark, fontSize: 26 },
+  sectionCount: { ...typography.bodyBold, color: colors.primary, marginLeft: 12, fontSize: 26 },
 
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 4,
-    marginTop: 16,
+    paddingHorizontal: 0,
+    marginTop: 0,
   },
   pendingList: {
-    paddingHorizontal: 4,
-    marginTop: 16,
+    paddingHorizontal: 0,
+    marginTop: 14,
   },
-  resetWrap: { paddingHorizontal: 10, marginTop: 12 },
-  empty: { padding: 10, color: colors.textMuted, fontSize: 18, paddingBottom: 42 },
+  divider: {
+    height: 2,
+    backgroundColor: '#F0EBE4',
+    width: '100%',
+    marginTop: 24,
+    marginBottom: 24,
+  },
+  emptyWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 0,
+  },
+  empty: {
+    color: colors.textMuted,
+    fontSize: 22,
+    lineHeight: 28,
+    paddingTop: 10,
+    paddingBottom: 18,
+    textAlign: 'center',
+  },
 });
