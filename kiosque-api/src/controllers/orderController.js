@@ -31,6 +31,8 @@ const ORDER_SELECT = `
       ELSE 'red'
     END                                           AS color_status,
     COALESCE(SUM(oi.quantity), 0)::int            AS items_count,
+    COUNT(oi.id) FILTER (WHERE oi.delivered = FALSE)::int AS pending_count,
+    COUNT(oi.id) FILTER (WHERE oi.delivered = TRUE)::int  AS delivered_count,
     COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS subtotal
   FROM   orders   o
   JOIN   status   s ON s.id = o.status_id
@@ -49,7 +51,7 @@ function buildImageUrl(req, image) {
 
 async function fetchItems(client, orderId, req) {
   const { rows } = await client.query(
-    `SELECT oi.id, oi.quantity, oi.unit_price, oi.notes,
+    `SELECT oi.id, oi.quantity, oi.unit_price, oi.notes, oi.delivered,
             p.id AS product_id, p.name AS product_name, p.image AS product_image,
             c.name AS category_name
      FROM   order_item oi
@@ -63,6 +65,30 @@ async function fetchItems(client, orderId, req) {
     ...r,
     image: buildImageUrl(req, r.product_image),
   }))
+}
+
+// Busca os itens de várias comandas de uma vez (evita N+1 na listagem)
+// e devolve um mapa { order_id: [itens...] }.
+async function fetchItemsByOrder(orderIds, req) {
+  if (!orderIds.length) return {}
+  const { rows } = await pool.query(
+    `SELECT oi.id, oi.order_id, oi.quantity, oi.unit_price, oi.notes, oi.delivered,
+            p.id AS product_id, p.name AS product_name, p.image AS product_image,
+            c.name AS category_name
+     FROM   order_item oi
+     JOIN   product  p ON p.id = oi.product_id
+     JOIN   category c ON c.id = p.category_id
+     WHERE  oi.order_id = ANY($1::int[])
+     ORDER  BY oi.id ASC`,
+    [orderIds]
+  )
+  const byOrder = {}
+  for (const r of rows) {
+    const item = { ...r, image: buildImageUrl(req, r.product_image) }
+    if (!byOrder[r.order_id]) byOrder[r.order_id] = []
+    byOrder[r.order_id].push(item)
+  }
+  return byOrder
 }
 
 // GET /api/orders — comandas abertas, paginadas
@@ -96,6 +122,10 @@ async function getOpenOrders(req, res) {
     const total       = parseInt(countResult.rows[0].total, 10)
     const total_pages = Math.ceil(total / limit) || 1
 
+    const orders     = dataResult.rows
+    const itemsByOrder = await fetchItemsByOrder(orders.map(o => o.id), req)
+    orders.forEach(o => { o.items = itemsByOrder[o.id] || [] })
+
     return res.json({
       page,
       limit,
@@ -103,7 +133,7 @@ async function getOpenOrders(req, res) {
       total_pages,
       has_prev: page > 1,
       has_next: page < total_pages,
-      orders:   dataResult.rows
+      orders
     })
   } catch (err) {
     console.error('[orders.getOpenOrders]', err)
@@ -329,7 +359,8 @@ async function create(req, res) {
 // }
 async function update(req, res) {
   const { id } = req.params
-  const { label, table_id, discount, people, add_items, update_items, remove_items } = req.body
+  const { label, table_id, discount, people, add_items, update_items, remove_items,
+          deliver_items, undeliver_items, deliver_all } = req.body
 
   const client = await pool.connect()
   try {
@@ -449,6 +480,25 @@ async function update(req, res) {
       await client.query(
         `DELETE FROM order_item WHERE id = ANY($1::int[]) AND order_id = $2`,
         [remove_items, id]
+      )
+    }
+
+    // Entregar / desfazer entrega de itens
+    if (deliver_all === true) {
+      await client.query(
+        `UPDATE order_item SET delivered = TRUE WHERE order_id = $1`, [id]
+      )
+    }
+    if (Array.isArray(deliver_items) && deliver_items.length > 0) {
+      await client.query(
+        `UPDATE order_item SET delivered = TRUE WHERE order_id = $1 AND id = ANY($2::int[])`,
+        [id, deliver_items]
+      )
+    }
+    if (Array.isArray(undeliver_items) && undeliver_items.length > 0) {
+      await client.query(
+        `UPDATE order_item SET delivered = FALSE WHERE order_id = $1 AND id = ANY($2::int[])`,
+        [id, undeliver_items]
       )
     }
 

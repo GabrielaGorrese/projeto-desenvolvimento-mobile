@@ -1,8 +1,7 @@
 import React from 'react';
-import { Platform, Pressable, StatusBar, StyleSheet, Text, View, Image } from 'react-native';
+import { Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, View, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Logo from '../components/Logo';
 import { colors, radii, typography } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import useResponsive from '../hooks/useResponsive';
@@ -10,15 +9,18 @@ import useResponsive from '../hooks/useResponsive';
 import GradientView from '../components/GradientView';
 import { gradients } from '../theme/colors';
 
+import Logo from '../components/Logo';
+
+import SettingsButton from '../components/SettingsButton';
+
 const roleImages = {
-  ATENDENTE: require('../../assets/icons/atendente.png'),
-  GERENTE: require('../../assets/icons/gerente.png'),
+  attendant: require('../../assets/icons/atendente.png'),
+  manager: require('../../assets/icons/gerente.png'),
 };
 
 export default function RoleSelectScreen({ navigation }) {
   const { setSelectedRole } = useAuth();
   const r = useResponsive();
-
   const insets = useSafeAreaInsets();
 
   function pick(role) {
@@ -26,177 +28,250 @@ export default function RoleSelectScreen({ navigation }) {
     navigation.navigate('Login');
   }
 
-  const cardsRow = false;
-  const maxW = r.isLandscape
-    ? Math.max(520, Math.min(1200, r.width * 0.78))
-    : r.width;
-
   const minSide = Math.min(r.width, r.height);
-  const cardHeight = Math.round(Math.max(100, Math.min(180, minSide * 0.30)));
-  const iconSize = Math.round(Math.max(44, Math.min(80, minSide * 0.11)));
-  const labelFontSize = Math.round(Math.max(22, Math.min(34, minSide * 0.06)));
-  const iconWidth = Math.round(Math.max(72, Math.min(96, iconSize * 1.35)));
-  const labelMarginLeft = Math.round(Math.max(12, Math.min(18, minSide * 0.02)));
-  const cardPaddingH = Math.round(Math.max(20, Math.min(28, minSide * 0.06)));
-  const portraitLift = cardsRow ? 0 : -Math.round(Math.max(8, Math.min(18, minSide * 0.03)));
+  const panelWidth = Math.min(900, r.width * 0.9);
+  const panelHorizontalPadding = Math.round(Math.max(20, Math.min(52, minSide * 0.05)));
+  const logoWidth = Math.min(360, Math.max(250, r.width * 0.38));
+  const logoHeight = Math.round(logoWidth * 0.39);
+  const roleCardHeight = Math.round(Math.max(118, Math.min(320, minSide * 0.26)));
+  const roleIconSize = Math.round(Math.max(58, Math.min(132, minSide * 0.15)));
+  const titleSize = Math.round(Math.max(22, Math.min(30, minSide * 0.038)));
+  const headerIconSize = Math.round(Math.max(86, Math.min(122, minSide * 0.12)));
+  const subheadingSize = Math.round(Math.max(20, Math.min(20, minSide * 0.026)));
+  const roleTitleSize = Math.round(Math.max(20, Math.min(28, minSide * 0.035)));
+  const cardPaddingH = Math.round(Math.max(18, Math.min(30, minSide * 0.032)));
+  const brandBottom = Math.round(Math.max(44, Math.min(82, minSide * 0.08)));
 
   return (
     <GradientView colors={gradients.ui.dark} style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bgDark} />
 
-      <View style={[styles.darkArea, { paddingTop: insets.top + 56 }]}>
-        <Logo size="md" />
-        <Pressable
-          onPress={() => navigation.navigate('ApiConfig')}
-          hitSlop={12}
-          style={[styles.gear, { top: insets.top + 12 }]}
-          android_ripple={{ color: 'rgba(255,255,255,0.2)', borderless: true, radius: 22 }}
-        >
-          <Feather name="settings" size={24} color="#FFFFFF" />
-        </Pressable>
-      </View>
+      <SettingsButton navigation={navigation} />
 
-      <View style={styles.sheet}>
-        <Text style={styles.heading}>Quem está tentando acessar?</Text>
-        <View
-          style={[
-            styles.content,
-            { maxWidth: maxW },
-            portraitLift !== 0 && { transform: [{ translateY: portraitLift }] },
-          ]}
-        >
+      <ScrollView
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + 82, paddingBottom: insets.bottom + 42 },
+        ]}
+      >
+        <View style={[styles.brand, { marginBottom: brandBottom }]}>
+          <Logo size="lg" subtitle="Boas vindas!" />
+        </View>
 
-          <View style={cardsRow ? styles.cardsRow : styles.cardsCol}>
+        <View style={[styles.panel, { width: panelWidth, paddingHorizontal: panelHorizontalPadding }]}>
+
+          <Text style={[styles.heading, { fontSize: titleSize, lineHeight: Math.round(titleSize * 1.18), paddingTop: 64 }]}>
+            {'Quem est\u00e1 tentando acessar?'}
+          </Text>
+          <Text style={[styles.subheading, { fontSize: subheadingSize, paddingBottom: 24, marginTop: 8 }]}>
+            Selecione o tipo de conta para continuar.
+          </Text>
+
+          <View style={styles.cards}>
             <RoleCard
-              label="ATENDENTE"
+              title="ATENDENTE"
+              imageSource={roleImages.attendant}
               gradient={gradients.ui.primary}
               onPress={() => pick('attendant')}
-              wide={!cardsRow}
-              cardHeight={cardHeight}
-              iconSize={iconSize}
-              iconWidth={iconWidth}
-              labelFontSize={labelFontSize}
-              labelMarginLeft={labelMarginLeft}
-              cardPaddingH={cardPaddingH}
+              height={roleCardHeight}
+              iconSize={roleIconSize}
+              titleSize={roleTitleSize}
+              paddingHorizontal={cardPaddingH}
             />
             <RoleCard
-              label="GERENTE"
+              title="GERENTE"
+              imageSource={roleImages.manager}
               gradient={gradients.ui.manager}
               onPress={() => pick('manager')}
-              wide={!cardsRow}
-              cardHeight={cardHeight}
-              iconSize={iconSize}
-              iconWidth={iconWidth}
-              labelFontSize={labelFontSize}
-              labelMarginLeft={labelMarginLeft}
-              cardPaddingH={cardPaddingH}
+              height={roleCardHeight}
+              iconSize={roleIconSize}
+              titleSize={roleTitleSize}
+              paddingHorizontal={cardPaddingH}
             />
           </View>
         </View>
-      </View>
+
+        <View style={styles.security}>
+          <Text style={styles.securityText}>{'Desenvolvimento SATC | 2026'}</Text>
+        </View>
+      </ScrollView>
     </GradientView>
   );
 }
 
 function RoleCard({
-  label,
+  title,
+  imageSource,
   gradient,
   onPress,
-  wide,
-  cardHeight,
+  height,
   iconSize,
-  iconWidth,
-  labelFontSize,
-  labelMarginLeft,
-  cardPaddingH,
+  titleSize,
+  paddingHorizontal,
 }) {
-  const imageSource = roleImages[label] || roleImages.ATENDENTE;
-  const imageSize = Math.round(iconSize * 2.25);
-
   return (
-    <View style={[styles.cardWrap, wide ? styles.cardWide : styles.cardFlex]}>
-      <Pressable
-        onPress={onPress}
-        android_ripple={{ color: 'rgba(255,255,255,0.25)' }}
-        style={({ pressed }) => [
-          styles.cardPressable,
-          pressed && Platform.OS !== 'android' && { opacity: 0.78 },
-        ]}
-      >
-        <GradientView
-          colors={gradient}
-          style={[styles.card, { height: cardHeight, paddingHorizontal: cardPaddingH }]}
-        >
-          <View style={[styles.cardIcon, { width: iconWidth }]}>
-            <Image
-              source={imageSource}
-              style={[styles.cardImage, { width: imageSize, height: imageSize }]}
-              resizeMode="contain"
-            />
-          </View>
+    <Pressable
+      onPress={onPress}
+      android_ripple={{ color: 'rgba(255,255,255,0.22)' }}
+      style={({ pressed }) => [
+        styles.cardPressable,
+        pressed && Platform.OS !== 'android' && styles.cardPressed,
+      ]}
+    >
+      <GradientView colors={gradient} style={[styles.card, { minHeight: height, paddingHorizontal }]}>
+        <Image
+          source={imageSource}
+          style={[styles.roleIcon, { width: iconSize, height: iconSize, borderRadius: iconSize / 2 }]}
+          resizeMode="contain"
+        />
+
+        <View style={styles.roleText}>
           <Text
-            style={[
-              styles.cardLabel,
-              {
-                fontSize: labelFontSize,
-                marginLeft: imageSize,
-                lineHeight: Math.round(labelFontSize * 1.1),
-              },
-            ]}
+            style={[styles.roleTitle, { fontSize: 40, lineHeight: Math.round(titleSize * 1.18) }]}
             numberOfLines={1}
           >
-            {label}
+            {title}
           </Text>
-        </GradientView>
-      </Pressable>
-    </View>
+        </View>
+
+        <Feather name="chevron-right" size={42} color="#FFFFFF" />
+      </GradientView>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  root:     { flex: 1 },
-  darkArea: { paddingBottom: 26, alignItems: 'center' },
-  gear:     { position: 'absolute', right: 16, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-
-  sheet: {
+  root: {
     flex: 1,
-    backgroundColor: '#FFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingTop: 28,
-    justifyContent: 'space-between',
-    width: '92%',
-    alignSelf: 'center'
   },
-  content:  {
-    width: '70%',
-    alignSelf: 'center',
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+  },
+  gear: {
+    position: 'absolute',
+    right: 24,
+    zIndex: 2,
+    width: 46,
+    height: 46,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  heading:  { ...typography.h3, color: colors.textDark, marginBottom: 22, fontSize: 28, textAlign: 'center', marginTop: 18 },
-
-  cardsCol: { flexDirection: 'column' },
-  cardsRow: { flexDirection: 'row' },
-
-  cardWrap: { marginBottom: 22 },
-  cardWide: { width: '100%' },
-  cardFlex: { flex: 1, marginHorizontal: 6 },
-  cardPressable: { borderRadius: radii.lg, overflow: 'hidden' },
-
+  brand: {
+    alignItems: 'center',
+    marginBottom: 82,
+  },
+  welcome: {
+    marginTop: -8,
+    color: '#FFFFFF',
+    fontFamily: typography.familyBold,
+    fontSize: 25,
+    fontWeight: '800',
+  },
+  panel: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingHorizontal: 52,
+    paddingTop: 50,
+    paddingBottom: 58,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 14 },
+        shadowOpacity: 0.24,
+        shadowRadius: 22,
+      },
+      android: {
+        elevation: 14,
+      },
+    }),
+  },
+  headerIcon: {
+    width: 122,
+    height: 122,
+    borderRadius: 61,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8E7DA',
+    marginBottom: 34,
+  },
+  heading: {
+    color: '#202124',
+    fontFamily: typography.familyHeavy,
+    fontWeight: '900',
+    lineHeight: 42,
+    textAlign: 'center',
+  },
+  subheading: {
+    marginTop: 24,
+    color: '#656565',
+    fontFamily: typography.family,
+    fontSize: 24,
+    lineHeight: 31,
+    textAlign: 'center',
+  },
+  cards: {
+    alignSelf: 'stretch',
+    gap: 34,
+    marginTop: 66,
+  },
+  cardPressable: {
+    borderRadius: radii.lg,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 7 },
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  cardPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.992 }],
+  },
   card: {
     borderRadius: radii.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    overflow: 'hidden',
+    paddingHorizontal: 36,
+    paddingVertical: 24,
   },
-  cardIcon: { position: 'absolute', left: 0, top: '4%' },
-  cardImage: { tintColor: '#FFF' },
-  cardLabel: {
-    color: '#FFF',
-    fontWeight: '900',
-    letterSpacing: 1.2,
+  roleIcon: {
+    flexShrink: 0,
+    marginLeft: 4
+  },
+  roleText: {
+    flex: 1,
+    marginLeft: 28,
+    marginRight: 16,
+  },
+  roleTitle: {
+    color: '#FFFFFF',
     fontFamily: typography.familyHeavy,
-  }
+    fontSize: 34,
+    fontWeight: '900',
+    lineHeight: 40,
+  },
+  security: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 40,
+    paddingHorizontal: 24,
+  },
+  securityText: {
+    marginTop: 16,
+    marginLeft: 20,
+    color: 'rgba(255,255,255,0.72)',
+    fontFamily: typography.family,
+    fontSize: 21,
+    lineHeight: 28,
+  },
 });

@@ -1,20 +1,22 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  LayoutAnimation,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  UIManager,
   View,
   Image
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import Screen from '../components/Screen';
 import SearchHeader from '../components/SearchHeader';
 import OrderTile from '../components/OrderTile';
+import PendingOrderRow from '../components/PendingOrderRow';
 import BottomBar from '../components/BottomBar';
-import Button from '../components/Button';
 import Fab from '../components/Fab';
 import FeedbackModal from '../components/FeedbackModal';
 import ConfirmModal from '../components/ConfirmModal';
@@ -24,22 +26,35 @@ import {
   fetchOpenOrders,
   fetchClosedOrders,
   resetOrderSequence,
+  deliverItems,
+  deliverAll,
 } from '../services/ordersService';
-import { connectSocket } from '../services/socket';
+import { onSocket } from '../services/socket';
 import { useAuth } from '../contexts/AuthContext';
 import useResponsive from '../hooks/useResponsive';
 
 
 const INITIAL_FILTERS = {
-  color:     'all', 
-  attendant: 'all', 
-  table:     'all', 
+  color:     'all',
+  attendant: 'all',
+  table:     'all',
+};
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const SMOOTH_LAYOUT = {
+  duration: 220,
+  update: { type: LayoutAnimation.Types.easeInEaseOut },
+  create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+  delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
 };
 
 export default function OrdersScreen({ navigation, route }) {
-  const { signOut, isManager } = useAuth();
+  const { signOut } = useAuth();
   const r = useResponsive();
-  const sideGutter = Math.max(8, Math.round((r.width - r.contentMaxWidth) / 2) + 8);
+  const contentWidth = r.isTablet ? Math.min(r.width - 32, 1100) : r.contentMaxWidth;
   const [open,    setOpen]    = useState([]);
   const [closed,  setClosed]  = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,12 +67,16 @@ export default function OrdersScreen({ navigation, route }) {
   const [resetting,   setResetting]   = useState(false); // chamada em andamento
   const [resetResult, setResetResult] = useState(null);  // mensagem de sucesso
   const [resetError,  setResetError]  = useState(null);  // mensagem de erro
+  const [deliverError, setDeliverError] = useState(null);
 
   // Filtros (modal)
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters,     setFilters]     = useState(INITIAL_FILTERS);
 
+  const loadingRef = useRef(false);
   const load = useCallback(async () => {
+    if (loadingRef.current) { setRefresh(false); return; }
+    loadingRef.current = true;
     try {
       const [o, c] = await Promise.all([
         fetchOpenOrders({ limit: 100 }),
@@ -68,6 +87,7 @@ export default function OrdersScreen({ navigation, route }) {
     } catch (err) {
       console.warn('orders load', err?.uiMessage);
     } finally {
+      loadingRef.current = false;
       setLoading(false);
       setRefresh(false);
     }
@@ -76,23 +96,65 @@ export default function OrdersScreen({ navigation, route }) {
  
   useFocusEffect(useCallback(() => {
     load();
+    const id = setInterval(load, 30000);
+    return () => clearInterval(id);
   }, [load]));
 
-  // Socket: atualizações em tempo real
+  const upsertOrder = useCallback((order) => {
+    if (!order || order.id == null) return;
+    const closed = order.status === 'closed';
+    LayoutAnimation.configureNext(SMOOTH_LAYOUT);
+    setOpen((prev) => {
+      if (closed) return prev.filter((o) => o.id !== order.id);
+      if (prev.some((o) => o.id === order.id)) {
+        return prev.map((o) => (o.id === order.id ? order : o));
+      }
+      return [...prev, order];
+    });
+    setClosed((prev) => {
+      const without = prev.filter((o) => o.id !== order.id);
+      return closed ? [order, ...without] : without;
+    });
+  }, []);
+
+  const removeOrder = useCallback((id) => {
+    if (id == null) return;
+    LayoutAnimation.configureNext(SMOOTH_LAYOUT);
+    setOpen((prev) => prev.filter((o) => o.id !== id));
+    setClosed((prev) => prev.filter((o) => o.id !== id));
+  }, []);
+
+  const handleDeliverItem = useCallback(async (orderId, itemId) => {
+    try {
+      const updated = await deliverItems(orderId, [itemId]);
+      upsertOrder(updated);
+    } catch (err) {
+      setDeliverError(err?.uiMessage || 'Erro ao entregar item.');
+    }
+  }, [upsertOrder]);
+
+  const handleDeliverAll = useCallback(async (orderId) => {
+    try {
+      const updated = await deliverAll(orderId);
+      upsertOrder(updated);
+    } catch (err) {
+      setDeliverError(err?.uiMessage || 'Erro ao entregar os itens.');
+    }
+  }, [upsertOrder]);
+
   useEffect(() => {
-    const s = connectSocket();
-    const reload = () => load();
-    s.on('order:created', reload);
-    s.on('order:updated', reload);
-    s.on('order:closed',  reload);
-    s.on('order:deleted', reload);
-    return () => {
-      s.off('order:created', reload);
-      s.off('order:updated', reload);
-      s.off('order:closed',  reload);
-      s.off('order:deleted', reload);
-    };
-  }, [load]);
+    const onUpsert  = (order)   => upsertOrder(order);
+    const onDeleted = (payload) => removeOrder(payload?.id);
+    const onConnect = () => load();
+    const subs = [
+      onSocket('order:created', onUpsert),
+      onSocket('order:updated', onUpsert),
+      onSocket('order:closed',  onUpsert),
+      onSocket('order:deleted', onDeleted),
+      onSocket('connect',       onConnect),
+    ];
+    return () => subs.forEach((off) => off());
+  }, [upsertOrder, removeOrder, load]);
 
   // Lista dinâmica de atendentes e mesas que apareceram nas comandas carregadas.
   // Atualiza automaticamente conforme novas comandas chegam.
@@ -110,6 +172,11 @@ export default function OrdersScreen({ navigation, route }) {
 
   const filteredOpen   = applyFilters(open,   search, filters);
   const filteredClosed = applyFilters(closed, search, filters);
+
+  // Uma comanda aberta pode estar em Pendentes e Entregues ao mesmo tempo
+  // (entrega parcial). Derivado dos contadores que o back retorna.
+  const pendentes = filteredOpen.filter((o) => (o.pending_count   ?? 0) > 0);
+  const entregues = filteredOpen.filter((o) => (o.delivered_count ?? 0) > 0);
 
   // Conta quantos filtros estão ativos (≠ 'all') — vira badge sobre o ícone.
   const activeFiltersCount = Object.values(filters).filter((v) => v !== 'all').length;
@@ -135,23 +202,11 @@ export default function OrdersScreen({ navigation, route }) {
     }
   }
 
-  // REMOVER
-  /*
-  const placeholderOrder = {
-    id: 'placeholder-1',
-    daily_number: 3,
-    label: 'Mesa 12 - TESTE',
-    attendant: 'Bruno',
-    table_label: '12',
-    color_status: 'green', // green | yellow | red
-    created_at: new Date().toISOString(),
-  };
-*/
   return (
     <Screen background="#FFF" statusBarBg={colors.bgDark} statusBarStyle="light-content" avoidKeyboard={false}>
       <SearchHeader
         onBack={() => signOut()}
-        placeholder="Nº da comanda, atendente ou identificação..."
+        placeholder="Nº, item, atendente ou identificação..."
         value={search}
         onChangeText={setSearch}
         onFilter={() => setFiltersOpen(true)}
@@ -164,83 +219,50 @@ export default function OrdersScreen({ navigation, route }) {
       ) : (
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 120, alignItems: 'center' }}
+          contentContainerStyle={styles.scrollContent}
           refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => { setRefresh(true); load(); }} />}
         >
-        <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
+        <View style={{ width: '100%', maxWidth: contentWidth }}>
         
-          <SectionHeader title="Pedidos em andamento" count={filteredOpen.length} />
+          <SectionHeader title="Pedidos pendentes" count={pendentes.length} />
+          <View style={styles.pendingList}>
+            {pendentes.map((o) => (
+              <PendingOrderRow
+                key={o.id}
+                order={o}
+                isNew={o.id === newOrderId}
+                partial={(o.delivered_count ?? 0) > 0}
+                onPress={() => navigation.navigate('OrderDetail', { id: o.id })}
+                onDeliverItem={handleDeliverItem}
+                onDeliverAll={handleDeliverAll}
+              />
+            ))}
+            {pendentes.length === 0 ? (
+              <EmptySection text={search || activeFiltersCount > 0 ? 'Nenhum pedido encontrado com esses filtros' : 'Nenhum pedido pendente'} />
+            ) : null}
+          </View>
+
+          <Divider />
+
+          <SectionHeader title="Pedidos entregues" count={entregues.length} />
           <Grid>
-            {/*
-            {/* REMOVER 
-             <OrderTile
-                key="placeholder"
-                order={{ ...placeholderOrder, status: 'open' }}
-                isNew
-                size="lg"
-                onPress={() => {}}
-              />
-              <OrderTile
-                key="placeholder"
-                order={{ ...placeholderOrder, status: 'open' }}
-                isNew
-                size="lg"
-                onPress={() => {}}
-              />
-              <OrderTile
-                key="placeholder"
-                order={{ ...placeholderOrder, status: 'open' }}
-                isNew
-                size="lg"
-                onPress={() => {}}
-              />
-              <OrderTile
-                key="placeholder"
-                order={{ ...placeholderOrder, status: 'open' }}
-                isNew
-                size="lg"
-                onPress={() => {}}
-              />
-              <OrderTile
-                key="placeholder"
-                order={{ ...placeholderOrder, status: 'open' }}
-                isNew
-                size="lg"
-                onPress={() => {}}
-              />
-              */}
-            {filteredOpen.map((o) => (
-              
+            {entregues.map((o) => (
               <OrderTile
                 key={o.id}
                 order={{ ...o, status: 'open' }}
-                isNew={o.id === newOrderId}
+                partial={(o.pending_count ?? 0) > 0}
                 size="lg"
                 onPress={() => navigation.navigate('OrderDetail', { id: o.id })}
               />
             ))}
-            {filteredOpen.length === 0 ? (
-              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-                <Image source={require('../../assets/vazio.png')} style={{ width: 64, height: 64 }} resizeMode="contain" />
-                <Text style={styles.empty}>
-                  {search || activeFiltersCount > 0
-                    ? 'Nenhum pedido encontrado com esses filtros'
-                    : 'Nenhum pedido em andamento'}
-                </Text>
-              </View>
+            {entregues.length === 0 ? (
+              <EmptySection text={search || activeFiltersCount > 0 ? 'Nenhum pedido encontrado com esses filtros' : 'Nenhum pedido entregue'} />
             ) : null}
           </Grid>
 
-          <View
-            style={{
-              height: 1,
-              backgroundColor: '#ccc',
-              width: '100%',
-              marginVertical: 10,
-            }}
-          />
+          <Divider />
 
-          <SectionHeader title="Comandas fechadas hoje" count={filteredClosed.length} />
+          <SectionHeader title="Comandas fechadas hoje" count={filteredClosed.length}/>
           <Grid>
             {filteredClosed.map((o) => (
               <OrderTile
@@ -251,14 +273,7 @@ export default function OrdersScreen({ navigation, route }) {
               />
             ))}
             {filteredClosed.length === 0 ? (
-              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-                <Image source={require('../../assets/vazio.png')} style={{ width: 64, height: 64 }} resizeMode="contain" />
-                <Text style={styles.empty}>
-                  {search || activeFiltersCount > 0
-                    ? 'Nenhuma comanda encontrada com esses filtros'
-                    : 'Nenhuma comanda fechada hoje'}
-                </Text>
-              </View>
+              <EmptySection text={search || activeFiltersCount > 0 ? 'Nenhuma comanda encontrada com esses filtros' : 'Nenhuma comanda fechada hoje'} />
             ) : null}
           </Grid>
         </View>
@@ -267,7 +282,10 @@ export default function OrdersScreen({ navigation, route }) {
       )}
 
       <BottomBar current="home" />
-      <Fab onPress={() => navigation.navigate('OrderDetail', { id: 'new' })} style={{ right: sideGutter }} />
+      <Fab
+        onPress={() => navigation.navigate('OrderDetail', { id: 'new' })}
+        centeredOnBottomBar
+      />
 
       <FiltersSheet
         visible={filtersOpen}
@@ -351,6 +369,16 @@ export default function OrdersScreen({ navigation, route }) {
         size="lg"
         onClose={() => setResetError(null)}
       />
+
+      <FeedbackModal
+        visible={!!deliverError}
+        variant="danger"
+        title="Não foi possível entregar"
+        message={deliverError || ''}
+        okLabel="OK"
+        size="lg"
+        onClose={() => setDeliverError(null)}
+      />
     </Screen>
   );
 }
@@ -368,6 +396,19 @@ function Grid({ children }) {
   return <View style={styles.grid}>{children}</View>;
 }
 
+function Divider() {
+  return <View style={styles.divider} />;
+}
+
+function EmptySection({ text }) {
+  return (
+    <View style={styles.emptyWrap}>
+      <Image source={require('../../assets/vazio.png')} style={{ width: 76, height: 76, marginTop: 12 }} resizeMode="contain" />
+      <Text style={styles.empty}>{text}</Text>
+    </View>
+  );
+}
+
 // Aplica busca textual + filtros estruturados a um array de comandas.
 function applyFilters(arr, term, filters) {
   let out = arr;
@@ -379,6 +420,7 @@ function applyFilters(arr, term, filters) {
          String(o.daily_number ?? o.id).includes(t)
       || String(o.label     || '').toLowerCase().includes(t)
       || String(o.attendant || '').toLowerCase().includes(t)
+      || (o.items || []).some((it) => String(it.product_name || '').toLowerCase().includes(t))
     );
   }
 
@@ -397,22 +439,52 @@ function applyFilters(arr, term, filters) {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    paddingHorizontal: 64,
+    paddingTop: 34,
+    paddingBottom: 120,
+    alignItems: 'center',
+  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    marginTop: 36,
-    marginBottom: 4,
+    paddingHorizontal: 0,
+    marginTop: 0,
+    marginBottom: 14,
   },
-  sectionTitle: { ...typography.h3, color: colors.textDark, fontSize: 24 },
-  sectionCount: { ...typography.bodyBold, color: colors.primary, marginLeft: 8, fontSize: 20 },
+  sectionTitle: { ...typography.bodyBold, color: colors.textDark, fontSize: 26 },
+  sectionCount: { ...typography.bodyBold, color: colors.primary, marginLeft: 12, fontSize: 26 },
 
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 4,
-    marginTop: 16,
+    paddingHorizontal: 0,
+    marginTop: 0,
   },
-  resetWrap: { paddingHorizontal: 10, marginTop: 12 },
-  empty: { padding: 10, color: colors.textMuted, fontSize: 18, paddingBottom: 42 },
+  pendingList: {
+    paddingHorizontal: 0,
+    marginTop: 14,
+  },
+  divider: {
+    height: 2,
+    backgroundColor: '#F0EBE4',
+    width: '100%',
+    marginTop: 24,
+    marginBottom: 24,
+  },
+  emptyWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 0,
+  },
+  empty: {
+    color: colors.textMuted,
+    fontSize: 22,
+    lineHeight: 28,
+    paddingTop: 10,
+    paddingBottom: 18,
+    textAlign: 'center',
+  },
 });

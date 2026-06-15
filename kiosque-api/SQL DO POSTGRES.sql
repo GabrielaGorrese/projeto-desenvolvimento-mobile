@@ -97,7 +97,8 @@ CREATE TABLE "order_item" (
   -- Snapshot do preço no momento da venda; alterações futuras no produto
   -- não afetam comandas já abertas.
   "unit_price" DECIMAL(10,2) NOT NULL CHECK (unit_price >= 0),
-  "notes"      TEXT
+  "notes"      TEXT,
+  "delivered"  BOOLEAN       NOT NULL DEFAULT FALSE
 );
 
 -- Contador da numeração visível das comandas (daily_number).

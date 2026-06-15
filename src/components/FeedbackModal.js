@@ -18,6 +18,7 @@ export default function FeedbackModal({
   const iconName = variant === 'danger' ? 'x-circle' : 'check-circle';
   const iconColor = variant === 'danger' ? colors.danger : '#3AAE3A';
   const isLarge = size === 'lg';
+  const iconSize = isLarge ? 68 : 60;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -27,11 +28,20 @@ export default function FeedbackModal({
             <Text style={[styles.headerTitle, isLarge && styles.headerTitleLarge]}>{title}</Text>
           </View>
           <View style={[styles.body, isLarge && styles.bodyLarge]}>
-            <Feather name={iconName} size={isLarge ? 48 : 42} color={iconColor} style={{ marginBottom: 12 }} />
+            <Feather name={iconName} size={iconSize} color={iconColor} style={styles.icon} />
             {typeof message === 'string'
               ? <Text style={[styles.message, isLarge && styles.messageLarge]}>{message}</Text>
               : message}
-            <Pressable onPress={onClose} style={[styles.okBtn, isLarge && styles.okBtnLarge]}>
+            <Pressable
+              onPress={onClose}
+              android_ripple={{ color: 'rgba(255,255,255,0.25)' }}
+              style={({ pressed }) => [
+                styles.okBtn,
+                isLarge && styles.okBtnLarge,
+                { backgroundColor: headerBg },
+                pressed && { opacity: 0.85 },
+              ]}
+            >
               <Text style={[styles.okLabel, isLarge && styles.okLabelLarge]}>{okLabel}</Text>
             </Pressable>
           </View>
@@ -49,22 +59,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
-  box:     { width: '100%', maxWidth: 360, borderRadius: radii.lg, overflow: 'hidden', backgroundColor: '#FFF' },
-  boxLarge: { maxWidth: 390 },
-  header:  { paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { ...typography.title, color: '#FFF', fontSize: 18 },
-  headerTitleLarge: { fontSize: 20 },
-  body:    { padding: 22, alignItems: 'center' },
-  bodyLarge: { padding: 24 },
-  message: { ...typography.body, color: colors.textDark, textAlign: 'center', fontSize: 15, marginBottom: 18 },
-  messageLarge: { fontSize: 16, marginBottom: 20 },
+  box:     { width: '100%', maxWidth: 410, borderRadius: radii.lg, overflow: 'hidden', backgroundColor: '#FFF' },
+  boxLarge: { maxWidth: 440 },
+  header:  { paddingVertical: 18, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { ...typography.title, color: '#FFF', fontSize: 22, textAlign: 'center' },
+  headerTitleLarge: { fontSize: 24 },
+  body:    { paddingHorizontal: 30, paddingTop: 30, paddingBottom: 28, alignItems: 'center' },
+  bodyLarge: { paddingHorizontal: 34, paddingTop: 34, paddingBottom: 32 },
+  icon: { marginBottom: 18 },
+  message: { ...typography.body, color: colors.textDark, textAlign: 'center', fontSize: 17, lineHeight: 24, marginBottom: 24 },
+  messageLarge: { fontSize: 18, lineHeight: 26, marginBottom: 28 },
   okBtn:   {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 38,
-    paddingVertical: 12,
+    minWidth: 156,
+    minHeight: 52,
+    paddingHorizontal: 42,
+    paddingVertical: 14,
     borderRadius: radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  okBtnLarge: { paddingHorizontal: 44, paddingVertical: 14 },
-  okLabel: { color: '#FFF', fontWeight: '700', fontSize: 15 },
-  okLabelLarge: { fontSize: 16 },
+  okBtnLarge: { minWidth: 176, minHeight: 58, paddingHorizontal: 48, paddingVertical: 16 },
+  okLabel: { color: '#FFF', fontWeight: '700', fontSize: 17 },
+  okLabelLarge: { fontSize: 18 },
 });

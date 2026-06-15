@@ -20,4 +20,11 @@ pool.on('error', (err) => {
   console.error('Erro no banco de dados:', err)
 })
 
+const APP_TZ = process.env.TZ || 'America/Sao_Paulo'
+pool.on('connect', (client) => {
+  client.query(`SET TIME ZONE '${APP_TZ}'`).catch((err) => {
+    console.error('Erro ao definir timezone da conexão:', err)
+  })
+})
+
 module.exports = pool

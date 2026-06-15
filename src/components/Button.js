@@ -87,6 +87,6 @@ function makeStyles(variant, size, disabled) {
       overflow: 'hidden', // ripple respeita o border-radius
     },
     row:   { flexDirection: 'row', alignItems: 'center' },
-    label: { ...typography.button, color, fontSize: fontSizes[size] },
+    label: { ...typography.button, color, fontSize: 20 },
   });
 }

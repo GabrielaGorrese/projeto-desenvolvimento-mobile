@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   },
   bg: { ...StyleSheet.absoluteFillObject },
   selectedOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.18)' },
-  name: { fontSize: 26, color: '#FFFFFF', fontWeight: '900', letterSpacing: 1.2, marginRight: 36, alignSelf: 'flex-end' },
+  name: { fontSize: 26, color: '#FFFFFF', fontWeight: '900', letterSpacing: 1, marginRight: '4%', alignSelf: 'flex-end' },
 
   // Selo de "selecionada" no canto superior direito.
   check: {

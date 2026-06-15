@@ -22,8 +22,8 @@ const styles = StyleSheet.create({
   wrap:  { alignItems: 'center' },
   row:   { flexDirection: 'row', alignItems: 'center' },
   logo: {
-    width: 400,
-    height: 150
+    width: 500,
+    height: 180
   },
   subtitle: {
     color: '#FFFFFF',

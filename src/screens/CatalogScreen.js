@@ -23,7 +23,7 @@ import {
 } from '../services/productsService';
 import { useAuth } from '../contexts/AuthContext';
 import { usePendingItems } from '../contexts/PendingItemsContext';
-import { connectSocket } from '../services/socket';
+import { onSocket } from '../services/socket';
 import useResponsive from '../hooks/useResponsive';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -50,9 +50,10 @@ export default function CatalogScreen({ navigation, route }) {
   const { setPendingItems } = usePendingItems();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
-  const prodCols = Math.max(2, Math.min(7, Math.floor(r.width / 185)));
+  const contentWidth = r.isTablet ? Math.min(r.width - 32, 1100) : r.contentMaxWidth;
+  const prodCols = Math.max(2, Math.min(7, Math.floor(contentWidth / 185)));
   // Categorias: alvo de ~250dp por card.
-  const catCols = Math.max(2, Math.min(4, Math.floor(r.width / 250)));
+  const catCols = Math.max(2, Math.min(4, Math.floor(contentWidth / 250)));
 
   const [categories, setCategories] = useState([]);
   const [products,   setProducts]   = useState([]);
@@ -61,9 +62,9 @@ export default function CatalogScreen({ navigation, route }) {
   const [categoryId, setCategoryId] = useState(null);
   const [cart,       setCart]       = useState({}); // {product_id: { product, qty }}
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [cats, prods] = await Promise.all([
         fetchCategories(),
         fetchProducts({ search: search.trim() || undefined, category_id: categoryId || undefined }),
@@ -86,8 +87,7 @@ export default function CatalogScreen({ navigation, route }) {
   const loadRef = useRef(load);
   loadRef.current = load;
   useEffect(() => {
-    const s = connectSocket();
-    const reload = () => loadRef.current();
+    const reload = () => loadRef.current({ silent: true });
 
     const onUpdated = (product) => {
       if (product?.id != null) {
@@ -107,16 +107,13 @@ export default function CatalogScreen({ navigation, route }) {
       reload();
     };
 
-    s.on('product:created',  reload);
-    s.on('product:updated',  onUpdated);
-    s.on('product:deleted',  onDeleted);
-    s.on('product:restored', reload);
-    return () => {
-      s.off('product:created',  reload);
-      s.off('product:updated',  onUpdated);
-      s.off('product:deleted',  onDeleted);
-      s.off('product:restored', reload);
-    };
+    const subs = [
+      onSocket('product:created',  reload),
+      onSocket('product:updated',  onUpdated),
+      onSocket('product:deleted',  onDeleted),
+      onSocket('product:restored', reload),
+    ];
+    return () => subs.forEach((off) => off());
   }, []);
 
   function increment(prod) {
@@ -174,65 +171,56 @@ export default function CatalogScreen({ navigation, route }) {
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
       ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: 160 }}>
-          <View style={{ width: '100%', marginTop: 24, alignSelf: 'center' }}>
-          <SectionHeader style={styles.sectionHeader} title="Categorias" count={categories.length} />
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
+          <View style={[styles.contentWrap, { maxWidth: contentWidth }]}>
+            <SectionHeader title="Categorias" count={categories.length} />
 
-          <View style={styles.catGrid}>
-            {categories.map((c) => (
-              <View key={c.id} style={{ width: `${100 / catCols}%`, paddingHorizontal: 1 }}>
-                <CategoryCard
-                  category={c}
-                  onPress={() => setCategoryId((cur) => cur === c.id ? null : c.id)}
-                  style={categoryId === c.id ? { borderWidth: 3, borderColor: colors.primary } : null}
-                />
-              </View>
-            ))}
-          </View>
-
-          <View
-            style={{
-              height: 1,
-              backgroundColor: '#ccc',
-              width: '100%',
-              marginTop: 36,
-            }}
-          />
-
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Todos</Text>
-            <Text style={styles.sectionCount}>({products.length})</Text>
-          </View>
-
-          <View style={styles.prodGrid}>
-            {products.map((p) => {
-              const qty = cart[p.id]?.qty || 0;
-              return (
-                <View key={p.id} style={{ width: `${100 / prodCols}%` }}>
-                  <ProductCell
-                    product={p}
-                    qty={qty}
-                    selectable={mode === 'select'}
-                    onPress={() => onProductPress(p)}
-                    onMinus={() => decrement(p)}
+            <View style={styles.catGrid}>
+              {categories.map((c) => (
+                <View key={c.id} style={{ width: `${100 / catCols}%` }}>
+                  <CategoryCard
+                    category={c}
+                    onPress={() => setCategoryId((cur) => cur === c.id ? null : c.id)}
+                    style={categoryId === c.id ? { borderWidth: 3, borderColor: colors.primary } : null}
                   />
                 </View>
-              );
-            })}
-            {products.length === 0 ? (
-              <Text style={styles.empty}>Nenhum produto encontrado.</Text>
-            ) : null}
-          </View>
+              ))}
+            </View>
+
+            <Divider />
+
+            <SectionHeader title="Produtos" count={products.length} />
+
+            <View style={styles.prodGrid}>
+              {products.map((p) => {
+                const qty = cart[p.id]?.qty || 0;
+                return (
+                  <View key={p.id} style={{ width: `${100 / prodCols}%` }}>
+                    <ProductCell
+                      product={p}
+                      qty={qty}
+                      selectable={mode === 'select'}
+                      onPress={() => onProductPress(p)}
+                      onMinus={() => decrement(p)}
+                    />
+                  </View>
+                );
+              })}
+              {products.length === 0 ? (
+                <EmptySection text="Nenhum produto encontrado" />
+              ) : null}
+            </View>
           </View>
         </ScrollView>
       )}
 
       {mode === 'select' && cartCount > 0 ? (
-        <View style={[styles.confirmBar, { bottom: 70 + insets.bottom }]}>
+        <View style={[styles.confirmBar, { bottom: 126 + insets.bottom }]}>
           <Text style={styles.cartCount}>
             {cartCount} {cartCount === 1 ? 'item' : 'itens'}
           </Text>
           <View style={{ flex: 1 }} />
+          
           <Button title="Adicionar à comanda" onPress={confirmAdd} fullWidth={false} />
         </View>
       ) : null}
@@ -240,7 +228,9 @@ export default function CatalogScreen({ navigation, route }) {
       <BottomBar current={mode === 'manage' ? 'catalog' : 'home'} />
       {/* FAB depois do BottomBar para ficar visualmente por cima */}
       {mode === 'manage' && isManager ? (
-        <Fab onPress={() => navigation.navigate('ProductEdit', { id: 'new' })} />
+        <Fab onPress={() => navigation.navigate('ProductEdit', { id: 'new' })}
+        centeredOnBottomBar
+         />
       ) : null}
     </Screen>
   );
@@ -251,6 +241,19 @@ function SectionHeader({ title, count }) {
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <Text style={styles.sectionCount}>({count})</Text>
+    </View>
+  );
+}
+
+function Divider() {
+  return <View style={styles.divider} />;
+}
+
+function EmptySection({ text }) {
+  return (
+    <View style={styles.emptyWrap}>
+      <Image source={require('../../assets/vazio.png')} style={styles.emptyImage} contentFit="contain" />
+      <Text style={styles.empty}>{text}</Text>
     </View>
   );
 }
@@ -281,7 +284,7 @@ function ProductCell({ product, onPress, onMinus, qty, selectable }) {
       <Text style={styles.prodPrice}>R$ {Number(product.price).toFixed(2).replace('.', ',')}</Text>
       {selectable && qty > 0 ? (
         <Pressable onPress={onMinus} style={styles.minusBtn} hitSlop={8}>
-          <Feather name="minus" size={18} color="#FFF" />
+          <Feather name="minus" size={20} color="#FFF" />
         </Pressable>
       ) : null}
     </Pressable>
@@ -289,23 +292,38 @@ function ProductCell({ product, onPress, onMinus, qty, selectable }) {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    paddingHorizontal: 64,
+    paddingTop: 34,
+    paddingBottom: 160,
+    alignItems: 'center',
+  },
+  contentWrap: {
+    width: '100%',
+  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    marginTop: 36,
-    marginBottom: 4,
+    paddingHorizontal: 0,
+    marginTop: 0,
+    marginBottom: 14,
   },
-  sectionTitle: { ...typography.h3, color: colors.textDark, fontSize: 24 },
-  sectionCount: { ...typography.bodyBold, color: colors.primary, marginLeft: 8, fontSize: 20 },
-  addCat:       {
-    width: 24, height: 24, borderRadius: 12, backgroundColor: '#F0F0F0',
-    alignItems: 'center', justifyContent: 'center',
+  sectionTitle: { ...typography.bodyBold, color: colors.textDark, fontSize: 26 },
+  sectionCount: { ...typography.bodyBold, color: colors.primary, marginLeft: 12, fontSize: 26 },
+
+  catGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -6,
+    marginTop: 0,
   },
 
-  catGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 6, marginTop: 6 },
-
-  prodGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 6 },
+  prodGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -8,
+    marginTop: 0,
+  },
   prodCell: {
     padding: 8,
     alignItems: 'center',
@@ -318,22 +336,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  prodName:  { ...typography.caption, marginTop: 8, color: colors.textDark, textAlign: 'center', fontSize: 15 },
-  prodPrice: { color: colors.primary, fontWeight: '700', fontSize: 16, marginTop: 4 },
+  prodName:  { ...typography.bodyBold, marginTop: 10, color: colors.textDark, textAlign: 'center', fontSize: 18, lineHeight: 23 },
+  prodPrice: { color: colors.primary, fontWeight: '700', fontSize: 18, lineHeight: 23, marginTop: 4 },
 
   qtyBadge: {
-    position: 'absolute', top: 6, right: 6, minWidth: 30, height: 30, borderRadius: 15,
+    position: 'absolute', top: 6, right: 6, minWidth: 36, height: 36, borderRadius: 24,
     backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6,
   },
-  qtyBadgeText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+  qtyBadgeText: { color: '#FFF', fontWeight: '800', fontSize: 18 },
   minusBtn: {
-    position: 'absolute', top: 8, left: 8, width: 30, height: 30, borderRadius: 15,
+    position: 'absolute', top: 13, left: 13, minWidth: 36, height: 36, borderRadius: 24,
     backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center',
   },
 
   confirmBar: {
     position: 'absolute',
-    left: 12, right: 12,
+    left: 64, right: 64,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF',
@@ -345,8 +363,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     zIndex: 50,
+    height: 96
   },
-  cartCount: { color: colors.textDark, fontWeight: '700', fontSize: 17, marginRight: 8 },
+  cartCount: { color: colors.textDark, fontWeight: '700', fontSize: 22, marginLeft: 12 },
 
-  empty: { padding: 24, color: colors.textMuted, fontStyle: 'italic', fontSize: 16 },
+  divider: {
+    height: 2,
+    backgroundColor: '#F0EBE4',
+    width: '100%',
+    marginTop: 24,
+    marginBottom: 24,
+  },
+  emptyWrap: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 0,
+  },
+  emptyImage: {
+    width: 76,
+    height: 76,
+    marginTop: 12,
+  },
+  empty: {
+    color: colors.textMuted,
+    fontSize: 22,
+    lineHeight: 28,
+    paddingTop: 10,
+    paddingBottom: 18,
+    textAlign: 'center',
+  },
 });

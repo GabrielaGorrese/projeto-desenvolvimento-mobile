@@ -39,7 +39,7 @@ export default function FiltersSheet({ visible, onClose, onClear, sections = [],
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={[styles.sheet, isLarge && styles.sheetLarge, { paddingBottom: insets.bottom + (isLarge ? 20 : 16) }]} onPress={() => {}}>
+        <Pressable style={[styles.sheet, isLarge && styles.sheetLarge, { paddingBottom: insets.bottom + (isLarge ? 28 : 20) }]} onPress={() => {}}>
           <View style={styles.handle} />
 
           <View style={styles.header}>
@@ -51,7 +51,7 @@ export default function FiltersSheet({ visible, onClose, onClear, sections = [],
               </Pressable>
             ) : null}
             <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
-              <Feather name="x" size={isLarge ? 32 : 28} color={colors.textDark} />
+              <Feather name="x" size={isLarge ? 38 : 32} color={colors.textDark} />
             </Pressable>
           </View>
 
@@ -66,7 +66,7 @@ export default function FiltersSheet({ visible, onClose, onClear, sections = [],
 
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 24 }}>
+            contentContainerStyle={[styles.scrollContent, isLarge && styles.scrollContentLarge]}>
             {sections.map((sec) => (
               <View key={sec.key} style={styles.section}>
                 <Text style={[styles.sectionTitle, isLarge && styles.sectionTitleLarge]}>{sec.title}</Text>
@@ -109,61 +109,67 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
-    paddingHorizontal: 22,
-    paddingTop: 8,
+    paddingHorizontal: 26,
+    paddingTop: 10,
     maxHeight: '85%'
   },
   sheetLarge: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 30,
     maxHeight: '88%',
   },
   handle: {
     alignSelf: 'center',
-    width: 42,
-    height: 4,
-    borderRadius: 2,
+    width: 54,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#D6D2CD',
-    marginVertical: 8,
+    marginVertical: 10,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 24
+    marginBottom: 16,
+    paddingHorizontal: 24,
+    minHeight: 54,
   },
-  title:    { ...typography.h3, color: colors.textDark, fontSize: 20 },
-  titleLarge: { fontSize: 24 },
-  clearBtn: { paddingHorizontal: 10, paddingVertical: 4 },
-  clearTxt: { color: colors.primary, fontWeight: '700', fontSize: 18, marginRight: 8 },
-  clearTxtLarge: { fontSize: 22 },
-  closeBtn: { padding: 4, marginLeft: 4 },
+  title:    { ...typography.h3, color: colors.textDark, fontSize: 24, lineHeight: 31 },
+  titleLarge: { fontSize: 30, lineHeight: 38 },
+  clearBtn: { paddingHorizontal: 14, paddingVertical: 10 },
+  clearTxt: { color: colors.primary, fontWeight: '700', fontSize: 20, lineHeight: 26, marginRight: 8 },
+  clearTxtLarge: { fontSize: 24, lineHeight: 31 },
+  closeBtn: { padding: 8, marginLeft: 4 },
 
-  section: { marginTop: 14, marginBottom: 6 },
-  sectionTitle: { ...typography.bodyBold, color: colors.textDark, marginBottom: 8, fontSize: 18 },
-  sectionTitleLarge: { fontSize: 18 },
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 8 },
+  scrollContentLarge: { paddingHorizontal: 24, paddingBottom: 12 },
+
+  section: { marginTop: 18, marginBottom: 10 },
+  sectionTitle: { ...typography.bodyBold, color: colors.textDark, marginBottom: 12, fontSize: 22, lineHeight: 29 },
+  sectionTitleLarge: { fontSize: 26, lineHeight: 34 },
 
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap' },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
+    minHeight: 50,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: radii.md,
+    borderWidth: 2,
     borderColor: colors.inputBorder,
     backgroundColor: '#FFF',
-    marginRight: 8,
-    marginBottom: 8,
+    marginRight: 10,
+    marginBottom: 10,
     overflow: 'hidden',
   },
   chipLarge: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginRight: 10,
-    marginBottom: 10,
+    minHeight: 60,
+    paddingHorizontal: 22,
+    paddingVertical: 15,
+    marginRight: 12,
+    marginBottom: 12,
   },
-  chipText: { color: colors.textDark, fontSize: 16 },
-  chipTextLarge: { fontSize: 18 },
-  dot:      { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
-  dotLarge: { width: 12, height: 12, borderRadius: 6 },
+  chipText: { color: colors.textDark, fontSize: 19, lineHeight: 25 },
+  chipTextLarge: { fontSize: 23, lineHeight: 30 },
+  dot:      { width: 13, height: 13, borderRadius: 7, marginRight: 10 },
+  dotLarge: { width: 16, height: 16, borderRadius: 8, marginRight: 12 },
 });

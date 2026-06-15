@@ -2,17 +2,16 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+RUN apk add --no-cache postgresql-client
+
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-COPY src ./src
+COPY . .
 
-RUN mkdir -p src/uploads/products
-
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN sed -i 's/\r$//' docker-entrypoint.sh && chmod +x docker-entrypoint.sh
 
 EXPOSE 3000
 
-ENTRYPOINT ["sh", "/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["sh", "./docker-entrypoint.sh"]
 CMD ["node", "src/server.js"]

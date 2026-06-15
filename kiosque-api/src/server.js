@@ -1,4 +1,5 @@
 require('dotenv').config()
+process.env.TZ = process.env.TZ || 'America/Sao_Paulo'
 
 const http         = require('http')
 const path         = require('path')

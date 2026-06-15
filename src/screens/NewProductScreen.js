@@ -86,11 +86,11 @@ export default function NewProductScreen({ navigation, route }) {
       />
       <ScrollFade
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 28, paddingBottom: 80, alignItems: 'center' }}
+        contentContainerStyle={{ padding: 28, marginTop: 16, paddingBottom: 80, alignItems: 'center' }}
         keyboardShouldPersistTaps="handled"
         fadeColor="#FFF"
       >
-        <View style={{ width: '100%', maxWidth: r.contentMaxWidth }}>
+        <View style={{ width: '100%', maxWidth: '92%' }}>
 
           <LabeledInput label="Nome:">
             <Input value={name} onChangeText={setName} fieldStyle={inputField} inputStyle={inputText} style={{ marginBottom: 0 }} />
@@ -177,7 +177,7 @@ export default function NewProductScreen({ navigation, route }) {
                 </>
               ) : (
                 <View style={styles.imagePlaceholder}>
-                  <Feather name="image" size={40} color="#AAA" />
+                  <Feather name="image" size={64} color="#AAA" />
                   <Text style={styles.imagePlaceholderText}>Selecionar foto</Text>
                 </View>
               )}
@@ -204,7 +204,7 @@ export default function NewProductScreen({ navigation, route }) {
           </View>
 
           <View style={{ marginTop: 32 }}>
-            <Button title={editingId ? 'Salvar' : 'Cadastrar'} onPress={onSubmit} loading={saving} />
+            <Button title={editingId ? 'Salvar' : 'Cadastrar'} onPress={onSubmit} loading={saving} style={{ height: 70 }} textStyle={{ fontSize: 24 }}/>
           </View>
         </View>
       </ScrollFade>
@@ -237,7 +237,7 @@ function LabeledInput({ label, children }) {
 }
 
 const styles = StyleSheet.create({
-  fieldLabel: { ...typography.bodyBold, color: colors.textDark, fontSize: 23, marginBottom: 12 },
+  fieldLabel: { ...typography.bodyBold, color: colors.textDark, fontSize: 26, marginBottom: 12 },
 
   catSelect: {
     height: 70,
@@ -253,9 +253,9 @@ const styles = StyleSheet.create({
   catText:    { color: colors.textDark, fontSize: 22 },
   catList:    { marginTop: 8, borderWidth: 1, borderColor: colors.inputBorder, borderRadius: radii.md, backgroundColor: '#FFF', overflow: 'hidden' },
   catOpt:     { padding: 20, borderBottomWidth: 1, borderBottomColor: '#F2F2F2' },
-  catOptText: { color: colors.textDark, fontSize: 20 },
+  catOptText: { color: colors.textDark, fontSize: 22 },
 
-  imgLabel: { ...typography.bodyBold, color: colors.textDark, fontSize: 23, marginBottom: 14 },
+  imgLabel: { ...typography.bodyBold, color: colors.textDark, fontSize: 26, marginBottom: 14 },
 
   // Em landscape, picker e URL ficam lado a lado
   imageRowLandscape: { flexDirection: 'row', alignItems: 'flex-start' },
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     rowGap: 8,
   },
-  imagePlaceholderText: { color: '#AAA', fontSize: 17, marginTop: 8 },
+  imagePlaceholderText: { color: '#AAA', fontSize: 18, marginTop: 4, fontWeight: '500' },
 
   imageOverlay: {
     position: 'absolute',
@@ -292,6 +292,6 @@ const styles = StyleSheet.create({
   imageOverlayText: { color: '#FFF', fontWeight: '700', fontSize: 17 },
 
   orSeparator: { flexDirection: 'row', alignItems: 'center', marginVertical: 18 },
-  orLine:      { flex: 1, height: 1, backgroundColor: colors.inputBorder },
-  orText:      { marginHorizontal: 12, color: colors.textMuted, fontSize: 16 },
+  orLine:      { flex: 1, height: 2, backgroundColor: colors.inputBorder },
+  orText:      { marginHorizontal: 12, color: colors.textMuted, fontSize: 18 },
 });

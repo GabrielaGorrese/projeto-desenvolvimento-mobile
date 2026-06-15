@@ -11,7 +11,7 @@ export default function DarkHeader({ title, subtitle, onBack, right }) {
       left={
         onBack ? (
           <Pressable onPress={onBack} style={styles.back}>
-            <Feather name="arrow-left" size={30} color="#FFF" />
+            <Feather name="arrow-left" size={42} color="#FFF" />
           </Pressable>
         ) : null
       }
@@ -28,8 +28,8 @@ export default function DarkHeader({ title, subtitle, onBack, right }) {
 
 const styles = StyleSheet.create({
   back: {
-    width: 54,
-    height: 54,
+    width: 72,
+    height: 72,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -37,12 +37,14 @@ const styles = StyleSheet.create({
   title: {
     ...typography.title,
     color: '#FFF',
-    fontSize: 20,
+    fontSize: 30,
+    lineHeight: 36,
   },
 
   subtitle: {
     color: '#C0C0C0',
-    fontSize: 16,
-    marginTop: 2,
+    fontSize: 22,
+    lineHeight: 29,
+    marginTop: 6,
   },
 });
