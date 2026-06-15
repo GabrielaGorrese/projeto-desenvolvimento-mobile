@@ -189,7 +189,7 @@ export default function CatalogScreen({ navigation, route }) {
 
             <Divider />
 
-            <SectionHeader title="Todos" count={products.length} />
+            <SectionHeader title="Produtos" count={products.length} />
 
             <View style={styles.prodGrid}>
               {products.map((p) => {
@@ -220,6 +220,7 @@ export default function CatalogScreen({ navigation, route }) {
             {cartCount} {cartCount === 1 ? 'item' : 'itens'}
           </Text>
           <View style={{ flex: 1 }} />
+          
           <Button title="Adicionar à comanda" onPress={confirmAdd} fullWidth={false} />
         </View>
       ) : null}
@@ -227,7 +228,9 @@ export default function CatalogScreen({ navigation, route }) {
       <BottomBar current={mode === 'manage' ? 'catalog' : 'home'} />
       {/* FAB depois do BottomBar para ficar visualmente por cima */}
       {mode === 'manage' && isManager ? (
-        <Fab onPress={() => navigation.navigate('ProductEdit', { id: 'new' })} />
+        <Fab onPress={() => navigation.navigate('ProductEdit', { id: 'new' })}
+        centeredOnBottomBar
+         />
       ) : null}
     </Screen>
   );
@@ -281,7 +284,7 @@ function ProductCell({ product, onPress, onMinus, qty, selectable }) {
       <Text style={styles.prodPrice}>R$ {Number(product.price).toFixed(2).replace('.', ',')}</Text>
       {selectable && qty > 0 ? (
         <Pressable onPress={onMinus} style={styles.minusBtn} hitSlop={8}>
-          <Feather name="minus" size={18} color="#FFF" />
+          <Feather name="minus" size={20} color="#FFF" />
         </Pressable>
       ) : null}
     </Pressable>
@@ -337,12 +340,12 @@ const styles = StyleSheet.create({
   prodPrice: { color: colors.primary, fontWeight: '700', fontSize: 18, lineHeight: 23, marginTop: 4 },
 
   qtyBadge: {
-    position: 'absolute', top: 6, right: 6, minWidth: 30, height: 30, borderRadius: 15,
+    position: 'absolute', top: 6, right: 6, minWidth: 36, height: 36, borderRadius: 24,
     backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6,
   },
-  qtyBadgeText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+  qtyBadgeText: { color: '#FFF', fontWeight: '800', fontSize: 18 },
   minusBtn: {
-    position: 'absolute', top: 8, left: 8, width: 30, height: 30, borderRadius: 15,
+    position: 'absolute', top: 13, left: 13, minWidth: 36, height: 36, borderRadius: 24,
     backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center',
   },
 

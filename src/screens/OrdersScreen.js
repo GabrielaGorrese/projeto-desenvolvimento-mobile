@@ -262,7 +262,7 @@ export default function OrdersScreen({ navigation, route }) {
 
           <Divider />
 
-          <SectionHeader title="Comandas fechadas hoje" count={filteredClosed.length} />
+          <SectionHeader title="Comandas fechadas hoje" count={filteredClosed.length}/>
           <Grid>
             {filteredClosed.map((o) => (
               <OrderTile

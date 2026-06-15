@@ -56,12 +56,13 @@ export default function OrderTile({ order, onPress, isNew, partial }) {
 const styles = StyleSheet.create({
   wrap:  { margin: 6 },
   tile:  {
-    width: 96,
-    height: 128,
+    width: 92,
+    height: 124,
     borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',  // ripple respeita o border-radius
+    overflow: 'hidden',
+    marginTop: 12
   },
 
   num: { ...typography.h2, color: '#FFFFFF', fontWeight: '900', fontSize: 32, width: '100%', textAlign: 'center', paddingHorizontal: 6 },

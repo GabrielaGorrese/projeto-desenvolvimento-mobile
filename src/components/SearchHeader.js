@@ -86,6 +86,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12
   },
 
   badge: {

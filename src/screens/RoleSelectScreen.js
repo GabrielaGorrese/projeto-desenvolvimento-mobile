@@ -34,11 +34,11 @@ export default function RoleSelectScreen({ navigation }) {
   const logoWidth = Math.min(360, Math.max(250, r.width * 0.38));
   const logoHeight = Math.round(logoWidth * 0.39);
   const roleCardHeight = Math.round(Math.max(118, Math.min(320, minSide * 0.26)));
-  const roleIconSize = Math.round(Math.max(58, Math.min(156, minSide * 0.15)));
-  const titleSize = Math.round(Math.max(26, Math.min(36, minSide * 0.038)));
+  const roleIconSize = Math.round(Math.max(58, Math.min(132, minSide * 0.15)));
+  const titleSize = Math.round(Math.max(22, Math.min(30, minSide * 0.038)));
   const headerIconSize = Math.round(Math.max(86, Math.min(122, minSide * 0.12)));
-  const subheadingSize = Math.round(Math.max(16, Math.min(24, minSide * 0.026)));
-  const roleTitleSize = Math.round(Math.max(20, Math.min(34, minSide * 0.035)));
+  const subheadingSize = Math.round(Math.max(20, Math.min(20, minSide * 0.026)));
+  const roleTitleSize = Math.round(Math.max(20, Math.min(28, minSide * 0.035)));
   const cardPaddingH = Math.round(Math.max(18, Math.min(30, minSide * 0.032)));
   const brandBottom = Math.round(Math.max(44, Math.min(82, minSide * 0.08)));
 
@@ -65,7 +65,7 @@ export default function RoleSelectScreen({ navigation }) {
           <Text style={[styles.heading, { fontSize: titleSize, lineHeight: Math.round(titleSize * 1.18), paddingTop: 64 }]}>
             {'Quem est\u00e1 tentando acessar?'}
           </Text>
-          <Text style={[styles.subheading, { fontSize: subheadingSize, lineHeight: Math.round(subheadingSize * 1.32), paddingBottom: 24 }]}>
+          <Text style={[styles.subheading, { fontSize: subheadingSize, paddingBottom: 24, marginTop: 8 }]}>
             Selecione o tipo de conta para continuar.
           </Text>
 
@@ -241,11 +241,12 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 30,
+    paddingHorizontal: 36,
     paddingVertical: 24,
   },
   roleIcon: {
     flexShrink: 0,
+    marginLeft: 4
   },
   roleText: {
     flex: 1,

@@ -41,13 +41,13 @@ export default function LoginScreen({ navigation }) {
   const comfyPortrait = r.isPortrait;
   const scale = Math.min(1.4, Math.max(1, r.width / 600));
   const bannerTitleFontSize = 26 * scale;
-  const rememberLabelFontSize = (compact ? 15 : comfyPortrait ? 18 : 18) * scale;
-  const errorFontSize = (compact ? 14 : 15) * scale;
-  const inputFontSize = (compact ? 16 : comfyPortrait ? 20 : 20) * scale;
-  const inputLabelFontSize = (compact ? 16 : comfyPortrait ? 20 : 20) * scale;
+  const rememberLabelFontSize = (compact ? 15 : comfyPortrait ? 16 : 16) * scale;
+  const errorFontSize = (compact ? 14 : 16) * scale;
+  const inputFontSize = (compact ? 16 : comfyPortrait ? 18 : 18) * scale;
+  const inputLabelFontSize = (compact ? 16 : comfyPortrait ? 18 : 18) * scale;
   const inputHeight = compact ? 52 : comfyPortrait ? 72 : 72;
   const actionButtonHeight = compact ? 62 : comfyPortrait ? 82 : 82;
-  const actionButtonFontSize = (compact ? 17 : comfyPortrait ? 21 : 20) * scale;
+  const actionButtonFontSize = (compact ? 17 : comfyPortrait ? 19 : 19) * scale;
   const actionButtonRadius = 12;
   const buttonSize = comfyPortrait ? 'lg' : compact ? 'sm' : 'md';
   const maxKeyboardLift = Math.round(Math.min(compact ? 150 : 260, Math.max(120, r.height * 0.32)));
@@ -340,11 +340,11 @@ const styles = StyleSheet.create({
     color: colors.textDark,
   },
   rememberSwitchCompact: {
-    transform: [{ scaleX: 1.8 }, { scaleY: 1.8 }],
+    transform: [{ scaleX: 1.6 }, { scaleY: 1.6 }],
     marginRight: 12,
   },
   rememberSwitchPortrait: {
-    transform: [{ scaleX: 1.8 }, { scaleY: 1.8 }],
+    transform: [{ scaleX: 1.6 }, { scaleY: 1.6 }],
     marginRight: 16,
     paddingLeft: 8
   },

@@ -172,7 +172,7 @@ export default function ProductDetailScreen({ route, navigation }) {
       <Animated.View
         style={[
           StyleSheet.absoluteFillObject,
-          { backgroundColor: 'rgba(0,0,0,0.60)', opacity: backdropAnim },
+          { backgroundColor: colors.bgDark, opacity: backdropAnim },
         ]}
       />
 
@@ -307,18 +307,10 @@ export default function ProductDetailScreen({ route, navigation }) {
               </View>
 
               <View style={{ marginTop: 26 }}>
-                <Button title="Salvar" onPress={onSave} loading={saving} />
+                <Button title="Salvar" onPress={onSave} loading={saving} style={{ backgroundColor: colors.manager }} />
               </View>
             </ScrollView>
           )}
-
-          {scrollFade ? (
-            <View pointerEvents="none" style={styles.scrollFadeOverlay}>
-              {[0, 0.07, 0.18, 0.38, 0.62, 0.82, 1].map((opacity, i) => (
-                <View key={i} style={{ flex: 1, backgroundColor: '#FFF', opacity }} />
-              ))}
-            </View>
-          ) : null}
         </Animated.View>
       </View>
 
@@ -361,7 +353,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     elevation: 12,
-    shadowColor: '#000',
+    shadowColor: '#030303',
     shadowOpacity: 0.30,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 6 },

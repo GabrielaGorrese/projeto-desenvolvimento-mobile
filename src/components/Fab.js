@@ -24,9 +24,9 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 72,
-    width: 72,
-    height: 72,
-    borderRadius: radii.md,
+    width: 96,
+    height: 96,
+    borderRadius: 18,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -35,6 +35,6 @@ const styles = StyleSheet.create({
   centeredOnBottomBar: {
     left: '50%',
     right: undefined,
-    marginLeft: -36,
+    marginLeft: -48,
   },
 });

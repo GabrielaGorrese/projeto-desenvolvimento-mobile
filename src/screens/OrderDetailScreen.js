@@ -486,17 +486,19 @@ export default function OrderDetailScreen({ route, navigation }) {
         fadeColor="#FFFFFF"
       >
 
+      {/*
       <View style={styles.statusPill}>
         <View style={styles.statusDot} />
         <Text style={styles.statusText}>{readOnly ? 'Fechada' : 'Pendente'}</Text>
       </View>
+      */}
 
       <View ref={contentRef} style={[styles.content, { maxWidth: r.isTablet ? Math.min(r.width - 32, 1100) : r.contentMaxWidth }]}>
-        
+      
 
         {isNew ? (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { fontSize: sz.section }]}>Número da comanda</Text>
+            <Text style={[styles.sectionTitle, { fontSize: sz.section, marginTop: 18 }]}>Número da comanda</Text>
             <Input
               ref={numberInputRef}
               value={dailyNumber}
@@ -505,7 +507,7 @@ export default function OrderDetailScreen({ route, navigation }) {
               maxLength={6}
               placeholder="Ex.: 1, 2, 3..."
               onFocus={() => scrollInputIntoView(numberInputRef)}
-              fieldStyle={[styles.inputField, { height: sz.inputH, paddingHorizontal: sz.inputPad }]}
+              fieldStyle={[styles.inputField, { height: 64, paddingHorizontal: sz.inputPad }]}
               inputStyle={[styles.inputText, { fontSize: sz.body }]}
               style={[styles.numberInputWrap, { maxWidth: '100%' }]}
             />
@@ -517,7 +519,7 @@ export default function OrderDetailScreen({ route, navigation }) {
         <View style={twoCol ? styles.twoColRow : null}>
         <View style={twoCol ? styles.twoColLeft : null}>
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { fontSize: sz.section }]}>Informações</Text>
+          <Text style={[styles.sectionTitle, { fontSize: sz.section, marginBottom: 30 }]}>Informações</Text>
           <Row icon="edit-3" text={order?.attendant || user?.username || '—'} sz={sz} />
           <View style={styles.infoRow}>
             <Feather name="users" size={sz.iconSize} color={colors.textDark} />
@@ -529,14 +531,14 @@ export default function OrderDetailScreen({ route, navigation }) {
                 <Pressable
                   onPress={() => setPeople((p) => Math.max(1, p - 1))}
                   android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: sz.peopleBtn / 2 }}
-                  style={[styles.peopleBtn, { width: sz.peopleBtn, height: sz.peopleBtn, borderRadius: sz.peopleBtn / 2 }]}
+                  style={[styles.peopleBtn, { width: sz.peopleBtn, height: sz.peopleBtn, borderRadius: 9 }]}
                 >
                   <Feather name="minus" size={sz.iconSize} color={colors.textDark} />
                 </Pressable>
                 <Pressable
                   onPress={() => setPeople((p) => Math.min(99, p + 1))}
                   android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: sz.peopleBtn / 2 }}
-                  style={[styles.peopleBtn, { width: sz.peopleBtn, height: sz.peopleBtn, borderRadius: sz.peopleBtn / 2 }]}
+                  style={[styles.peopleBtn, { width: sz.peopleBtn, height: sz.peopleBtn, borderRadius: 9 }]}
                 >
                   <Feather name="plus" size={sz.iconSize} color={colors.textDark} />
                 </Pressable>
@@ -675,7 +677,7 @@ export default function OrderDetailScreen({ route, navigation }) {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { fontSize: sz.section }]}>Itens</Text>
           {items.length === 0 ? (
-            <Text style={styles.empty}>Nenhum item adicionado.</Text>
+            <EmptySection text={'Nenhum item adicionado'} />
           ) : (() => {
             // Separa em duas listas: pendentes e entregues. Mantém o índice
             // original (necessário para os itens locais de comanda nova).
@@ -722,6 +724,8 @@ export default function OrderDetailScreen({ route, navigation }) {
               </View>
             );
           })()}
+          
+          <View style={[styles.sectionDivider, { marginTop: 48, marginBottom: 12 }]} />  
 
           {!readOnly ? (
             <View style={styles.itemActions}>
@@ -738,7 +742,7 @@ export default function OrderDetailScreen({ route, navigation }) {
               <Button
                 title="Adicionar novo item"
                 onPress={goAddItems}
-                icon={<Feather name="plus-circle" size={26} color="#FFF" />}
+                icon={<Feather name="plus-circle" size={28} color="#FFF" />}
                 size="lg"
                 style={styles.actionButton}
                 textStyle={styles.actionButtonText}
@@ -916,6 +920,15 @@ export default function OrderDetailScreen({ route, navigation }) {
   );
 }
 
+function EmptySection({ text }) {
+  return (
+    <View style={styles.emptyWrap}>
+      <Image source={require('../../assets/vazio.png')} style={{ width: 76, height: 76, marginTop: 12 }} resizeMode="contain" />
+      <Text style={styles.empty}>{text}</Text>
+    </View>
+  );
+}
+
 function Row({ icon, text, sz = {} }) {
   return (
     <View style={styles.infoRow}>
@@ -972,7 +985,7 @@ function ItemCard({ item, onRemove, onIncrement, onDecrement, onDeliver, onUndel
             <Feather name="check-circle" size={13} color='#0b8b2b' />
             <Text style={styles.deliveredTagText}>Entregue</Text>
           </View>
-        ) : null}
+        ) : <View style={styles.deliveredTagEmpty}></View>}
         {!readOnly ? (
           <View style={styles.itemSideActions}>
             {!delivered && onDeliver ? (
@@ -1207,7 +1220,7 @@ const styles = StyleSheet.create({
 
   itemActions: { flexDirection: 'row', marginTop: 14 },
   actionButton: { flex: 1, height: 70, borderRadius: radii.lg },
-  actionButtonText: { fontSize: 20 },
+  actionButtonText: { fontSize: 22 },
   actionSpacer: { width: 14 },
   closeHint:   { color: '#E8C44E', fontSize: 16, lineHeight: 22, fontWeight: '600', textAlign: 'center', marginTop: 10 },
   empty:       { color: colors.textMuted, fontStyle: 'italic', paddingVertical: 12, fontSize: 18, lineHeight: 25 },
@@ -1220,13 +1233,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 34,
     paddingTop: 20
   },
-  totalRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 18 },
+  totalRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 32, marginTop: 12 },
   footerActions: { flexDirection: 'row', alignItems: 'center' },
   footerButton: { height: 70, borderRadius: radii.lg },
-  footerButtonText: { fontSize: 20 },
+  footerButtonText: { fontSize: 24 },
   footerSpacer: { width: 14 },
   totalLabel:    { color: '#FFF', fontSize: 19 },
   totalValue:    { color: colors.primary, fontSize: 34, fontWeight: '900' },
   totalSubLabel: { color: '#CCC', fontSize: 16 },
   totalSubValue: { color: '#FFF', fontSize: 19 },
+    emptyWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 2,
+    paddingBottom: 18,
+    paddingHorizontal: 0,
+  },
+  empty: {
+    color: colors.textMuted,
+    fontSize: 22,
+    lineHeight: 28,
+    paddingTop: 10,
+    paddingBottom: 6,
+    textAlign: 'center',
+  },
+  deliveredTagEmpty: {
+    height: 12,
+    marginTop: 6
+  }
 });

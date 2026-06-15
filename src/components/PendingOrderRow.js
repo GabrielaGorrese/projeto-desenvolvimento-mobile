@@ -44,6 +44,10 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
     }
   }
 
+  function Divider() {
+    return <View style={styles.divider} />;
+  }
+
   return (
     <Pressable
       onPress={onPress}
@@ -60,16 +64,13 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
           >
             {label}
           </Text>
-          {timeStr ? (
-            <View style={styles.timeRow}>
-              <Text style={styles.timeText}>{timeStr}</Text>
-            </View>
-          ) : null}
           {partial ? (
             <View style={styles.partial}>
               <Text style={styles.partialText}>PARCIAL</Text>
             </View>
           ) : null}
+          
+          
           {isNew ? (
             <View style={styles.star}>
               <Image source={require('../../assets/novo.png')} style={styles.newBadge} resizeMode="contain" />
@@ -114,8 +115,19 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
                     )}
                   </Pressable>
                 </View>
+
               );
             })}
+
+            <Divider />
+
+            <View style={styles.bottomRow}>
+            {timeStr ? (
+            <View style={styles.timeRow}>
+              <Feather name="clock" size={20} color={colors.textMuted} style={{ marginRight: 6 }} />
+              <Text style={styles.timeText}>{timeStr}</Text>
+            </View>
+          ) : null}
 
             {pendingItems.length > 1 ? (
               <Pressable
@@ -133,6 +145,7 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
                 )}
               </Pressable>
             ) : null}
+            </View>
 
           </>
         )}
@@ -149,36 +162,41 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     backgroundColor: colors.bgLight,
     borderRadius: radii.lg,
-    paddingVertical: 14,
-    paddingLeft: 12,
     paddingRight: 8,
     marginHorizontal: 6,
     marginBottom: 12,
     ...shadow.card,
   },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    minHeight: 48,
+  },
   left: { alignItems: 'center', width: 66, alignSelf: 'stretch' },
   numBox: {
-    width: 66,
+    width: 74,
     flex: 1,
     minHeight: 128,
     borderTopLeftRadius: radii.md,
     borderBottomLeftRadius: radii.md,
-    borderTopRightRadius: 4,
-    borderBottomRightRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  chevron: { alignSelf: 'center' },
+  chevron: { alignSelf: 'center', marginLeft: 6 },
   timeRow: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 8,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'flex-start',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 40,
+    marginTop: -3
   },
-  timeText: { color: '#FFF', fontSize: 15, fontWeight: '400', textAlign: 'center' },
+  timeText: { color: '#464646', fontSize: 18, fontWeight: '400', textAlign: 'center' },
   num: {
     ...typography.h2,
     color: colors.textOnDark,
@@ -193,12 +211,13 @@ const styles = StyleSheet.create({
   newBadge: { width: 28, height: 28 },
   partial: {
     position: 'absolute',
-    bottom: 28,
-    left: 0,
-    right: 0,
+    bottom: 6,
+    width: '85%',
+    borderRadius: 4,
     backgroundColor: 'rgba(0,0,0,0.45)',
     paddingVertical: 2,
     alignItems: 'center',
+    alignSelf: 'center'
   },
   partialText: { color: '#FFF', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
 
@@ -238,7 +257,7 @@ const styles = StyleSheet.create({
   itemQty: {
     color: colors.primary,
     fontWeight: '800',
-    fontSize: 22,
+    fontSize: 24,
   },
   checkBtn: {
     width: 46,
@@ -257,18 +276,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    alignSelf: 'flex-start',
     gap: 8,
-    minHeight: 44,
+    minHeight: 20,
     backgroundColor: 'transparent',
     borderWidth: 2,
     borderColor: colors.primary,
     borderRadius: radii.md,
     paddingHorizontal: 18,
     paddingVertical: 9,
-    marginTop: 10,
+    marginTop: 0,
     overflow: 'hidden',
+    marginBottom: 16
   },
-  deliverAllText: { color: colors.primary, fontWeight: '800', fontSize: 18 },
+  deliverAllText: { color: colors.primary, fontWeight: '800', fontSize: 16 },
   emptyItem: { color: colors.textMuted, fontStyle: 'italic', fontSize: 17 },
+  divider: {
+    height: 2,
+    backgroundColor: '#F0EBE4',
+    width: '100%',
+    marginTop: 8,
+    marginBottom: 8,
+  },
 });
