@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: comandou-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-comandou}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      TZ: ${TZ:-America/Sao_Paulo}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./kiosque-api/SQL DO POSTGRES.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-comandou}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./kiosque-api
+      dockerfile: Dockerfile
+    container_name: comandou-api
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      PORT: ${PORT:-3000}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-comandou}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_POOL_MAX: ${DB_POOL_MAX:-20}
+      JWT_SECRET: ${JWT_SECRET:-troque_por_uma_string_longa_e_aleatoria}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      TZ: ${TZ:-America/Sao_Paulo}
+    volumes:
+      - api_uploads:/app/src/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  api_uploads:
