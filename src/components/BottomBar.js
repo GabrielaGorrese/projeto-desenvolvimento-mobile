@@ -30,7 +30,7 @@ export default function BottomBar({ current = 'home' }) {
         hitSlop={8}
         android_ripple={disabled ? null : { color: 'rgba(255,255,255,0.14)', borderless: true, radius: 28 * scale }}
       >
-        <Feather name={icon} size={36 * scale} color={iconColor} />
+        <Feather name={icon} size={20 * scale} color={iconColor} />
         {active && !disabled ? (
           <View
             style={[
@@ -54,7 +54,7 @@ export default function BottomBar({ current = 'home' }) {
         style={[
           styles.inner,
           {
-            height: 96 * scale,
+            height: 72 * scale,
             paddingHorizontal: 46 * scale,
           }
         ]}

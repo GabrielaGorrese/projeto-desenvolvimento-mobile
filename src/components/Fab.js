@@ -11,7 +11,7 @@ export default function Fab({ onPress, icon = 'plus', style, aboveBottomBar = tr
 
   const bottomBarHeight = aboveBottomBar ? 56 * scale : 0;
   const bottom = centeredOnBottomBar
-    ? 60 * scale + insets.bottom
+    ? 40 * scale + insets.bottom
     : 18 * scale + bottomBarHeight + insets.bottom;
 
   return (
@@ -24,18 +24,18 @@ export default function Fab({ onPress, icon = 'plus', style, aboveBottomBar = tr
         {
           bottom,
           right: centeredOnBottomBar ? undefined : 72 * scale,
-          width: 96 * scale,
-          height: 96 * scale,
-          borderRadius: 18 * scale,
+          width: 60 * scale,
+          height: 60 * scale,
+          borderRadius: 10 * scale,
         },
         centeredOnBottomBar && {
           left: '50%',
-          marginLeft: -48 * scale,
+          marginLeft: -32 * scale,
         },
         style
       ]}
     >
-      <Feather name={icon} size={40 * scale} color="#FFF" />
+      <Feather name={icon} size={28 * scale} color="#FFF" />
     </Pressable>
   );
 }
