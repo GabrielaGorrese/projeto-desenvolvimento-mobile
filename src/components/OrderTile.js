@@ -1,12 +1,12 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, radii, typography } from '../theme';
 
-// Card numerado verde/amarelo/vermelho (abertas) ou cinza (fechadas).
-// Mostra o número visível da comanda (daily_number, reinicia ao fechar o caixa).
-// Cai no id como fallback para comandas antigas sem daily_number.
 export default function OrderTile({ order, onPress, isNew, partial }) {
+  const { width } = useWindowDimensions();
+  const scale = width / 375;
+
   const bg = order.status === 'closed'
     ? colors.statusClosed
     : order.color_status === 'red'
@@ -19,19 +19,32 @@ export default function OrderTile({ order, onPress, isNew, partial }) {
   const label = String(order.daily_number ?? order.id).padStart(2, '0');
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, { margin: 6 * scale }]}>
       <Pressable
         onPress={onPress}
         android_ripple={{ color: 'rgba(255,255,255,0.3)' }}
         style={({ pressed }) => [
           styles.tile,
-          { backgroundColor: bg },
+          {
+            backgroundColor: bg,
+            width: 92 * scale,
+            height: 124 * scale,
+            borderRadius: radii.md * scale,
+            marginTop: 12 * scale,
+          },
           isClosed && { opacity: 0.7 },
           pressed && { opacity: isClosed ? 0.55 : 0.85 },
         ]}
       >
         <Text
-          style={[styles.num, isClosed && { color: '#9C8E84' }]}
+          style={[
+            styles.num,
+            {
+              fontSize: 32 * scale,
+              paddingHorizontal: 6 * scale,
+            },
+            isClosed && { color: '#9C8E84' }
+          ]}
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.4}
@@ -39,14 +52,29 @@ export default function OrderTile({ order, onPress, isNew, partial }) {
           {label}
         </Text>
       </Pressable>
+
       {isNew ? (
-        <View style={styles.star}>
-          <Feather name="star" size={18} color="#E8C44E" />
+        <View style={[styles.star, { top: -8 * scale, right: -6 * scale }]}>
+          <Feather name="star" size={18 * scale} color="#E8C44E" />
         </View>
       ) : null}
+
       {partial ? (
-        <View style={styles.partial}>
-          <Text style={styles.partialText}>PARCIAL</Text>
+        <View
+          style={[
+            styles.partial,
+            {
+              bottom: 6 * scale,
+              left: 6 * scale,
+              right: 6 * scale,
+              borderRadius: 6 * scale,
+              paddingVertical: 2 * scale,
+            }
+          ]}
+        >
+          <Text style={[styles.partialText, { fontSize: 10 * scale }]}>
+            PARCIAL
+          </Text>
         </View>
       ) : null}
     </View>
@@ -54,30 +82,30 @@ export default function OrderTile({ order, onPress, isNew, partial }) {
 }
 
 const styles = StyleSheet.create({
-  wrap:  { margin: 6 },
-  tile:  {
-    width: 92,
-    height: 124,
-    borderRadius: radii.md,
+  wrap: {},
+  tile: {
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    marginTop: 12
   },
-
-  num: { ...typography.h2, color: '#FFFFFF', fontWeight: '900', fontSize: 32, width: '100%', textAlign: 'center', paddingHorizontal: 6 },
-  star: { position: 'absolute', top: -8, right: -6 },
-
-  // Faixa "PARCIAL": comanda que está em Pendentes e Entregues ao mesmo tempo.
+  num: {
+    ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '900',
+    width: '100%',
+    textAlign: 'center',
+  },
+  star: {
+    position: 'absolute',
+  },
   partial: {
     position: 'absolute',
-    bottom: 6,
-    left: 6,
-    right: 6,
     backgroundColor: 'rgba(0,0,0,0.45)',
-    borderRadius: 6,
-    paddingVertical: 2,
     alignItems: 'center',
   },
-  partialText: { color: '#FFF', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  partialText: {
+    color: '#FFF',
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
 });

@@ -6,52 +6,105 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, typography } from '../theme';
 
-// Bottom-sheet de filtros. Recebe `sections` (lista de seções com opções)
-// e devolve a opção selecionada via onChange por chave.
-//
-// Exemplo de uso:
-//   <FiltersSheet
-//     visible={...}
-//     onClose={...}
-//     onClear={() => { ...zera todos os filtros }}
-//     sections={[
-//       {
-//         key: 'status',
-//         title: 'Status',
-//         value: status,                              // valor atual
-//         options: [
-//           { value: 'all',  label: 'Todas' },
-//           { value: 'open', label: 'Abertas' },
-//         ],
-//         onChange: setStatus,
-//       },
-//       ...
-//     ]}
-//   />
 export default function FiltersSheet({ visible, onClose, onClear, sections = [], size = 'md' }) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const scale = width / 375;
+
   const isLarge = size === 'lg';
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={[styles.sheet, isLarge && styles.sheetLarge, { paddingBottom: insets.bottom + (isLarge ? 28 : 20) }]} onPress={() => {}}>
-          <View style={styles.handle} />
+        <Pressable
+          style={[
+            styles.sheet,
+            {
+              paddingHorizontal: 26 * scale,
+              paddingTop: 10 * scale,
+              borderTopLeftRadius: 22 * scale,
+              borderTopRightRadius: 22 * scale,
+              paddingBottom: insets.bottom + (isLarge ? 28 * scale : 20 * scale),
+              maxHeight: isLarge ? '88%' : '85%',
+            },
+          ]}
+          onPress={() => {}}
+        >
+          <View
+            style={[
+              styles.handle,
+              {
+                width: 54 * scale,
+                height: 6 * scale,
+                borderRadius: 3 * scale,
+                marginVertical: 10 * scale,
+              },
+            ]}
+          />
 
-          <View style={styles.header}>
-            <Text style={[styles.title, isLarge && styles.titleLarge]}>Filtros</Text>
+          <View
+            style={[
+              styles.header,
+              {
+                marginBottom: 16 * scale,
+                paddingHorizontal: 24 * scale,
+                minHeight: 54 * scale,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.title,
+                {
+                  fontSize: (isLarge ? 30 : 24) * scale,
+                  lineHeight: (isLarge ? 38 : 31) * scale,
+                },
+              ]}
+            >
+              Filtros
+            </Text>
+
             <View style={{ flex: 1 }} />
+
             {onClear ? (
-              <Pressable onPress={onClear} hitSlop={8} style={styles.clearBtn}>
-                <Text style={[styles.clearTxt, isLarge && styles.clearTxtLarge]}>Limpar</Text>
+              <Pressable
+                onPress={onClear}
+                hitSlop={8}
+                style={{
+                  paddingHorizontal: 14 * scale,
+                  paddingVertical: 10 * scale,
+                }}
+              >
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontWeight: '700',
+                    fontSize: (isLarge ? 24 : 20) * scale,
+                    lineHeight: (isLarge ? 31 : 26) * scale,
+                    marginRight: 8 * scale,
+                  }}
+                >
+                  Limpar
+                </Text>
               </Pressable>
             ) : null}
-            <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
-              <Feather name="x" size={isLarge ? 38 : 32} color={colors.textDark} />
+
+            <Pressable
+              onPress={onClose}
+              hitSlop={8}
+              style={{ padding: 8 * scale, marginLeft: 4 * scale }}
+            >
+              <Feather
+                name="x"
+                size={(isLarge ? 38 : 32) * scale}
+                color={colors.textDark}
+              />
             </Pressable>
           </View>
 
@@ -60,16 +113,38 @@ export default function FiltersSheet({ visible, onClose, onClear, sections = [],
               height: 1,
               backgroundColor: '#ccc',
               width: '100%',
-              marginVertical: 10,
+              marginVertical: 10 * scale,
             }}
           />
 
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.scrollContent, isLarge && styles.scrollContentLarge]}>
+            contentContainerStyle={{
+              paddingHorizontal: 24 * scale,
+              paddingBottom: isLarge ? 12 * scale : 8 * scale,
+            }}
+          >
             {sections.map((sec) => (
-              <View key={sec.key} style={styles.section}>
-                <Text style={[styles.sectionTitle, isLarge && styles.sectionTitleLarge]}>{sec.title}</Text>
+              <View
+                key={sec.key}
+                style={{
+                  marginTop: 18 * scale,
+                  marginBottom: 10 * scale,
+                }}
+              >
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    {
+                      fontSize: (isLarge ? 26 : 22) * scale,
+                      lineHeight: (isLarge ? 34 : 29) * scale,
+                      marginBottom: 12 * scale,
+                    },
+                  ]}
+                >
+                  {sec.title}
+                </Text>
+
                 <View style={styles.chipsRow}>
                   {sec.options.map((opt) => {
                     const active = sec.value === opt.value;
@@ -80,14 +155,42 @@ export default function FiltersSheet({ visible, onClose, onClear, sections = [],
                         android_ripple={{ color: 'rgba(0,0,0,0.08)' }}
                         style={[
                           styles.chip,
-                          isLarge && styles.chipLarge,
-                          active && { backgroundColor: opt.color || colors.primary, borderColor: opt.color || colors.primary },
+                          {
+                            minHeight: (isLarge ? 60 : 50) * scale,
+                            paddingHorizontal: (isLarge ? 22 : 18) * scale,
+                            paddingVertical: (isLarge ? 15 : 12) * scale,
+                            borderRadius: radii.md * scale,
+                            marginRight: (isLarge ? 12 : 10) * scale,
+                            marginBottom: (isLarge ? 12 : 10) * scale,
+                          },
+                          active && {
+                            backgroundColor: opt.color || colors.primary,
+                            borderColor: opt.color || colors.primary,
+                          },
                         ]}
                       >
                         {opt.dot ? (
-                          <View style={[styles.dot, isLarge && styles.dotLarge, { backgroundColor: opt.dot }]} />
+                          <View
+                            style={{
+                              width: (isLarge ? 16 : 13) * scale,
+                              height: (isLarge ? 16 : 13) * scale,
+                              borderRadius: (isLarge ? 8 : 7) * scale,
+                              marginRight: (isLarge ? 12 : 10) * scale,
+                              backgroundColor: opt.dot,
+                            }}
+                          />
                         ) : null}
-                          <Text style={[styles.chipText, isLarge && styles.chipTextLarge, active && { color: '#FFF', fontWeight: '700' }]}>
+
+                        <Text
+                          style={[
+                            {
+                              color: colors.textDark,
+                              fontSize: (isLarge ? 23 : 19) * scale,
+                              lineHeight: (isLarge ? 30 : 25) * scale,
+                            },
+                            active && { color: '#FFF', fontWeight: '700' },
+                          ]}
+                        >
                           {opt.label}
                         </Text>
                       </Pressable>
@@ -107,69 +210,30 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: '#FFF',
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingHorizontal: 26,
-    paddingTop: 10,
-    maxHeight: '85%'
-  },
-  sheetLarge: {
-    paddingHorizontal: 30,
-    maxHeight: '88%',
   },
   handle: {
     alignSelf: 'center',
-    width: 54,
-    height: 6,
-    borderRadius: 3,
     backgroundColor: '#D6D2CD',
-    marginVertical: 10,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    paddingHorizontal: 24,
-    minHeight: 54,
   },
-  title:    { ...typography.h3, color: colors.textDark, fontSize: 24, lineHeight: 31 },
-  titleLarge: { fontSize: 30, lineHeight: 38 },
-  clearBtn: { paddingHorizontal: 14, paddingVertical: 10 },
-  clearTxt: { color: colors.primary, fontWeight: '700', fontSize: 20, lineHeight: 26, marginRight: 8 },
-  clearTxtLarge: { fontSize: 24, lineHeight: 31 },
-  closeBtn: { padding: 8, marginLeft: 4 },
-
-  scrollContent: { paddingHorizontal: 24, paddingBottom: 8 },
-  scrollContentLarge: { paddingHorizontal: 24, paddingBottom: 12 },
-
-  section: { marginTop: 18, marginBottom: 10 },
-  sectionTitle: { ...typography.bodyBold, color: colors.textDark, marginBottom: 12, fontSize: 22, lineHeight: 29 },
-  sectionTitleLarge: { fontSize: 26, lineHeight: 34 },
-
+  title: {
+    ...typography.h3,
+    color: colors.textDark,
+  },
+  sectionTitle: {
+    ...typography.bodyBold,
+    color: colors.textDark,
+  },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap' },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 50,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: radii.md,
     borderWidth: 2,
     borderColor: colors.inputBorder,
     backgroundColor: '#FFF',
-    marginRight: 10,
-    marginBottom: 10,
     overflow: 'hidden',
   },
-  chipLarge: {
-    minHeight: 60,
-    paddingHorizontal: 22,
-    paddingVertical: 15,
-    marginRight: 12,
-    marginBottom: 12,
-  },
-  chipText: { color: colors.textDark, fontSize: 19, lineHeight: 25 },
-  chipTextLarge: { fontSize: 23, lineHeight: 30 },
-  dot:      { width: 13, height: 13, borderRadius: 7, marginRight: 10 },
-  dotLarge: { width: 16, height: 16, borderRadius: 8, marginRight: 12 },
 });

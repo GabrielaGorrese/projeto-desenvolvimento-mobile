@@ -1,24 +1,36 @@
 import React from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, typography, radii } from '../theme';
+import useResponsive from '../hooks/useResponsive';
+
+const REF_MIN_SIDE = 820;
+
+function scaleSize(value, minSide) {
+  const factor = Math.min(1.35, Math.max(0.72, minSide / REF_MIN_SIDE));
+  return Math.round(value * factor);
+}
 
 export default function Button({
   title,
   onPress,
-  variant = 'primary',      
+  variant = 'primary',
   loading = false,
   disabled = false,
   icon,
   style,
   textStyle,
   fullWidth = true,
-  size = 'md',           
+  size = 'md',
 }) {
-  const styles = makeStyles(variant, size, disabled);
-  // Ripple ajusta-se ao fundo: claro em variants escuros, escuro em variants claros
-  const rippleColor = variant === 'outline' || variant === 'ghost'
-    ? 'rgba(0,0,0,0.12)'
-    : 'rgba(255,255,255,0.25)';
+  const r = useResponsive();
+  const minSide = Math.min(r.width, r.height);
+
+  const styles = makeStyles(variant, size, disabled, minSide);
+
+  const rippleColor =
+    variant === 'outline' || variant === 'ghost'
+      ? 'rgba(0,0,0,0.12)'
+      : 'rgba(255,255,255,0.25)';
 
   return (
     <Pressable
@@ -28,7 +40,6 @@ export default function Button({
       style={({ pressed }) => [
         styles.btn,
         fullWidth && { alignSelf: 'stretch' },
-        // No iOS, ripple não existe — usamos opacity como feedback equivalente.
         pressed && !disabled && Platform.OS !== 'android' && { opacity: 0.75 },
         style,
       ]}
@@ -37,7 +48,7 @@ export default function Button({
         <ActivityIndicator color={styles.label.color} />
       ) : (
         <View style={styles.row}>
-          {icon ? <View style={{ marginRight: 8 }}>{icon}</View> : null}
+          {icon ? <View style={{ marginRight: styles.iconGap }}>{icon}</View> : null}
           <Text style={[styles.label, textStyle]} numberOfLines={1}>
             {title}
           </Text>
@@ -47,25 +58,40 @@ export default function Button({
   );
 }
 
-function makeStyles(variant, size, disabled) {
-  const heights = { sm: 40, md: 50, lg: 56 };
-  const radius  = { sm: radii.md, md: radii.md, lg: radii.lg };
-  const fontSizes = { sm: 13, md: 15, lg: 17 };
+function makeStyles(variant, size, disabled, minSide) {
+  const baseHeights = { sm: 40, md: 50, lg: 56 };
+  const baseRadius = { sm: radii.md, md: radii.md, lg: radii.lg };
+  const baseFontSizes = { sm: 13, md: 15, lg: 17 };
 
-  let bg     = colors.primary;
+  const height = Math.round(
+    Math.max(36, Math.min(64, baseHeights[size] * (minSide / REF_MIN_SIDE)))
+  );
+
+  const borderRadius = Math.round(
+    Math.max(8, Math.min(20, baseRadius[size] * (minSide / REF_MIN_SIDE)))
+  );
+
+  const fontSize = Math.round(
+    Math.max(12, Math.min(20, baseFontSizes[size] * (minSide / REF_MIN_SIDE)))
+  );
+
+  const paddingHorizontal = scaleSize(16, minSide);
+  const iconGap = scaleSize(8, minSide);
+
+  let bg = colors.primary;
   let border = 'transparent';
-  let color  = colors.textOnPrimary;
+  let color = colors.textOnPrimary;
 
   if (variant === 'outline') {
-    bg     = 'transparent';
+    bg = 'transparent';
     border = colors.primary;
-    color  = colors.primary;
+    color = colors.primary;
   } else if (variant === 'ghost') {
-    bg     = colors.inputBg;
-    color  = colors.textDark;
+    bg = colors.inputBg;
+    color = colors.textDark;
   } else if (variant === 'danger') {
-    bg     = colors.danger;
-    color  = '#FFF';
+    bg = colors.danger;
+    color = '#FFF';
   }
 
   if (disabled) {
@@ -76,17 +102,25 @@ function makeStyles(variant, size, disabled) {
 
   return StyleSheet.create({
     btn: {
-      height: heights[size],
-      borderRadius: radius[size],
+      height,
+      borderRadius,
       backgroundColor: bg,
       borderWidth: variant === 'outline' ? 2 : 0,
       borderColor: border,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: 16,
-      overflow: 'hidden', // ripple respeita o border-radius
+      paddingHorizontal,
+      overflow: 'hidden',
     },
-    row:   { flexDirection: 'row', alignItems: 'center' },
-    label: { ...typography.button, color, fontSize: 20 },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    label: {
+      ...typography.button,
+      color,
+      fontSize,
+    },
+    iconGap,
   });
 }

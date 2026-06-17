@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View, Image } from 'react-native';
+import { Pressable, StyleSheet, Text, View, Image, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, radii, typography } from '../theme';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -66,74 +66,101 @@ function getGradient(name) {
 }
 
 export default function CategoryCard({ category, onPress, style, selected, dimmed }) {
+  const { width } = useWindowDimensions();
+  const scale = width / 375;
+
   const { gradient, image } = useMemo(
     () => getGradient(category.name),
     [category.name]
   );
 
-  const [c1, c2] = gradient;
-
   return (
-      <Pressable
-        onPress={onPress}
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.card,
+        {
+          height: 136 * scale,
+          borderRadius: radii.lg * scale,
+          margin: 6 * scale,
+          borderWidth: 3 * scale,
+        },
+        selected && styles.cardSelected,
+        dimmed && styles.cardDimmed,
+        style,
+      ]}
+    >
+      <GradientView colors={gradient} style={StyleSheet.absoluteFill} />
+
+      <Image
+        source={image}
         style={[
-          styles.card,
-          selected && styles.cardSelected,
-          dimmed && styles.cardDimmed,
-          style,
+          styles.image,
+          {
+            width: 130 * scale,
+            height: 130 * scale,
+          },
         ]}
+        resizeMode="contain"
+      />
+
+      <Text
+        style={[
+          styles.name,
+          {
+            fontSize: 26 * scale,
+            marginRight: '4%',
+          },
+        ]}
+        numberOfLines={1}
       >
-        <GradientView colors={gradient} style={StyleSheet.absoluteFill} />
-        
-        <Image source={image} style={styles.image} resizeMode="contain" />
+        {(category.name || '').toUpperCase()}
+      </Text>
 
-        <Text style={styles.name} numberOfLines={1}>
-          {(category.name || '').toUpperCase()}
-        </Text>
-
-        {selected && (
-          <View style={styles.check}>
-            <Feather name="check" size={14} color={colors.textDark} />
-          </View>
-        )}
-      </Pressable>
-     
+      {selected && (
+        <View
+          style={[
+            styles.check,
+            {
+              top: 8 * scale,
+              right: 8 * scale,
+              width: 28 * scale,
+              height: 28 * scale,
+              borderRadius: 14 * scale,
+            },
+          ]}
+        >
+          <Feather name="check" size={14 * scale} color={colors.textDark} />
+        </View>
+      )}
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    height: 136,
-    borderRadius: radii.lg,
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-    margin: 6,
-    // Borda sempre presente (transparente) evita "pulo" de layout ao selecionar.
-    borderWidth: 3,
     borderColor: 'transparent',
   },
   image: {
     position: 'absolute',
     left: 0,
     bottom: 0,
-    width: 130,
-    height: 130,
     opacity: 0.9,
   },
   bg: { ...StyleSheet.absoluteFillObject },
   selectedOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.18)' },
-  name: { fontSize: 26, color: '#FFFFFF', fontWeight: '900', letterSpacing: 1, marginRight: '4%', alignSelf: 'flex-end' },
-
-  // Selo de "selecionada" no canto superior direito.
+  name: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    letterSpacing: 1,
+    alignSelf: 'flex-end',
+  },
   check: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
