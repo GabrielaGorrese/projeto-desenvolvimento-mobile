@@ -36,6 +36,13 @@ import { formatMoney } from '../utils/format';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const REF_MIN_SIDE = 820;
+
+function scaleSize(value, minSide) {
+  const factor = Math.min(1.35, Math.max(0.72, minSide / REF_MIN_SIDE));
+  return Math.round(value * factor);
+}
+
 // Tela "Novo pedido" / detalhe da comanda. Aberta com:
 //   route.params.id = 'new'      -> criar comanda
 //   route.params.id = <id>       -> editar
@@ -47,6 +54,8 @@ export default function OrderDetailScreen({ route, navigation }) {
   const { takePendingItems } = usePendingItems();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
+  const minSide = Math.min(r.width, r.height);
+  const s = (value) => scaleSize(value, minSide);
 
   // Campos opcionais (ligados/desligados nas configurações). Lidos no mount.
   const showTable = getShowTable();
@@ -54,25 +63,137 @@ export default function OrderDetailScreen({ route, navigation }) {
   const twoCol = r.isLandscape && r.width >= 800;
 
   const sz = useMemo(() => ({
-    section:   r.isTablet ? 26 : 24,
-    body:      r.isTablet ? 22 : 19,
-    bodyBold:  r.isTablet ? 22 : 19,
-    caption:   r.isTablet ? 18 : 16,
-    inputH:    r.isTablet ? 86 : 72,
-    inputPad:  r.isTablet ? 24 : 20,
-    iconSize:  r.isTablet ? 28 : 24,
-    peopleBtn: r.isTablet ? 32 : 32,
-    mesaH:     r.isTablet ? 78 : 68,
-    mesaMinW:  r.isTablet ? 230 : 180,
-    itemImg:   r.isTablet ? 92 : 74,
-    itemName:  r.isTablet ? 22 : 19,
-    itemPrice: r.isTablet ? 18 : 16,
-    itemTotal: r.isTablet ? 23 : 20,
-    qtyBtn:    r.isTablet ? 50 : 44,
-    qtyVal:    r.isTablet ? 23 : 20,
-    totalBig:  r.isTablet ? 44 : 34,
-    totalSub:  r.isTablet ? 22 : 19,
-  }), [r.isTablet]);
+    section:   s(26),
+    body:      s(22),
+    bodyBold:  s(22),
+    caption:   s(18),
+    inputH:    s(86),
+    inputPad:  s(24),
+    iconSize:  s(28),
+    peopleBtn: s(32),
+    mesaH:     s(78),
+    mesaMinW:  s(230),
+    itemImg:   s(120),
+    itemName:  s(26),
+    itemPrice: s(18),
+    itemTotal: s(32),
+    qtyBtn:    s(40),
+    qtyBtnRadius: s(12),
+    qtyVal:    s(23),
+    totalBig:  s(44),
+    totalSub:  s(22),
+    numberInputH: s(64),
+    scrollPadH: s(16),
+    scrollPadTop: s(16),
+    scrollPadBottom: s(220),
+    sectionMarginBottom: s(30),
+    sectionTitleMarginBottom: s(14),
+    sectionTitleMarginTop: s(18),
+    infoSectionTitleMarginBottom: s(30),
+    sectionDividerMarginTop: s(2),
+    sectionDividerMarginBottom: s(30),
+    sectionDividerLargeMarginTop: s(48),
+    sectionDividerLargeMarginBottom: s(12),
+    infoRowMarginBottom: s(16),
+    infoTextMarginLeft: s(14),
+    infoLineHeight: s(27),
+    peopleControlsMarginLeft: s(16),
+    peopleBtnRadius: s(9),
+    peopleBtnMarginH: s(5),
+    mesaRowGap: s(16),
+    mesaSelectPaddingH: s(22),
+    mesaSelectMarginTop: s(6),
+    chevronSize: s(18),
+    tableListMaxHeight: s(280),
+    tableListMarginTop: s(14),
+    tableOptPaddingV: s(20),
+    tableOptPaddingH: s(22),
+    tableDeletePaddingH: s(22),
+    tableDeletePaddingV: s(20),
+    newTableRowPadding: s(14),
+    newTableRowGap: s(10),
+    compactInputH: s(62),
+    compactInputPadH: s(18),
+    compactInputFont: s(19),
+    newTableConfirmSize: s(58),
+    newTableAddPaddingV: s(18),
+    newTableAddPaddingH: s(22),
+    newTableAddGap: s(10),
+    newTableAddFont: s(19),
+    newTableIconSize: s(18),
+    newTableActionIcon: s(20),
+    labelInputMarginTop: s(14),
+    subHeaderMarginBottom: s(14),
+    subHeaderMarginTop: s(18),
+    subHeaderDeliveredMarginBottom: s(24),
+    deliverAllIcon: s(22),
+    deliverAllFont: s(20),
+    deliverAllPaddingV: s(8),
+    deliverAllPaddingH: s(10),
+    deliverAllGap: s(8),
+    emptySubFont: s(17),
+    emptySubLineHeight: s(24),
+    emptySubPaddingV: s(10),
+    emptySubMarginBottom: s(8),
+    emptySubNegativeMarginTop: s(-12),
+    actionButtonHeight: s(70),
+    actionButtonFont: s(22),
+    actionSpacer: s(14),
+    actionIconSize: s(26),
+    addIconSize: s(28),
+    itemActionsMarginTop: s(14),
+    itemCardPadding: s(18),
+    itemCardMarginBottom: s(14),
+    itemContentMarginH: s(20),
+    itemNameMarginTop: s(2),
+    itemQtyMarginTop: s(5),
+    itemTotalPaddingBottom: s(2),
+    deliveredTagGap: s(5),
+    deliveredTagMarginTop: s(8),
+    deliveredTagIcon: s(13),
+    deliveredTagFont: s(14),
+    deliveredTagEmptyHeight: s(12),
+    deliveredTagEmptyMarginTop: s(6),
+    deliverBtnGap: s(6),
+    deliverBtnPaddingH: s(16),
+    deliverBtnPaddingV: s(10),
+    deliverBtnIcon: s(20),
+    deliverBtnFont: s(16),
+    undeliverGap: s(8),
+    undeliverPaddingV: s(8),
+    undeliverIcon: s(18),
+    undeliverFont: s(20),
+    undeliverTextMarginRight: s(12),
+    itemSideActionsGap: s(10),
+    itemSideActionsMarginTop: s(10),
+    itemEditSize: s(42),
+    qtyControlsMarginTop: s(12),
+    qtyValueMinWidth: s(36),
+    qtyValueMarginH: s(8),
+    qtyValueFont: s(18),
+    footerPaddingH: s(34),
+    footerPaddingTop: s(20),
+    footerPaddingBottom: s(22),
+    footerPaddingBottomKb: s(16),
+    footerButtonHeight: s(70),
+    footerButtonFont: s(24),
+    footerSpacer: s(14),
+    totalRowMarginBottom: s(32),
+    totalRowMarginTop: s(12),
+    closeHintFont: s(16),
+    closeHintLineHeight: s(22),
+    closeHintMarginTop: s(10),
+    reopenIconSize: s(26),
+    emptyImage: s(76),
+    emptyFont: s(22),
+    emptyLineHeight: s(28),
+    emptyPaddingTop: s(10),
+    emptyPaddingBottom: s(6),
+    emptyWrapPaddingBottom: s(18),
+    loadingMarginTop: s(60),
+    twoColGap: s(24),
+    scrollIntoViewOffset: s(16),
+  }), [minSide]);
 
   const [order,   setOrder]   = useState(null);
   const [items,   setItems]   = useState([]); // itens locais (modo "new")
@@ -164,7 +285,7 @@ export default function OrderDetailScreen({ route, navigation }) {
       if (!input || !content || !scroll || !input.measureLayout) return;
       input.measureLayout(
         content,
-        (_x, y) => scroll.scrollTo({ y: Math.max(0, y - 16), animated: true }),
+        (_x, y) => scroll.scrollTo({ y: Math.max(0, y - sz.scrollIntoViewOffset), animated: true }),
         () => {}
       );
     }, Platform.OS === 'ios' ? 60 : 220);
@@ -460,7 +581,7 @@ export default function OrderDetailScreen({ route, navigation }) {
     return (
       <Screen background={colors.bgScreen} statusBarBg={colors.bgDark} statusBarStyle="light-content">
         <DarkHeader title="Carregando..." onBack={() => navigation.popToTop()} />
-        <ActivityIndicator style={{ marginTop: 60 }} color={colors.primary} />
+        <ActivityIndicator style={{ marginTop: sz.loadingMarginTop }} color={colors.primary} />
       </Screen>
     );
   }
@@ -481,7 +602,14 @@ export default function OrderDetailScreen({ route, navigation }) {
       <ScrollFade
         ref={scrollRef}
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 220 + kbHeight }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingHorizontal: sz.scrollPadH,
+            paddingTop: sz.scrollPadTop,
+            paddingBottom: sz.scrollPadBottom + kbHeight,
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         fadeColor="#FFFFFF"
       >
@@ -498,7 +626,7 @@ export default function OrderDetailScreen({ route, navigation }) {
 
         {isNew ? (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { fontSize: sz.section, marginTop: 18 }]}>Número da comanda</Text>
+            <Text style={[styles.sectionTitle, { fontSize: sz.section, marginTop: sz.sectionTitleMarginTop }]}>Número da comanda</Text>
             <Input
               ref={numberInputRef}
               value={dailyNumber}
@@ -507,38 +635,54 @@ export default function OrderDetailScreen({ route, navigation }) {
               maxLength={6}
               placeholder="Ex.: 1, 2, 3..."
               onFocus={() => scrollInputIntoView(numberInputRef)}
-              fieldStyle={[styles.inputField, { height: 64, paddingHorizontal: sz.inputPad }]}
-              inputStyle={[styles.inputText, { fontSize: sz.body }]}
+              fieldStyle={[styles.inputField, { height: sz.numberInputH, paddingHorizontal: sz.inputPad }]}
+              inputStyle={[styles.inputText, { fontSize: sz.body, lineHeight: sz.infoLineHeight }]}
               style={[styles.numberInputWrap, { maxWidth: '100%' }]}
             />
           </View>
         ) : null}
 
-        <View style={styles.sectionDivider} />  
+        <View style={[styles.sectionDivider, { marginTop: sz.sectionDividerMarginTop, marginBottom: sz.sectionDividerMarginBottom }]} />  
 
-        <View style={twoCol ? styles.twoColRow : null}>
+        <View style={twoCol ? [styles.twoColRow, { gap: sz.twoColGap }] : null}>
         <View style={twoCol ? styles.twoColLeft : null}>
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { fontSize: sz.section, marginBottom: 30 }]}>Informações</Text>
+        <View style={[styles.section, { marginBottom: sz.sectionMarginBottom }]}>
+          <Text style={[styles.sectionTitle, { fontSize: sz.section, marginBottom: sz.infoSectionTitleMarginBottom }]}>Informações</Text>
           <Row icon="edit-3" text={order?.attendant || user?.username || '—'} sz={sz} />
-          <View style={styles.infoRow}>
+          <View style={[styles.infoRow, { marginBottom: sz.infoRowMarginBottom }]}>
             <Feather name="users" size={sz.iconSize} color={colors.textDark} />
-            <Text style={[styles.infoText, { fontSize: sz.body }]}>
+            <Text style={[styles.infoText, { fontSize: sz.body, marginLeft: sz.infoTextMarginLeft, lineHeight: sz.infoLineHeight }]}>
               {String(people).padStart(2, '0')} {people === 1 ? 'pessoa' : 'pessoas'}
             </Text>
             {!readOnly ? (
-              <View style={styles.peopleControls}>
+              <View style={[styles.peopleControls, { marginLeft: sz.peopleControlsMarginLeft }]}>
                 <Pressable
                   onPress={() => setPeople((p) => Math.max(1, p - 1))}
                   android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: sz.peopleBtn / 2 }}
-                  style={[styles.peopleBtn, { width: sz.peopleBtn, height: sz.peopleBtn, borderRadius: 9 }]}
+                  style={[
+                    styles.peopleBtn,
+                    {
+                      width: sz.peopleBtn,
+                      height: sz.peopleBtn,
+                      borderRadius: sz.peopleBtnRadius,
+                      marginHorizontal: sz.peopleBtnMarginH,
+                    },
+                  ]}
                 >
                   <Feather name="minus" size={sz.iconSize} color={colors.textDark} />
                 </Pressable>
                 <Pressable
                   onPress={() => setPeople((p) => Math.min(99, p + 1))}
                   android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: sz.peopleBtn / 2 }}
-                  style={[styles.peopleBtn, { width: sz.peopleBtn, height: sz.peopleBtn, borderRadius: 9 }]}
+                  style={[
+                    styles.peopleBtn,
+                    {
+                      width: sz.peopleBtn,
+                      height: sz.peopleBtn,
+                      borderRadius: sz.peopleBtnRadius,
+                      marginHorizontal: sz.peopleBtnMarginH,
+                    },
+                  ]}
                 >
                   <Feather name="plus" size={sz.iconSize} color={colors.textDark} />
                 </Pressable>
@@ -548,30 +692,38 @@ export default function OrderDetailScreen({ route, navigation }) {
           <Row icon="clock" text={`Aberta às ${createdTimeStr}`} sz={sz} />
         </View>
 
-        <View style={styles.sectionDivider} />        
+        <View style={[styles.sectionDivider, { marginTop: sz.sectionDividerMarginTop, marginBottom: sz.sectionDividerMarginBottom }]} />        
 
         {showTable ? (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { fontSize: sz.section }]}>Mesa</Text>
-          <View style={styles.mesaRow}>
+        <View style={[styles.section, { marginBottom: sz.sectionMarginBottom }]}>
+          <Text style={[styles.sectionTitle, { fontSize: sz.section, marginBottom: sz.sectionTitleMarginBottom }]}>Mesa</Text>
+          <View style={[styles.mesaRow, { gap: sz.mesaRowGap }]}>
             <Pressable
               onPress={() => !readOnly && setShowTablePicker((v) => !v)}
-              style={[styles.mesaSelect, { height: sz.mesaH, minWidth: sz.mesaMinW }]}
+              style={[
+                styles.mesaSelect,
+                {
+                  height: sz.mesaH,
+                  minWidth: sz.mesaMinW,
+                  paddingHorizontal: sz.mesaSelectPaddingH,
+                  marginTop: sz.mesaSelectMarginTop,
+                },
+              ]}
             >
               <Text style={[styles.mesaText, { fontSize: sz.body }, !tableLabel && { color: colors.textMuted }]}>
                 {tableLabel || 'Selecionar...'}
               </Text>
-              <Feather name="chevron-down" size={18} color={colors.textMuted} />
+              <Feather name="chevron-down" size={sz.chevronSize} color={colors.textMuted} />
             </Pressable>
-            <Text style={[styles.mesaHint, { fontSize: sz.caption }]}>
+            <Text style={[styles.mesaHint, { fontSize: sz.caption, lineHeight: sz.infoLineHeight }]}>
               <Feather name="info" size={sz.caption} color={colors.textMuted} />  Deixe nulo para pedido avulso.
             </Text>
           </View>
 
           {showTablePicker ? (
-            <View style={styles.tableList}>
+            <View style={[styles.tableList, { marginTop: sz.tableListMarginTop }]}>
               <ScrollView
-                style={{ maxHeight: 280 }}
+                style={{ maxHeight: sz.tableListMaxHeight }}
                 nestedScrollEnabled
                 showsVerticalScrollIndicator
                 keyboardShouldPersistTaps="handled"
@@ -579,27 +731,27 @@ export default function OrderDetailScreen({ route, navigation }) {
                 <Pressable
                   onPress={() => { setTableId(null); setShowTablePicker(false); }}
                   android_ripple={{ color: 'rgba(0,0,0,0.08)' }}
-                  style={styles.tableOpt}
+                  style={[styles.tableOpt, { paddingVertical: sz.tableOptPaddingV, paddingHorizontal: sz.tableOptPaddingH }]}
                 >
-                  <Text style={styles.tableOptText}>Sem mesa</Text>
+                  <Text style={[styles.tableOptText, { fontSize: sz.body }]}>Sem mesa</Text>
                 </Pressable>
                 {tables.filter((t) => t.is_active).map((t) => (
                   <View key={t.id} style={styles.tableOptRow}>
                     <Pressable
                       onPress={() => { setTableId(t.id); setShowTablePicker(false); }}
                       android_ripple={{ color: 'rgba(0,0,0,0.08)' }}
-                      style={styles.tableOptPressable}
+                      style={[styles.tableOptPressable, { paddingVertical: sz.tableOptPaddingV, paddingHorizontal: sz.tableOptPaddingH }]}
                     >
-                      <Text style={[styles.tableOptText, { color: colors.textDark }]}>{t.label}</Text>
+                      <Text style={[styles.tableOptText, { fontSize: sz.body, color: colors.textDark }]}>{t.label}</Text>
                     </Pressable>
                     {isManager && !readOnly ? (
                       <Pressable
                         onPress={() => setConfirmDeleteTable(t)}
                         hitSlop={8}
-                        style={styles.tableDeleteBtn}
+                        style={[styles.tableDeleteBtn, { paddingHorizontal: sz.tableDeletePaddingH, paddingVertical: sz.tableDeletePaddingV }]}
                         android_ripple={{ color: 'rgba(255,0,0,0.08)', borderless: true, radius: 20 }}
                       >
-                        <Feather name="trash-2" size={18} color={colors.danger} />
+                        <Feather name="trash-2" size={sz.chevronSize} color={colors.danger} />
                       </Pressable>
                     ) : null}
                   </View>
@@ -609,55 +761,63 @@ export default function OrderDetailScreen({ route, navigation }) {
               {/* Criação rápida de mesa — visível apenas para gerentes */}
               {isManager && !readOnly ? (
                 showNewTable ? (
-                  <View style={styles.newTableRow}>
+                  <View style={[styles.newTableRow, { padding: sz.newTableRowPadding, gap: sz.newTableRowGap }]}>
                     <Input
                       value={newTableLabel}
                       onChangeText={setNewTableLabel}
                       placeholder="Nome da mesa..."
                       autoFocus
-                      fieldStyle={styles.compactInputField}
-                      inputStyle={styles.compactInputText}
+                      fieldStyle={[styles.compactInputField, { height: sz.compactInputH, paddingHorizontal: sz.compactInputPadH }]}
+                      inputStyle={[styles.compactInputText, { fontSize: sz.compactInputFont }]}
                       style={{ flex: 1, marginBottom: 0 }}
                     />
                     <Pressable
                       onPress={doCreateTable}
-                      style={styles.newTableConfirm}
+                      style={[styles.newTableConfirm, { width: sz.newTableConfirmSize, height: sz.newTableConfirmSize }]}
                       android_ripple={{ color: 'rgba(255,255,255,0.3)' }}
                     >
                       {creatingTable
                         ? <ActivityIndicator size="small" color="#FFF" />
-                        : <Feather name="check" size={20} color="#FFF" />}
+                        : <Feather name="check" size={sz.newTableActionIcon} color="#FFF" />}
                     </Pressable>
                     <Pressable
                       onPress={() => { setShowNewTable(false); setNewTableLabel(''); }}
-                      style={[styles.newTableConfirm, { backgroundColor: '#888', marginLeft: 6 }]}
+                      style={[styles.newTableConfirm, { width: sz.newTableConfirmSize, height: sz.newTableConfirmSize, backgroundColor: '#888', marginLeft: sz.newTableRowGap }]}
                     >
-                      <Feather name="x" size={20} color="#FFF" />
+                      <Feather name="x" size={sz.newTableActionIcon} color="#FFF" />
                     </Pressable>
                   </View>
                 ) : (
                   <Pressable
                     onPress={() => setShowNewTable(true)}
-                    style={styles.newTableAdd}
+                    style={[styles.newTableAdd, { paddingVertical: sz.newTableAddPaddingV, paddingHorizontal: sz.newTableAddPaddingH, gap: sz.newTableAddGap }]}
                     android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
                   >
-                    <Feather name="plus" size={18} color={colors.primary} />
-                    <Text style={styles.newTableAddText}>Nova mesa</Text>
+                    <Feather name="plus" size={sz.newTableIconSize} color={colors.primary} />
+                    <Text style={[styles.newTableAddText, { fontSize: sz.newTableAddFont }]}>Nova mesa</Text>
                   </Pressable>
                 )
               ) : null}
             </View>
           ) : null}
           
-          <View style={[styles.sectionDivider, { marginTop: 48, marginBottom: 12 }]} />  
+          <View
+            style={[
+              styles.sectionDivider,
+              {
+                marginTop: sz.sectionDividerLargeMarginTop,
+                marginBottom: sz.sectionDividerLargeMarginBottom,
+              },
+            ]}
+          />  
 
           </View>
         
         ) : null}
 
         {showLabel ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Identificação (opcional)</Text>
+          <View style={[styles.section, { marginBottom: sz.sectionMarginBottom }]}>
+            <Text style={[styles.sectionTitle, { fontSize: sz.section, marginBottom: sz.sectionTitleMarginBottom }]}>Identificação (opcional)</Text>
           <Input
             ref={labelInputRef}
             value={label}
@@ -666,18 +826,18 @@ export default function OrderDetailScreen({ route, navigation }) {
             editable={!readOnly}
             onFocus={() => scrollInputIntoView(labelInputRef)}
             fieldStyle={[styles.inputField, { height: sz.inputH, paddingHorizontal: sz.inputPad }]}
-            inputStyle={[styles.inputText, { fontSize: sz.body }]}
-            style={styles.labelInputWrap}
+            inputStyle={[styles.inputText, { fontSize: sz.body, lineHeight: sz.infoLineHeight }]}
+            style={[styles.labelInputWrap, { marginTop: sz.labelInputMarginTop }]}
           />
         </View>
         ) : null}
         </View>
 
         <View style={twoCol ? styles.twoColRight : null}>
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { fontSize: sz.section }]}>Itens</Text>
+        <View style={[styles.section, { marginBottom: sz.sectionMarginBottom }]}>
+          <Text style={[styles.sectionTitle, { fontSize: sz.section, marginBottom: sz.sectionTitleMarginBottom }]}>Itens</Text>
           {items.length === 0 ? (
-            <EmptySection text={'Nenhum item adicionado'} />
+            <EmptySection text={'Nenhum item adicionado'} sz={sz} />
           ) : (() => {
             // Separa em duas listas: pendentes e entregues. Mantém o índice
             // original (necessário para os itens locais de comanda nova).
@@ -708,44 +868,105 @@ export default function OrderDetailScreen({ route, navigation }) {
 
             return (
               <View>
-                <View style={styles.subHeaderRow}>
+                <View style={[styles.subHeaderRow, { marginBottom: sz.subHeaderMarginBottom }]}>
                   <Text style={[styles.subHeader, { fontSize: sz.body, color: '#797979' }]}>Itens pendentes ({pendingCards.length})</Text>
                   {!readOnly && !isNew && pendingCards.length > 0 ? (
-                    <Pressable onPress={deliverAllItems} hitSlop={8} style={styles.deliverAllBtn} android_ripple={{ color: 'rgba(0,0,0,0.06)' }}>
-                      <Feather name="check-circle" size={22} color={colors.primary} />
-                      <Text style={styles.deliverAllText}>Entregar todos</Text>
+                    <Pressable
+                      onPress={deliverAllItems}
+                      hitSlop={8}
+                      style={[
+                        styles.deliverAllBtn,
+                        {
+                          gap: sz.deliverAllGap,
+                          paddingVertical: sz.deliverAllPaddingV,
+                          paddingHorizontal: sz.deliverAllPaddingH,
+                        },
+                      ]}
+                      android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+                    >
+                      <Feather name="check-circle" size={sz.deliverAllIcon} color={colors.primary} />
+                      <Text style={[styles.deliverAllText, { fontSize: sz.deliverAllFont }]}>Entregar todos</Text>
                     </Pressable>
                   ) : null}
                 </View>
-                {pendingCards.length ? pendingCards : <Text style={styles.emptySub}>Nenhum item pendente.</Text>}
+                {pendingCards.length ? pendingCards : (
+                  <Text
+                    style={[
+                      styles.emptySub,
+                      {
+                        fontSize: sz.emptySubFont,
+                        lineHeight: sz.emptySubLineHeight,
+                        paddingVertical: sz.emptySubPaddingV,
+                        marginBottom: sz.emptySubMarginBottom,
+                      },
+                    ]}
+                  >
+                    Nenhum item pendente.
+                  </Text>
+                )}
 
-                <Text style={[styles.subHeader, { fontSize: sz.body, marginTop: 18, marginBottom: 24, color: '#797979' }]}>Itens entregues ({deliveredCards.length})</Text>
-                {deliveredCards.length ? deliveredCards : <Text style={[styles.emptySub, {marginTop: -12}]}>Nenhum item entregue.</Text>}
+                <Text
+                  style={[
+                    styles.subHeader,
+                    {
+                      fontSize: sz.body,
+                      marginTop: sz.subHeaderMarginTop,
+                      marginBottom: sz.subHeaderDeliveredMarginBottom,
+                      color: '#797979',
+                    },
+                  ]}
+                >
+                  Itens entregues ({deliveredCards.length})
+                </Text>
+                {deliveredCards.length ? deliveredCards : (
+                  <Text
+                    style={[
+                      styles.emptySub,
+                      {
+                        fontSize: sz.emptySubFont,
+                        lineHeight: sz.emptySubLineHeight,
+                        paddingVertical: sz.emptySubPaddingV,
+                        marginBottom: sz.emptySubMarginBottom,
+                        marginTop: sz.emptySubNegativeMarginTop,
+                      },
+                    ]}
+                  >
+                    Nenhum item entregue.
+                  </Text>
+                )}
               </View>
             );
           })()}
           
-          <View style={[styles.sectionDivider, { marginTop: 48, marginBottom: 12 }]} />  
+          <View
+            style={[
+              styles.sectionDivider,
+              {
+                marginTop: sz.sectionDividerLargeMarginTop,
+                marginBottom: sz.sectionDividerLargeMarginBottom,
+              },
+            ]}
+          />  
 
           {!readOnly ? (
-            <View style={styles.itemActions}>
+            <View style={[styles.itemActions, { marginTop: sz.itemActionsMarginTop }]}>
               <Button
                 title="Limpar"
                 variant="ghost"
                 onPress={onClear}
-                icon={<Feather name="x-circle" size={26} color={colors.textDark} />}
+                icon={<Feather name="x-circle" size={sz.actionIconSize} color={colors.textDark} />}
                 size="lg"
-                style={styles.actionButton}
-                textStyle={styles.actionButtonText}
+                style={[styles.actionButton, { height: sz.actionButtonHeight }]}
+                textStyle={[styles.actionButtonText, { fontSize: sz.actionButtonFont }]}
               />
-              <View style={styles.actionSpacer} />
+              <View style={[styles.actionSpacer, { width: sz.actionSpacer }]} />
               <Button
                 title="Adicionar novo item"
                 onPress={goAddItems}
-                icon={<Feather name="plus-circle" size={28} color="#FFF" />}
+                icon={<Feather name="plus-circle" size={sz.addIconSize} color="#FFF" />}
                 size="lg"
-                style={styles.actionButton}
-                textStyle={styles.actionButtonText}
+                style={[styles.actionButton, { height: sz.actionButtonHeight }]}
+                textStyle={[styles.actionButtonText, { fontSize: sz.actionButtonFont }]}
               />
             </View>
           ) : null}
@@ -760,11 +981,13 @@ export default function OrderDetailScreen({ route, navigation }) {
           styles.footer,
           {
             bottom: kbHeight,
-            paddingBottom: kbHeight > 0 ? 16 : 22 + insets.bottom,
+            paddingHorizontal: sz.footerPaddingH,
+            paddingTop: sz.footerPaddingTop,
+            paddingBottom: kbHeight > 0 ? sz.footerPaddingBottomKb : sz.footerPaddingBottom + insets.bottom,
           },
         ]}
       >
-        <View style={styles.totalRow}>
+        <View style={[styles.totalRow, { marginBottom: sz.totalRowMarginBottom, marginTop: sz.totalRowMarginTop }]}>
           <View>
             <Text style={[styles.totalLabel, { fontSize: sz.totalSub }]}>Total:</Text>
             <Text style={[styles.totalValue, { fontSize: sz.totalBig }]}>R$ {formatMoney(total)}</Text>
@@ -781,8 +1004,8 @@ export default function OrderDetailScreen({ route, navigation }) {
               onPress={onPrimary}
               loading={busy}
               size="lg"
-              style={styles.footerButton}
-              textStyle={styles.footerButtonText}
+              style={[styles.footerButton, { height: sz.footerButtonHeight }]}
+              textStyle={[styles.footerButtonText, { fontSize: sz.footerButtonFont }]}
             />
           ) : allDelivered ? (
             <View style={styles.footerActions}>
@@ -793,19 +1016,19 @@ export default function OrderDetailScreen({ route, navigation }) {
                   onPress={onSave}
                   loading={busy}
                   size="lg"
-                  textStyle={[styles.footerButtonText, { color: '#FFF' }]}
-                  style={[styles.footerButton, { borderColor: '#FFF' }]}
+                  textStyle={[styles.footerButtonText, { fontSize: sz.footerButtonFont, color: '#FFF' }]}
+                  style={[styles.footerButton, { height: sz.footerButtonHeight, borderColor: '#FFF' }]}
                 />
               </View>
-              <View style={styles.footerSpacer} />
+              <View style={[styles.footerSpacer, { width: sz.footerSpacer }]} />
               <View style={{ flex: 1 }}>
                 <Button
                   title="Fechar comanda"
                   onPress={onPrimary}
                   loading={busy}
                   size="lg"
-                  style={styles.footerButton}
-                  textStyle={styles.footerButtonText}
+                  style={[styles.footerButton, { height: sz.footerButtonHeight }]}
+                  textStyle={[styles.footerButtonText, { fontSize: sz.footerButtonFont }]}
                 />
               </View>
             </View>
@@ -817,10 +1040,10 @@ export default function OrderDetailScreen({ route, navigation }) {
                 onPress={onSave}
                 loading={busy}
                 size="lg"
-                textStyle={[styles.footerButtonText, { color: '#FFF' }]}
-                style={[styles.footerButton, { borderColor: '#FFF' }]}
+                textStyle={[styles.footerButtonText, { fontSize: sz.footerButtonFont, color: '#FFF' }]}
+                style={[styles.footerButton, { height: sz.footerButtonHeight, borderColor: '#FFF' }]}
               />
-              <Text style={styles.closeHint}>
+              <Text style={[styles.closeHint, { fontSize: sz.closeHintFont, lineHeight: sz.closeHintLineHeight, marginTop: sz.closeHintMarginTop }]}>
                 Entregue todos os itens para poder fechar a comanda.
               </Text>
             </>
@@ -830,10 +1053,10 @@ export default function OrderDetailScreen({ route, navigation }) {
             title="Reabrir comanda"
             onPress={() => setConfirmModal('reopen')}
             loading={busy}
-            icon={<Feather name="rotate-ccw" size={26} color="#FFF" />}
+            icon={<Feather name="rotate-ccw" size={sz.reopenIconSize} color="#FFF" />}
             size="lg"
-            style={styles.footerButton}
-            textStyle={styles.footerButtonText}
+            style={[styles.footerButton, { height: sz.footerButtonHeight }]}
+            textStyle={[styles.footerButtonText, { fontSize: sz.footerButtonFont }]}
           />
         ) : null}
       </View>
@@ -920,20 +1143,43 @@ export default function OrderDetailScreen({ route, navigation }) {
   );
 }
 
-function EmptySection({ text }) {
+function EmptySection({ text, sz }) {
   return (
-    <View style={styles.emptyWrap}>
-      <Image source={require('../../assets/vazio.png')} style={{ width: 76, height: 76, marginTop: 12 }} resizeMode="contain" />
-      <Text style={styles.empty}>{text}</Text>
+    <View style={[styles.emptyWrap, { paddingBottom: sz.emptyWrapPaddingBottom }]}>
+      <Image
+        source={require('../../assets/vazio.png')}
+        style={{ width: sz.emptyImage, height: sz.emptyImage, marginTop: sz.emptyPaddingTop }}
+        resizeMode="contain"
+      />
+      <Text
+        style={[
+          styles.empty,
+          {
+            fontSize: sz.emptyFont,
+            lineHeight: sz.emptyLineHeight,
+            paddingTop: sz.emptyPaddingTop,
+            paddingBottom: sz.emptyPaddingBottom,
+          },
+        ]}
+      >
+        {text}
+      </Text>
     </View>
   );
 }
 
 function Row({ icon, text, sz = {} }) {
   return (
-    <View style={styles.infoRow}>
+    <View style={[styles.infoRow, sz.infoRowMarginBottom && { marginBottom: sz.infoRowMarginBottom }]}>
       <Feather name={icon} size={sz.iconSize || 14} color={colors.textDark} />
-      <Text style={[styles.infoText, sz.body && { fontSize: sz.body }]}>{text}</Text>
+      <Text
+        style={[
+          styles.infoText,
+          sz.body && { fontSize: sz.body, marginLeft: sz.infoTextMarginLeft, lineHeight: sz.infoLineHeight },
+        ]}
+      >
+        {text}
+      </Text>
     </View>
   );
 }
@@ -944,66 +1190,116 @@ function ItemCard({ item, onRemove, onIncrement, onDecrement, onDeliver, onUndel
   const qtySize = sz.qtyBtn  || 28;
   const delivered = !!item.delivered;
   return (
-    <View style={[styles.itemCard, delivered && styles.itemCardDelivered]}>
-      <View style={[styles.itemImg, { width: 120, height: 120 }]}>
+    <View style={[styles.itemCard, delivered && styles.itemCardDelivered, { padding: sz.itemCardPadding, marginBottom: sz.itemCardMarginBottom }]}>
+      <View style={[styles.itemImg, { width: imgSize, height: imgSize }]}>
         {item.image ? (
           <Image source={{ uri: item.image }} style={styles.itemImage} />
         ) : (
           <Feather name="image" size={imgSize * 0.5} color="#BBB" />
         )}
       </View>
-      <View style={{ flex: 1, marginHorizontal: 20 }}>
-        <Text style={[styles.itemName, { fontSize: 26, marginTop: 2 }]} numberOfLines={2}>{item.product_name}</Text>
-        <Text style={[styles.itemQty, { fontSize: sz.itemPrice || 11 }]}>R$ {formatMoney(item.unit_price)} cada</Text>
+      <View style={{ flex: 1, marginHorizontal: sz.itemContentMarginH }}>
+        <Text style={[styles.itemName, { fontSize: sz.itemName, marginTop: sz.itemNameMarginTop, lineHeight: sz.itemName * 0.96 }]} numberOfLines={2}>{item.product_name}</Text>
+        <Text style={[styles.itemQty, { fontSize: sz.itemPrice, marginTop: sz.itemQtyMarginTop }]}>R$ {formatMoney(item.unit_price)} cada</Text>
 
         {!readOnly ? (
-          <View style={styles.qtyControls}>
+          <View style={[styles.qtyControls, { marginTop: sz.qtyControlsMarginTop }]}>
             <Pressable
               onPress={onDecrement}
               android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: qtySize / 2 }}
-              style={({ pressed }) => [styles.qtyBtn, { width: 40, height: 40, borderRadius: 12 }, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [
+                styles.qtyBtn,
+                {
+                  width: qtySize,
+                  height: qtySize,
+                  borderRadius: sz.qtyBtnRadius,
+                },
+                pressed && { opacity: 0.7 },
+              ]}
             >
               <Feather name="minus" size={qtySize * 0.5} color={colors.textDark} />
             </Pressable>
-            <Text style={[styles.qtyValue, { fontSize: sz.qtyVal || 14 }]}>{item.quantity}</Text>
+            <Text
+              style={[
+                styles.qtyValue,
+                {
+                  fontSize: sz.qtyVal,
+                  minWidth: sz.qtyValueMinWidth,
+                  marginHorizontal: sz.qtyValueMarginH,
+                },
+              ]}
+            >
+              {item.quantity}
+            </Text>
             <Pressable
               onPress={onIncrement}
               android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: true, radius: qtySize / 2 }}
-              style={({ pressed }) => [styles.qtyBtn, { width: 40, height: 40, borderRadius: 12 }, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [
+                styles.qtyBtn,
+                {
+                  width: qtySize,
+                  height: qtySize,
+                  borderRadius: sz.qtyBtnRadius,
+                },
+                pressed && { opacity: 0.7 },
+              ]}
             >
               <Feather name="plus" size={qtySize * 0.5} color={colors.textDark} />
             </Pressable>
           </View>
         ) : (
-          <Text style={[styles.itemQty, { fontSize: sz.itemPrice || 11 }]}>Qtd: {item.quantity}</Text>
+          <Text style={[styles.itemQty, { fontSize: sz.itemPrice, marginTop: sz.itemQtyMarginTop }]}>Qtd: {item.quantity}</Text>
         )}
       </View>
       <View style={{ alignItems: 'flex-end' }}>
-        <Text style={[styles.itemTotal, { fontSize: 32, paddingBottom: 2 }]}>R$ {formatMoney(total)}</Text>
+        <Text style={[styles.itemTotal, { fontSize: sz.itemTotal, paddingBottom: sz.itemTotalPaddingBottom }]}>R$ {formatMoney(total)}</Text>
         {delivered ? (
-          <View style={styles.deliveredTag}>
-            <Feather name="check-circle" size={13} color='#0b8b2b' />
-            <Text style={styles.deliveredTagText}>Entregue</Text>
+          <View style={[styles.deliveredTag, { gap: sz.deliveredTagGap, marginTop: sz.deliveredTagMarginTop }]}>
+            <Feather name="check-circle" size={sz.deliveredTagIcon} color='#0b8b2b' />
+            <Text style={[styles.deliveredTagText, { fontSize: sz.deliveredTagFont }]}>Entregue</Text>
           </View>
-        ) : <View style={styles.deliveredTagEmpty}></View>}
+        ) : (
+          <View style={[styles.deliveredTagEmpty, { height: sz.deliveredTagEmptyHeight, marginTop: sz.deliveredTagEmptyMarginTop }]} />
+        )}
         {!readOnly ? (
-          <View style={styles.itemSideActions}>
+          <View style={[styles.itemSideActions, { gap: sz.itemSideActionsGap, marginTop: sz.itemSideActionsMarginTop }]}>
             {!delivered && onDeliver ? (
-              <Pressable onPress={onDeliver} hitSlop={6} style={styles.deliverBtn} android_ripple={{ color: 'rgba(255,255,255,0.25)' }}>
-                <Feather name="check" size={20} color="#FFF" />
-                <Text style={styles.deliverText}>Entregar</Text>
+              <Pressable
+                onPress={onDeliver}
+                hitSlop={6}
+                style={[
+                  styles.deliverBtn,
+                  {
+                    gap: sz.deliverBtnGap,
+                    paddingHorizontal: sz.deliverBtnPaddingH,
+                    paddingVertical: sz.deliverBtnPaddingV,
+                  },
+                ]}
+                android_ripple={{ color: 'rgba(255,255,255,0.25)' }}
+              >
+                <Feather name="check" size={sz.deliverBtnIcon} color="#FFF" />
+                <Text style={[styles.deliverText, { fontSize: sz.deliverBtnFont }]}>Entregar</Text>
               </Pressable>
             ) : null}
             {delivered && onUndeliver ? (
-              <Pressable onPress={onUndeliver} hitSlop={6} style={styles.undeliverBtn} android_ripple={{ color: 'rgba(0,0,0,0.06)' }}>
-                <Feather name="rotate-ccw" size={18} color={colors.textMuted} />
-                <Text style={styles.undeliverText}>Desfazer entrega</Text>
+              <Pressable
+                onPress={onUndeliver}
+                hitSlop={6}
+                style={[styles.undeliverBtn, { gap: sz.undeliverGap, paddingVertical: sz.undeliverPaddingV }]}
+                android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
+              >
+                <Feather name="rotate-ccw" size={sz.undeliverIcon} color={colors.textMuted} />
+                <Text style={[styles.undeliverText, { fontSize: sz.undeliverFont, marginRight: sz.undeliverTextMarginRight }]}>Desfazer entrega</Text>
               </Pressable>
             ) : null}
             <Pressable
               onPress={onRemove}
               android_ripple={{ color: 'rgba(255,255,255,0.3)', borderless: true, radius: 18 }}
-              style={({ pressed }) => [styles.itemEdit, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [
+                styles.itemEdit,
+                { width: sz.itemEditSize, height: sz.itemEditSize },
+                pressed && { opacity: 0.7 },
+              ]}
             >
               <Feather name="trash-2" size={sz.iconSize || 14} color="#FFF" />
             </Pressable>
@@ -1034,8 +1330,6 @@ function mergeItems(prev, incoming) {
 
 const styles = StyleSheet.create({
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
     alignItems: 'center',
   },
   content: {
@@ -1055,108 +1349,85 @@ const styles = StyleSheet.create({
   statusDot:  { width: 18, height: 18, borderRadius: 9, backgroundColor: colors.statusYellow, marginRight: 14 },
   statusText: { ...typography.bodyBold, color: colors.textDark, fontSize: 23, lineHeight: 30, textTransform: 'uppercase' },
 
-  twoColRow:   { flexDirection: 'row', gap: 24 },
+  twoColRow:   { flexDirection: 'row' },
   twoColLeft:  { flex: 1 },
   twoColRight: { flex: 1 },
 
-  section:      { marginBottom: 30 },
-  sectionTitle: { ...typography.bodyBold, color: colors.textDark, fontSize: 24, marginBottom: 14 },
+  section:      {},
+  sectionTitle: { ...typography.bodyBold, color: colors.textDark },
   sectionDivider: {
     height: 2,
     backgroundColor: '#F0EBE4',
     width: '100%',
-    marginTop: 2,
-    marginBottom: 30,
   },
   inputField: {
     borderRadius: radii.lg,
     borderWidth: 2,
   },
-  inputText: {
-    lineHeight: 28,
-  },
+  inputText: {},
   numberInputWrap: {
     marginBottom: 0,
   },
-  labelInputWrap: {
-    marginTop: 14,
-  },
+  labelInputWrap: {},
 
-  infoRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  infoText: { ...typography.body, color: colors.textDark, marginLeft: 14, fontSize: 19, lineHeight: 27 },
+  infoRow:  { flexDirection: 'row', alignItems: 'center' },
+  infoText: { ...typography.body, color: colors.textDark },
 
-  peopleControls: { flexDirection: 'row', marginLeft: 16 },
+  peopleControls: { flexDirection: 'row' },
   peopleBtn: {
-    width: 20, height: 20, borderRadius: 17,
     backgroundColor: '#EFEAE4',
     alignItems: 'center', justifyContent: 'center',
-    marginHorizontal: 5,
     overflow: 'hidden',
   },
 
-  mesaRow:   { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  mesaRow:   { flexDirection: 'row', alignItems: 'center' },
   mesaSelect: {
-    height: 52,
-    minWidth: 160,
     borderRadius: radii.lg,
     backgroundColor: colors.inputBg,
     borderWidth: 2,
     borderColor: colors.inputBorder,
-    paddingHorizontal: 22,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 6
   },
-  mesaText:     { color: colors.textDark, fontSize: 19 },
-  mesaHint:     { color: colors.textMuted, fontSize: 16, lineHeight: 24, flex: 1 },
-  tableList:      { marginTop: 14, backgroundColor: '#FFF', borderWidth: 2, borderColor: colors.inputBorder, borderRadius: radii.lg, overflow: 'hidden' },
-  tableOpt:       { paddingVertical: 20, paddingHorizontal: 22, borderBottomWidth: 1, borderBottomColor: '#F2F2F2' },
-  tableOptPressable: { flex: 1, paddingVertical: 20, paddingHorizontal: 22 },
-  tableOptText:   { fontSize: 19, color: colors.textMuted },
+  mesaText:     { color: colors.textDark },
+  mesaHint:     { color: colors.textMuted, flex: 1 },
+  tableList:      { backgroundColor: '#FFF', borderWidth: 2, borderColor: colors.inputBorder, borderRadius: radii.lg, overflow: 'hidden' },
+  tableOpt:       { borderBottomWidth: 1, borderBottomColor: '#F2F2F2' },
+  tableOptPressable: { flex: 1 },
+  tableOptText:   { color: colors.textMuted },
   tableOptRow:    { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F2F2F2' },
-  tableDeleteBtn: { paddingHorizontal: 22, paddingVertical: 20, alignItems: 'center', justifyContent: 'center' },
+  tableDeleteBtn: { alignItems: 'center', justifyContent: 'center' },
 
   newTableRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
     borderTopWidth: 1,
     borderTopColor: '#F0EBE4',
-    gap: 10,
   },
   compactInputField: {
-    height: 62,
-    paddingHorizontal: 18,
     borderRadius: radii.lg,
     borderWidth: 2,
   },
-  compactInputText: {
-    fontSize: 19,
-  },
+  compactInputText: {},
   newTableConfirm: {
-    width: 58, height: 58, borderRadius: radii.lg,
+    borderRadius: radii.lg,
     backgroundColor: colors.primary,
     alignItems: 'center', justifyContent: 'center',
   },
   newTableAdd: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 22,
     borderTopWidth: 1,
     borderTopColor: '#F0EBE4',
-    gap: 10,
   },
-  newTableAddText: { color: colors.primary, fontWeight: '700', fontSize: 19 },
+  newTableAddText: { color: colors.primary, fontWeight: '700' },
 
   itemCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FAF7F2',
     borderRadius: radii.lg,
-    padding: 18,
-    marginBottom: 14,
   },
   // Item entregue: leve destaque verde à esquerda.
   itemCardDelivered: {
@@ -1164,102 +1435,82 @@ const styles = StyleSheet.create({
   },
 
   // Cabeçalhos das sublistas (pendentes / entregues)
-  subHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  subHeader:    { ...typography.bodyBold, color: colors.textDark, fontWeight: '800', lineHeight: 27 },
-  emptySub:     { color: colors.textMuted, fontStyle: 'italic', paddingVertical: 10, marginBottom: 8, fontSize: 17, lineHeight: 24 },
+  subHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  subHeader:    { ...typography.bodyBold, color: colors.textDark, fontWeight: '800' },
+  emptySub:     { color: colors.textMuted, fontStyle: 'italic' },
 
-  deliverAllBtn:  { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 10 },
-  deliverAllText: { color: colors.primary, fontWeight: '700', fontSize: 20 },
+  deliverAllBtn:  { flexDirection: 'row', alignItems: 'center' },
+  deliverAllText: { color: colors.primary, fontWeight: '700' },
 
-  // Botão "Entregar" dentro do card pendente
   deliverBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
     backgroundColor: '#1E9E54', borderRadius: radii.md,
-    paddingHorizontal: 16, paddingVertical: 10, overflow: 'hidden',
+    overflow: 'hidden',
   },
-  deliverText: { color: '#FFF', fontWeight: '800', fontSize: 16 },
-  // Botão "Desfazer entrega" dentro do card entregue
-  undeliverBtn:  { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingVertical: 8 },
-  undeliverText: { color: colors.textMuted, fontWeight: '700', fontSize: 20, marginRight: 12 },
-  // Selo "Entregue" no canto do card
-  deliveredTag:     { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
-  deliveredTagText: { color: '#0b8b2b', fontWeight: '800', fontSize: 14 },
-  itemImg:   { width: 80, height: 80, borderRadius: radii.lg, backgroundColor: '#EEE', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  deliverText: { color: '#FFF', fontWeight: '800' },
+  undeliverBtn:  { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' },
+  undeliverText: { color: colors.textMuted, fontWeight: '700' },
+  deliveredTag:     { flexDirection: 'row', alignItems: 'center' },
+  deliveredTagText: { color: '#0b8b2b', fontWeight: '800' },
+  itemImg:   { borderRadius: radii.lg, backgroundColor: '#EEE', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   itemImage: { width: '100%', height: '100%' },
-  itemName:  { ...typography.bodyBold, color: colors.textDark, fontSize: 19, lineHeight: 25 },
-  itemQty:   { color: colors.textMuted, fontSize: 16, marginTop: 5 },
-  itemTotal: { color: colors.primary, fontWeight: '800', fontSize: 20 },
+  itemName:  { ...typography.bodyBold, color: colors.textDark },
+  itemQty:   { color: colors.textMuted },
+  itemTotal: { color: colors.primary, fontWeight: '800' },
   itemSideActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 10,
   },
   itemEdit:  {
-    width: 42, height: 42, borderRadius: radii.md,
+    borderRadius: radii.md,
     backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
     overflow: 'hidden',
   },
 
-  qtyControls: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
+  qtyControls: { flexDirection: 'row', alignItems: 'center' },
   qtyBtn: {
-    width: 36, height: 36, borderRadius: 18,
     backgroundColor: '#EFEAE4',
     alignItems: 'center', justifyContent: 'center',
     overflow: 'hidden',
   },
   qtyValue: {
-    minWidth: 36,
     textAlign: 'center',
     color: colors.textDark,
     fontWeight: '800',
-    fontSize: 18,
-    marginHorizontal: 8,
   },
 
-  itemActions: { flexDirection: 'row', marginTop: 14 },
-  actionButton: { flex: 1, height: 70, borderRadius: radii.lg },
-  actionButtonText: { fontSize: 22 },
-  actionSpacer: { width: 14 },
-  closeHint:   { color: '#E8C44E', fontSize: 16, lineHeight: 22, fontWeight: '600', textAlign: 'center', marginTop: 10 },
-  empty:       { color: colors.textMuted, fontStyle: 'italic', paddingVertical: 12, fontSize: 18, lineHeight: 25 },
+  itemActions: { flexDirection: 'row' },
+  actionButton: { flex: 1, borderRadius: radii.lg },
+  actionButtonText: {},
+  actionSpacer: {},
+  closeHint:   { color: '#E8C44E', fontWeight: '600', textAlign: 'center' },
 
   footer: {
     position: 'absolute',
     width: '100%',
     alignSelf: 'center', bottom: 0,
     backgroundColor: colors.bgDark,
-    paddingHorizontal: 34,
-    paddingTop: 20
   },
-  totalRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 32, marginTop: 12 },
+  totalRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   footerActions: { flexDirection: 'row', alignItems: 'center' },
-  footerButton: { height: 70, borderRadius: radii.lg },
-  footerButtonText: { fontSize: 24 },
-  footerSpacer: { width: 14 },
-  totalLabel:    { color: '#FFF', fontSize: 19 },
-  totalValue:    { color: colors.primary, fontSize: 34, fontWeight: '900' },
-  totalSubLabel: { color: '#CCC', fontSize: 16 },
-  totalSubValue: { color: '#FFF', fontSize: 19 },
+  footerButton: { borderRadius: radii.lg },
+  footerButtonText: {},
+  footerSpacer: {},
+  totalLabel:    { color: '#FFF' },
+  totalValue:    { color: colors.primary, fontWeight: '900' },
+  totalSubLabel: { color: '#CCC' },
+  totalSubValue: { color: '#FFF' },
     emptyWrap: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 2,
-    paddingBottom: 18,
     paddingHorizontal: 0,
   },
   empty: {
     color: colors.textMuted,
-    fontSize: 22,
-    lineHeight: 28,
-    paddingTop: 10,
-    paddingBottom: 6,
     textAlign: 'center',
   },
-  deliveredTagEmpty: {
-    height: 12,
-    marginTop: 6
-  }
+  deliveredTagEmpty: {},
 });

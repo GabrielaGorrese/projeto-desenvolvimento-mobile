@@ -33,6 +33,12 @@ import { onSocket } from '../services/socket';
 import { useAuth } from '../contexts/AuthContext';
 import useResponsive from '../hooks/useResponsive';
 
+const REF_MIN_SIDE = 820;
+
+function scaleSize(value, minSide) {
+  const factor = Math.min(1.35, Math.max(0.72, minSide / REF_MIN_SIDE));
+  return Math.round(value * factor);
+}
 
 const INITIAL_FILTERS = {
   color:     'all',
@@ -54,7 +60,26 @@ const SMOOTH_LAYOUT = {
 export default function OrdersScreen({ navigation, route }) {
   const { signOut } = useAuth();
   const r = useResponsive();
+  const minSide = Math.min(r.width, r.height);
   const contentWidth = r.isTablet ? Math.min(r.width - 32, 1100) : r.contentMaxWidth;
+  const ui = {
+    scrollPadH: scaleSize(64, minSide),
+    scrollPadTop: scaleSize(34, minSide),
+    scrollPadBottom: scaleSize(120, minSide),
+    loadingMarginTop: scaleSize(40, minSide),
+    sectionTitle: scaleSize(26, minSide),
+    sectionCountMargin: scaleSize(12, minSide),
+    sectionHeaderMarginBottom: scaleSize(14, minSide),
+    pendingListMarginTop: scaleSize(14, minSide),
+    dividerMargin: scaleSize(24, minSide),
+    emptyImage: scaleSize(76, minSide),
+    emptyFont: scaleSize(22, minSide),
+    emptyLineHeight: scaleSize(28, minSide),
+    emptyPaddingTop: scaleSize(10, minSide),
+    emptyPaddingBottom: scaleSize(18, minSide),
+    emptyWrapPaddingV: scaleSize(24, minSide),
+    emptyImageMarginTop: scaleSize(12, minSide),
+  };
   const [open,    setOpen]    = useState([]);
   const [closed,  setClosed]  = useState([]);
   const [loading, setLoading] = useState(true);
@@ -215,17 +240,24 @@ export default function OrdersScreen({ navigation, route }) {
       />
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
+        <ActivityIndicator style={{ marginTop: ui.loadingMarginTop }} color={colors.primary} />
       ) : (
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingHorizontal: ui.scrollPadH,
+              paddingTop: ui.scrollPadTop,
+              paddingBottom: ui.scrollPadBottom,
+            },
+          ]}
           refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => { setRefresh(true); load(); }} />}
         >
         <View style={{ width: '100%', maxWidth: contentWidth }}>
         
-          <SectionHeader title="Pedidos pendentes" count={pendentes.length} />
-          <View style={styles.pendingList}>
+          <SectionHeader title="Pedidos pendentes" count={pendentes.length} ui={ui} />
+          <View style={[styles.pendingList, { marginTop: ui.pendingListMarginTop }]}>
             {pendentes.map((o) => (
               <PendingOrderRow
                 key={o.id}
@@ -238,13 +270,13 @@ export default function OrdersScreen({ navigation, route }) {
               />
             ))}
             {pendentes.length === 0 ? (
-              <EmptySection text={search || activeFiltersCount > 0 ? 'Nenhum pedido encontrado com esses filtros' : 'Nenhum pedido pendente'} />
+              <EmptySection text={search || activeFiltersCount > 0 ? 'Nenhum pedido encontrado com esses filtros' : 'Nenhum pedido pendente'} ui={ui} />
             ) : null}
           </View>
 
-          <Divider />
+          <Divider ui={ui} />
 
-          <SectionHeader title="Pedidos entregues" count={entregues.length} />
+          <SectionHeader title="Pedidos entregues" count={entregues.length} ui={ui} />
           <Grid>
             {entregues.map((o) => (
               <OrderTile
@@ -256,13 +288,13 @@ export default function OrdersScreen({ navigation, route }) {
               />
             ))}
             {entregues.length === 0 ? (
-              <EmptySection text={search || activeFiltersCount > 0 ? 'Nenhum pedido encontrado com esses filtros' : 'Nenhum pedido entregue'} />
+              <EmptySection text={search || activeFiltersCount > 0 ? 'Nenhum pedido encontrado com esses filtros' : 'Nenhum pedido entregue'} ui={ui} />
             ) : null}
           </Grid>
 
-          <Divider />
+          <Divider ui={ui} />
 
-          <SectionHeader title="Comandas fechadas hoje" count={filteredClosed.length}/>
+          <SectionHeader title="Comandas fechadas hoje" count={filteredClosed.length} ui={ui} />
           <Grid>
             {filteredClosed.map((o) => (
               <OrderTile
@@ -273,7 +305,7 @@ export default function OrdersScreen({ navigation, route }) {
               />
             ))}
             {filteredClosed.length === 0 ? (
-              <EmptySection text={search || activeFiltersCount > 0 ? 'Nenhuma comanda encontrada com esses filtros' : 'Nenhuma comanda fechada hoje'} />
+              <EmptySection text={search || activeFiltersCount > 0 ? 'Nenhuma comanda encontrada com esses filtros' : 'Nenhuma comanda fechada hoje'} ui={ui} />
             ) : null}
           </Grid>
         </View>
@@ -383,11 +415,11 @@ export default function OrdersScreen({ navigation, route }) {
   );
 }
 
-function SectionHeader({ title, count }) {
+function SectionHeader({ title, count, ui }) {
   return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <Text style={styles.sectionCount}>({count})</Text>
+    <View style={[styles.sectionHeader, { marginBottom: ui.sectionHeaderMarginBottom }]}>
+      <Text style={[styles.sectionTitle, { fontSize: ui.sectionTitle }]}>{title}</Text>
+      <Text style={[styles.sectionCount, { fontSize: ui.sectionTitle, marginLeft: ui.sectionCountMargin }]}>({count})</Text>
     </View>
   );
 }
@@ -396,15 +428,42 @@ function Grid({ children }) {
   return <View style={styles.grid}>{children}</View>;
 }
 
-function Divider() {
-  return <View style={styles.divider} />;
+function Divider({ ui }) {
+  return (
+    <View
+      style={[
+        styles.divider,
+        { marginTop: ui.dividerMargin, marginBottom: ui.dividerMargin },
+      ]}
+    />
+  );
 }
 
-function EmptySection({ text }) {
+function EmptySection({ text, ui }) {
   return (
-    <View style={styles.emptyWrap}>
-      <Image source={require('../../assets/vazio.png')} style={{ width: 76, height: 76, marginTop: 12 }} resizeMode="contain" />
-      <Text style={styles.empty}>{text}</Text>
+    <View style={[styles.emptyWrap, { paddingVertical: ui.emptyWrapPaddingV }]}>
+      <Image
+        source={require('../../assets/vazio.png')}
+        style={{
+          width: ui.emptyImage,
+          height: ui.emptyImage,
+          marginTop: ui.emptyImageMarginTop,
+        }}
+        resizeMode="contain"
+      />
+      <Text
+        style={[
+          styles.empty,
+          {
+            fontSize: ui.emptyFont,
+            lineHeight: ui.emptyLineHeight,
+            paddingTop: ui.emptyPaddingTop,
+            paddingBottom: ui.emptyPaddingBottom,
+          },
+        ]}
+      >
+        {text}
+      </Text>
     </View>
   );
 }
@@ -440,9 +499,6 @@ function applyFilters(arr, term, filters) {
 
 const styles = StyleSheet.create({
   scrollContent: {
-    paddingHorizontal: 64,
-    paddingTop: 34,
-    paddingBottom: 120,
     alignItems: 'center',
   },
   sectionHeader: {
@@ -450,10 +506,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 0,
     marginTop: 0,
-    marginBottom: 14,
   },
-  sectionTitle: { ...typography.bodyBold, color: colors.textDark, fontSize: 26 },
-  sectionCount: { ...typography.bodyBold, color: colors.primary, marginLeft: 12, fontSize: 26 },
+  sectionTitle: { ...typography.bodyBold, color: colors.textDark },
+  sectionCount: { ...typography.bodyBold, color: colors.primary },
 
   grid: {
     flexDirection: 'row',
@@ -463,28 +518,20 @@ const styles = StyleSheet.create({
   },
   pendingList: {
     paddingHorizontal: 0,
-    marginTop: 14,
   },
   divider: {
     height: 2,
     backgroundColor: '#F0EBE4',
     width: '100%',
-    marginTop: 24,
-    marginBottom: 24,
   },
   emptyWrap: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 24,
     paddingHorizontal: 0,
   },
   empty: {
     color: colors.textMuted,
-    fontSize: 22,
-    lineHeight: 28,
-    paddingTop: 10,
-    paddingBottom: 18,
     textAlign: 'center',
   },
 });

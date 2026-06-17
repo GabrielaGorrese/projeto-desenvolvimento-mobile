@@ -27,6 +27,13 @@ import { onSocket } from '../services/socket';
 import useResponsive from '../hooks/useResponsive';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const REF_MIN_SIDE = 820;
+
+function scaleSize(value, minSide) {
+  const factor = Math.min(1.35, Math.max(0.72, minSide / REF_MIN_SIDE));
+  return Math.round(value * factor);
+}
+
 // Otimiza URLs de imagem externas pedindo uma versão menor (mais rápida e leve).
 function thumbUrl(url, w = 300) {
   if (!url || typeof url !== 'string') return url;
@@ -50,10 +57,57 @@ export default function CatalogScreen({ navigation, route }) {
   const { setPendingItems } = usePendingItems();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
+  const minSide = Math.min(r.width, r.height);
   const contentWidth = r.isTablet ? Math.min(r.width - 32, 1100) : r.contentMaxWidth;
-  const prodCols = Math.max(2, Math.min(7, Math.floor(contentWidth / 185)));
-  // Categorias: alvo de ~250dp por card.
-  const catCols = Math.max(2, Math.min(4, Math.floor(contentWidth / 250)));
+  const prodCols = Math.max(2, Math.min(7, Math.floor(contentWidth / scaleSize(185, minSide))));
+  const catCols = Math.max(2, Math.min(4, Math.floor(contentWidth / scaleSize(250, minSide))));
+  const ui = {
+    scrollPadH: scaleSize(64, minSide),
+    scrollPadTop: scaleSize(34, minSide),
+    scrollPadBottom: scaleSize(160, minSide),
+    loadingMarginTop: scaleSize(40, minSide),
+    sectionTitle: scaleSize(26, minSide),
+    sectionCountMargin: scaleSize(12, minSide),
+    sectionHeaderMarginBottom: scaleSize(14, minSide),
+    dividerMargin: scaleSize(24, minSide),
+    catGridMarginH: scaleSize(-6, minSide),
+    prodGridMarginH: scaleSize(-8, minSide),
+    prodCellPadding: scaleSize(8, minSide),
+    prodImgRadius: scaleSize(12, minSide),
+    prodNameMarginTop: scaleSize(10, minSide),
+    prodNameFont: scaleSize(18, minSide),
+    prodNameLineHeight: scaleSize(23, minSide),
+    prodPriceFont: scaleSize(18, minSide),
+    prodPriceLineHeight: scaleSize(23, minSide),
+    prodPriceMarginTop: scaleSize(4, minSide),
+    prodIconSize: scaleSize(34, minSide),
+    qtyBadgeMinW: scaleSize(36, minSide),
+    qtyBadgeHeight: scaleSize(36, minSide),
+    qtyBadgeRadius: scaleSize(24, minSide),
+    qtyBadgeTop: scaleSize(6, minSide),
+    qtyBadgeRight: scaleSize(6, minSide),
+    qtyBadgePaddingH: scaleSize(6, minSide),
+    qtyBadgeFont: scaleSize(18, minSide),
+    minusBtnTop: scaleSize(13, minSide),
+    minusBtnLeft: scaleSize(13, minSide),
+    minusBtnMinW: scaleSize(36, minSide),
+    minusBtnHeight: scaleSize(36, minSide),
+    minusBtnRadius: scaleSize(24, minSide),
+    minusIconSize: scaleSize(20, minSide),
+    confirmBarBottom: scaleSize(126, minSide),
+    confirmBarHeight: scaleSize(96, minSide),
+    confirmBarPaddingH: scaleSize(14, minSide),
+    confirmBarPaddingV: scaleSize(10, minSide),
+    cartCountFont: scaleSize(22, minSide),
+    cartCountMarginLeft: scaleSize(12, minSide),
+    emptyImage: scaleSize(76, minSide),
+    emptyFont: scaleSize(22, minSide),
+    emptyLineHeight: scaleSize(28, minSide),
+    emptyPaddingTop: scaleSize(10, minSide),
+    emptyPaddingBottom: scaleSize(18, minSide),
+    emptyWrapPaddingV: scaleSize(24, minSide),
+    emptyImageMarginTop: scaleSize(12, minSide),
+  };
 
   const [categories, setCategories] = useState([]);
   const [products,   setProducts]   = useState([]);
@@ -169,13 +223,23 @@ export default function CatalogScreen({ navigation, route }) {
       />
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
+        <ActivityIndicator style={{ marginTop: ui.loadingMarginTop }} color={colors.primary} />
       ) : (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingHorizontal: ui.scrollPadH,
+              paddingTop: ui.scrollPadTop,
+              paddingBottom: ui.scrollPadBottom,
+            },
+          ]}
+        >
           <View style={[styles.contentWrap, { maxWidth: contentWidth }]}>
-            <SectionHeader title="Categorias" count={categories.length} />
+            <SectionHeader title="Categorias" count={categories.length} ui={ui} />
 
-            <View style={styles.catGrid}>
+            <View style={[styles.catGrid, { marginHorizontal: ui.catGridMarginH }]}>
               {categories.map((c) => (
                 <View key={c.id} style={{ width: `${100 / catCols}%` }}>
                   <CategoryCard
@@ -187,11 +251,11 @@ export default function CatalogScreen({ navigation, route }) {
               ))}
             </View>
 
-            <Divider />
+            <Divider ui={ui} />
 
-            <SectionHeader title="Produtos" count={products.length} />
+            <SectionHeader title="Produtos" count={products.length} ui={ui} />
 
-            <View style={styles.prodGrid}>
+            <View style={[styles.prodGrid, { marginHorizontal: ui.prodGridMarginH }]}>
               {products.map((p) => {
                 const qty = cart[p.id]?.qty || 0;
                 return (
@@ -202,12 +266,13 @@ export default function CatalogScreen({ navigation, route }) {
                       selectable={mode === 'select'}
                       onPress={() => onProductPress(p)}
                       onMinus={() => decrement(p)}
+                      ui={ui}
                     />
                   </View>
                 );
               })}
               {products.length === 0 ? (
-                <EmptySection text="Nenhum produto encontrado" />
+                <EmptySection text="Nenhum produto encontrado" ui={ui} />
               ) : null}
             </View>
           </View>
@@ -215,8 +280,20 @@ export default function CatalogScreen({ navigation, route }) {
       )}
 
       {mode === 'select' && cartCount > 0 ? (
-        <View style={[styles.confirmBar, { bottom: 126 + insets.bottom }]}>
-          <Text style={styles.cartCount}>
+        <View
+          style={[
+            styles.confirmBar,
+            {
+              left: ui.scrollPadH,
+              right: ui.scrollPadH,
+              bottom: ui.confirmBarBottom + insets.bottom,
+              height: ui.confirmBarHeight,
+              paddingHorizontal: ui.confirmBarPaddingH,
+              paddingVertical: ui.confirmBarPaddingV,
+            },
+          ]}
+        >
+          <Text style={[styles.cartCount, { fontSize: ui.cartCountFont, marginLeft: ui.cartCountMarginLeft }]}>
             {cartCount} {cartCount === 1 ? 'item' : 'itens'}
           </Text>
           <View style={{ flex: 1 }} />
@@ -236,55 +313,130 @@ export default function CatalogScreen({ navigation, route }) {
   );
 }
 
-function SectionHeader({ title, count }) {
+function SectionHeader({ title, count, ui }) {
   return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <Text style={styles.sectionCount}>({count})</Text>
+    <View style={[styles.sectionHeader, { marginBottom: ui.sectionHeaderMarginBottom }]}>
+      <Text style={[styles.sectionTitle, { fontSize: ui.sectionTitle }]}>{title}</Text>
+      <Text style={[styles.sectionCount, { fontSize: ui.sectionTitle, marginLeft: ui.sectionCountMargin }]}>({count})</Text>
     </View>
   );
 }
 
-function Divider() {
-  return <View style={styles.divider} />;
+function Divider({ ui }) {
+  return (
+    <View
+      style={[
+        styles.divider,
+        { marginTop: ui.dividerMargin, marginBottom: ui.dividerMargin },
+      ]}
+    />
+  );
 }
 
-function EmptySection({ text }) {
+function EmptySection({ text, ui }) {
   return (
-    <View style={styles.emptyWrap}>
-      <Image source={require('../../assets/vazio.png')} style={styles.emptyImage} contentFit="contain" />
-      <Text style={styles.empty}>{text}</Text>
+    <View style={[styles.emptyWrap, { paddingVertical: ui.emptyWrapPaddingV }]}>
+      <Image
+        source={require('../../assets/vazio.png')}
+        style={{
+          width: ui.emptyImage,
+          height: ui.emptyImage,
+          marginTop: ui.emptyImageMarginTop,
+        }}
+        contentFit="contain"
+      />
+      <Text
+        style={[
+          styles.empty,
+          {
+            fontSize: ui.emptyFont,
+            lineHeight: ui.emptyLineHeight,
+            paddingTop: ui.emptyPaddingTop,
+            paddingBottom: ui.emptyPaddingBottom,
+          },
+        ]}
+      >
+        {text}
+      </Text>
     </View>
   );
 }
 
-function ProductCell({ product, onPress, onMinus, qty, selectable }) {
+function ProductCell({ product, onPress, onMinus, qty, selectable, ui }) {
   return (
-    <Pressable onPress={onPress} style={styles.prodCell}>
-      <View style={styles.prodImg}>
+    <Pressable onPress={onPress} style={[styles.prodCell, { padding: ui.prodCellPadding }]}>
+      <View style={[styles.prodImg, { borderRadius: ui.prodImgRadius }]}>
         {product.image ? (
           <Image
             source={{ uri: thumbUrl(product.image, 300) }}
-            style={{ width: '100%', height: '100%', borderRadius: 8 }}
+            style={{ width: '100%', height: '100%', borderRadius: ui.prodImgRadius - 4 }}
             contentFit="cover"
             transition={150}
             cachePolicy="memory-disk"
             recyclingKey={String(product.id)}
           />
         ) : (
-          <Feather name="image" size={34} color="#BBB" />
+          <Feather name="image" size={ui.prodIconSize} color="#BBB" />
         )}
         {qty > 0 ? (
-          <View style={styles.qtyBadge}>
-            <Text style={styles.qtyBadgeText}>{qty}</Text>
+          <View
+            style={[
+              styles.qtyBadge,
+              {
+                top: ui.qtyBadgeTop,
+                right: ui.qtyBadgeRight,
+                minWidth: ui.qtyBadgeMinW,
+                height: ui.qtyBadgeHeight,
+                borderRadius: ui.qtyBadgeRadius,
+                paddingHorizontal: ui.qtyBadgePaddingH,
+              },
+            ]}
+          >
+            <Text style={[styles.qtyBadgeText, { fontSize: ui.qtyBadgeFont }]}>{qty}</Text>
           </View>
         ) : null}
       </View>
-      <Text style={styles.prodName} numberOfLines={2}>{product.name}</Text>
-      <Text style={styles.prodPrice}>R$ {Number(product.price).toFixed(2).replace('.', ',')}</Text>
+      <Text
+        style={[
+          styles.prodName,
+          {
+            marginTop: ui.prodNameMarginTop,
+            fontSize: ui.prodNameFont,
+            lineHeight: ui.prodNameLineHeight,
+          },
+        ]}
+        numberOfLines={2}
+      >
+        {product.name}
+      </Text>
+      <Text
+        style={[
+          styles.prodPrice,
+          {
+            fontSize: ui.prodPriceFont,
+            lineHeight: ui.prodPriceLineHeight,
+            marginTop: ui.prodPriceMarginTop,
+          },
+        ]}
+      >
+        R$ {Number(product.price).toFixed(2).replace('.', ',')}
+      </Text>
       {selectable && qty > 0 ? (
-        <Pressable onPress={onMinus} style={styles.minusBtn} hitSlop={8}>
-          <Feather name="minus" size={20} color="#FFF" />
+        <Pressable
+          onPress={onMinus}
+          style={[
+            styles.minusBtn,
+            {
+              top: ui.minusBtnTop,
+              left: ui.minusBtnLeft,
+              minWidth: ui.minusBtnMinW,
+              height: ui.minusBtnHeight,
+              borderRadius: ui.minusBtnRadius,
+            },
+          ]}
+          hitSlop={8}
+        >
+          <Feather name="minus" size={ui.minusIconSize} color="#FFF" />
         </Pressable>
       ) : null}
     </Pressable>
@@ -293,9 +445,6 @@ function ProductCell({ product, onPress, onMinus, qty, selectable }) {
 
 const styles = StyleSheet.create({
   scrollContent: {
-    paddingHorizontal: 64,
-    paddingTop: 34,
-    paddingBottom: 160,
     alignItems: 'center',
   },
   contentWrap: {
@@ -306,92 +455,75 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 0,
     marginTop: 0,
-    marginBottom: 14,
   },
-  sectionTitle: { ...typography.bodyBold, color: colors.textDark, fontSize: 26 },
-  sectionCount: { ...typography.bodyBold, color: colors.primary, marginLeft: 12, fontSize: 26 },
+  sectionTitle: { ...typography.bodyBold, color: colors.textDark },
+  sectionCount: { ...typography.bodyBold, color: colors.primary },
 
   catGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -6,
     marginTop: 0,
   },
 
   prodGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -8,
     marginTop: 0,
   },
   prodCell: {
-    padding: 8,
     alignItems: 'center',
   },
   prodImg: {
     width: '100%',
     aspectRatio: 1,
     backgroundColor: '#F0EBE6',
-    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  prodName:  { ...typography.bodyBold, marginTop: 10, color: colors.textDark, textAlign: 'center', fontSize: 18, lineHeight: 23 },
-  prodPrice: { color: colors.primary, fontWeight: '700', fontSize: 18, lineHeight: 23, marginTop: 4 },
+  prodName:  { ...typography.bodyBold, color: colors.textDark, textAlign: 'center' },
+  prodPrice: { color: colors.primary, fontWeight: '700' },
 
   qtyBadge: {
-    position: 'absolute', top: 6, right: 6, minWidth: 36, height: 36, borderRadius: 24,
-    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6,
+    position: 'absolute',
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  qtyBadgeText: { color: '#FFF', fontWeight: '800', fontSize: 18 },
+  qtyBadgeText: { color: '#FFF', fontWeight: '800' },
   minusBtn: {
-    position: 'absolute', top: 13, left: 13, minWidth: 36, height: 36, borderRadius: 24,
-    backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center',
+    position: 'absolute',
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   confirmBar: {
     position: 'absolute',
-    left: 64, right: 64,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF',
     borderRadius: radii.lg,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
     elevation: 6,
     shadowColor: '#000',
     shadowOpacity: 0.15,
     shadowRadius: 8,
     zIndex: 50,
-    height: 96
   },
-  cartCount: { color: colors.textDark, fontWeight: '700', fontSize: 22, marginLeft: 12 },
+  cartCount: { color: colors.textDark, fontWeight: '700' },
 
   divider: {
     height: 2,
     backgroundColor: '#F0EBE4',
     width: '100%',
-    marginTop: 24,
-    marginBottom: 24,
   },
   emptyWrap: {
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 24,
     paddingHorizontal: 0,
-  },
-  emptyImage: {
-    width: 76,
-    height: 76,
-    marginTop: 12,
   },
   empty: {
     color: colors.textMuted,
-    fontSize: 22,
-    lineHeight: 28,
-    paddingTop: 10,
-    paddingBottom: 18,
     textAlign: 'center',
   },
 });
