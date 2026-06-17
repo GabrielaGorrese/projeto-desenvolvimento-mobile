@@ -88,7 +88,7 @@ const Input = forwardRef(function Input(
 
         {isPassword ? (
           <Pressable onPress={() => setShowPwd((v) => !v)} hitSlop={8}>
-            <Feather name={showPwd ? 'eye' : 'eye-off'} size={28 * scale} color={colors.textMuted} />
+            <Feather name={showPwd ? 'eye' : 'eye-off'} size={16 * scale} color={colors.textMuted} />
           </Pressable>
         ) : rightIcon ? (
           <Pressable onPress={onRightIconPress} hitSlop={8}>

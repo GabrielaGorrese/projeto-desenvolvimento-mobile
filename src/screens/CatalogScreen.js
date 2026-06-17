@@ -62,7 +62,7 @@ export default function CatalogScreen({ navigation, route }) {
   const prodCols = Math.max(2, Math.min(7, Math.floor(contentWidth / scaleSize(185, minSide))));
   const catCols = Math.max(2, Math.min(4, Math.floor(contentWidth / scaleSize(250, minSide))));
   const ui = {
-    scrollPadH: scaleSize(64, minSide),
+    scrollPadH: scaleSize(20, minSide),
     scrollPadTop: scaleSize(34, minSide),
     scrollPadBottom: scaleSize(160, minSide),
     loadingMarginTop: scaleSize(40, minSide),

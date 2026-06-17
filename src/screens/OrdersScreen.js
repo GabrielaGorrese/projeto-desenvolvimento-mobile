@@ -63,7 +63,7 @@ export default function OrdersScreen({ navigation, route }) {
   const minSide = Math.min(r.width, r.height);
   const contentWidth = r.isTablet ? Math.min(r.width - 32, 1100) : r.contentMaxWidth;
   const ui = {
-    scrollPadH: scaleSize(64, minSide),
+    scrollPadH: scaleSize(24, minSide),
     scrollPadTop: scaleSize(34, minSide),
     scrollPadBottom: scaleSize(120, minSide),
     loadingMarginTop: scaleSize(40, minSide),

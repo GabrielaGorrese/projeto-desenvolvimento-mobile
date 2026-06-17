@@ -63,136 +63,180 @@ export default function OrderDetailScreen({ route, navigation }) {
   const twoCol = r.isLandscape && r.width >= 800;
 
   const sz = useMemo(() => ({
-    section:   s(26),
-    body:      s(22),
-    bodyBold:  s(22),
-    caption:   s(18),
-    inputH:    s(86),
-    inputPad:  s(24),
-    iconSize:  s(28),
-    peopleBtn: s(32),
-    mesaH:     s(78),
-    mesaMinW:  s(230),
-    itemImg:   s(120),
-    itemName:  s(26),
-    itemPrice: s(18),
-    itemTotal: s(32),
-    qtyBtn:    s(40),
-    qtyBtnRadius: s(12),
-    qtyVal:    s(23),
-    totalBig:  s(44),
-    totalSub:  s(22),
-    numberInputH: s(64),
-    scrollPadH: s(16),
-    scrollPadTop: s(16),
-    scrollPadBottom: s(220),
-    sectionMarginBottom: s(30),
-    sectionTitleMarginBottom: s(14),
-    sectionTitleMarginTop: s(18),
-    infoSectionTitleMarginBottom: s(30),
-    sectionDividerMarginTop: s(2),
-    sectionDividerMarginBottom: s(30),
-    sectionDividerLargeMarginTop: s(48),
-    sectionDividerLargeMarginBottom: s(12),
-    infoRowMarginBottom: s(16),
-    infoTextMarginLeft: s(14),
-    infoLineHeight: s(27),
-    peopleControlsMarginLeft: s(16),
-    peopleBtnRadius: s(9),
-    peopleBtnMarginH: s(5),
-    mesaRowGap: s(16),
-    mesaSelectPaddingH: s(22),
-    mesaSelectMarginTop: s(6),
-    chevronSize: s(18),
-    tableListMaxHeight: s(280),
-    tableListMarginTop: s(14),
-    tableOptPaddingV: s(20),
-    tableOptPaddingH: s(22),
-    tableDeletePaddingH: s(22),
-    tableDeletePaddingV: s(20),
-    newTableRowPadding: s(14),
-    newTableRowGap: s(10),
-    compactInputH: s(62),
-    compactInputPadH: s(18),
-    compactInputFont: s(19),
-    newTableConfirmSize: s(58),
-    newTableAddPaddingV: s(18),
-    newTableAddPaddingH: s(22),
-    newTableAddGap: s(10),
-    newTableAddFont: s(19),
-    newTableIconSize: s(18),
-    newTableActionIcon: s(20),
-    labelInputMarginTop: s(14),
-    subHeaderMarginBottom: s(14),
-    subHeaderMarginTop: s(18),
-    subHeaderDeliveredMarginBottom: s(24),
-    deliverAllIcon: s(22),
-    deliverAllFont: s(20),
-    deliverAllPaddingV: s(8),
-    deliverAllPaddingH: s(10),
-    deliverAllGap: s(8),
-    emptySubFont: s(17),
-    emptySubLineHeight: s(24),
-    emptySubPaddingV: s(10),
-    emptySubMarginBottom: s(8),
-    emptySubNegativeMarginTop: s(-12),
-    actionButtonHeight: s(70),
-    actionButtonFont: s(22),
-    actionSpacer: s(14),
-    actionIconSize: s(26),
-    addIconSize: s(28),
-    itemActionsMarginTop: s(14),
-    itemCardPadding: s(18),
-    itemCardMarginBottom: s(14),
-    itemContentMarginH: s(20),
-    itemNameMarginTop: s(2),
-    itemQtyMarginTop: s(5),
-    itemTotalPaddingBottom: s(2),
-    deliveredTagGap: s(5),
-    deliveredTagMarginTop: s(8),
-    deliveredTagIcon: s(13),
-    deliveredTagFont: s(14),
-    deliveredTagEmptyHeight: s(12),
-    deliveredTagEmptyMarginTop: s(6),
-    deliverBtnGap: s(6),
-    deliverBtnPaddingH: s(16),
-    deliverBtnPaddingV: s(10),
-    deliverBtnIcon: s(20),
-    deliverBtnFont: s(16),
-    undeliverGap: s(8),
-    undeliverPaddingV: s(8),
-    undeliverIcon: s(18),
-    undeliverFont: s(20),
-    undeliverTextMarginRight: s(12),
-    itemSideActionsGap: s(10),
-    itemSideActionsMarginTop: s(10),
-    itemEditSize: s(42),
-    qtyControlsMarginTop: s(12),
-    qtyValueMinWidth: s(36),
-    qtyValueMarginH: s(8),
-    qtyValueFont: s(18),
-    footerPaddingH: s(34),
-    footerPaddingTop: s(20),
-    footerPaddingBottom: s(22),
-    footerPaddingBottomKb: s(16),
-    footerButtonHeight: s(70),
-    footerButtonFont: s(24),
-    footerSpacer: s(14),
-    totalRowMarginBottom: s(32),
-    totalRowMarginTop: s(12),
-    closeHintFont: s(16),
-    closeHintLineHeight: s(22),
-    closeHintMarginTop: s(10),
-    reopenIconSize: s(26),
-    emptyImage: s(76),
-    emptyFont: s(22),
-    emptyLineHeight: s(28),
-    emptyPaddingTop: s(10),
-    emptyPaddingBottom: s(6),
-    emptyWrapPaddingBottom: s(18),
-    loadingMarginTop: s(60),
-    twoColGap: s(24),
-    scrollIntoViewOffset: s(16),
+section:   s(26),
+  body:      s(22),
+  bodyBold:  s(22),
+  caption:   s(18),
+
+  inputH:    s(86),
+  inputPad:  s(24),
+  iconSize:  s(28),
+
+  peopleBtn: s(32),
+
+  mesaH:     s(78),
+  mesaMinW:  s(230),
+
+  itemImg:   s(100),
+  itemName:  s(22),
+  itemPrice: s(16),
+  itemTotal: s(26),
+
+  qtyBtn:    s(34),
+  qtyBtnRadius: s(10),
+  qtyVal:    s(20),
+
+  totalBig:  s(44),
+  totalSub:  s(22),
+
+  numberInputH: s(64),
+
+  scrollPadH: s(2),
+  scrollPadTop: s(16),
+
+  scrollPadBottom: s(140),
+
+  sectionMarginBottom: s(30),
+  sectionTitleMarginBottom: s(14),
+  sectionTitleMarginTop: s(18),
+  infoSectionTitleMarginBottom: s(30),
+
+  sectionDividerMarginTop: s(2),
+  sectionDividerMarginBottom: s(30),
+  sectionDividerLargeMarginTop: s(48),
+  sectionDividerLargeMarginBottom: s(12),
+
+  infoRowMarginBottom: s(16),
+  infoTextMarginLeft: s(14),
+  infoLineHeight: s(27),
+
+  peopleControlsMarginLeft: s(16),
+  peopleBtnRadius: s(9),
+  peopleBtnMarginH: s(5),
+
+  mesaRowGap: s(16),
+  mesaSelectPaddingH: s(22),
+  mesaSelectMarginTop: s(6),
+  chevronSize: s(18),
+
+  tableListMaxHeight: s(280),
+  tableListMarginTop: s(14),
+
+  tableOptPaddingV: s(20),
+  tableOptPaddingH: s(22),
+  tableDeletePaddingH: s(22),
+  tableDeletePaddingV: s(20),
+
+  newTableRowPadding: s(14),
+  newTableRowGap: s(10),
+
+  compactInputH: s(62),
+  compactInputPadH: s(18),
+  compactInputFont: s(19),
+
+  newTableConfirmSize: s(58),
+
+  newTableAddPaddingV: s(18),
+  newTableAddPaddingH: s(22),
+  newTableAddGap: s(10),
+  newTableAddFont: s(19),
+
+  newTableIconSize: s(18),
+  newTableActionIcon: s(20),
+
+  labelInputMarginTop: s(14),
+
+  subHeaderMarginBottom: s(14),
+  subHeaderMarginTop: s(18),
+  subHeaderDeliveredMarginBottom: s(24),
+
+  deliverAllIcon: s(22),
+  deliverAllFont: s(20),
+  deliverAllPaddingV: s(8),
+  deliverAllPaddingH: s(10),
+  deliverAllGap: s(8),
+
+  emptySubFont: s(17),
+  emptySubLineHeight: s(24),
+  emptySubPaddingV: s(10),
+  emptySubMarginBottom: s(8),
+  emptySubNegativeMarginTop: s(-12),
+
+  actionButtonHeight: s(56),
+  actionButtonFont: s(18),
+  actionSpacer: s(14),
+  actionIconSize: s(22),
+  addIconSize: s(24),
+
+  itemActionsMarginTop: s(14),
+
+  itemCardPadding: s(18),
+  itemCardMarginBottom: s(14),
+  itemContentMarginH: s(20),
+
+  itemNameMarginTop: s(2),
+  itemQtyMarginTop: s(5),
+  itemTotalPaddingBottom: s(2),
+
+  deliveredTagGap: s(5),
+  deliveredTagMarginTop: s(8),
+  deliveredTagIcon: s(13),
+  deliveredTagFont: s(14),
+  deliveredTagEmptyHeight: s(12),
+  deliveredTagEmptyMarginTop: s(6),
+
+  deliverBtnGap: s(6),
+  deliverBtnPaddingH: s(14),
+  deliverBtnPaddingV: s(8),
+  deliverBtnIcon: s(18),
+  deliverBtnFont: s(14),
+
+  undeliverGap: s(8),
+  undeliverPaddingV: s(8),
+  undeliverIcon: s(16),
+  undeliverFont: s(16),
+  undeliverTextMarginRight: s(12),
+
+  itemSideActionsGap: s(10),
+  itemSideActionsMarginTop: s(10),
+
+  itemEditSize: s(36),
+
+  qtyControlsMarginTop: s(12),
+  qtyValueMinWidth: s(36),
+  qtyValueMarginH: s(8),
+  qtyValueFont: s(18),
+
+  footerPaddingH: s(34),
+  footerPaddingTop: s(20),
+  footerPaddingBottom: s(22),
+  footerPaddingBottomKb: s(16),
+
+  footerButtonHeight: s(70),
+  footerButtonFont: s(24),
+  footerSpacer: s(14),
+
+  totalRowMarginBottom: s(32),
+  totalRowMarginTop: s(12),
+
+  closeHintFont: s(16),
+  closeHintLineHeight: s(22),
+  closeHintMarginTop: s(10),
+
+  reopenIconSize: s(26),
+
+  emptyImage: s(76),
+  emptyFont: s(22),
+  emptyLineHeight: s(28),
+  emptyPaddingTop: s(10),
+  emptyPaddingBottom: s(6),
+  emptyWrapPaddingBottom: s(18),
+
+  loadingMarginTop: s(60),
+
+  twoColGap: s(24),
+
+  scrollIntoViewOffset: s(16),
   }), [minSide]);
 
   const [order,   setOrder]   = useState(null);
@@ -599,20 +643,26 @@ export default function OrderDetailScreen({ route, navigation }) {
     >
       <DarkHeader title={headerTitle} subtitle={headerSubtitle} onBack={() => navigation.popToTop()} />
 
-      <ScrollFade
-        ref={scrollRef}
-        style={{ flex: 1 }}
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingHorizontal: sz.scrollPadH,
-            paddingTop: sz.scrollPadTop,
-            paddingBottom: sz.scrollPadBottom + kbHeight,
-          },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        fadeColor="#FFFFFF"
-      >
+      <ScrollView
+      ref={scrollRef}
+      style={{ flex: 1 }}
+      contentContainerStyle={[
+        styles.scrollContent,
+        {
+          paddingHorizontal: sz.scrollPadH,
+          paddingTop: sz.scrollPadTop,
+
+          paddingBottom:
+            sz.scrollPadBottom +
+            sz.footerButtonHeight +
+            sz.footerPaddingBottom +
+            insets.bottom +
+            40,
+        },
+      ]}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
 
       {/*
       <View style={styles.statusPill}>
@@ -949,7 +999,7 @@ export default function OrderDetailScreen({ route, navigation }) {
           />  
 
           {!readOnly ? (
-            <View style={[styles.itemActions, { marginTop: sz.itemActionsMarginTop }]}>
+            <View style={[styles.itemActions, { marginTop: sz.itemActionsMarginTop, marginBottom: sz.sectionMarginBottom }]}>
               <Button
                 title="Limpar"
                 variant="ghost"
@@ -974,7 +1024,7 @@ export default function OrderDetailScreen({ route, navigation }) {
         </View>
         </View>
         </View>
-      </ScrollFade>
+      </ScrollView>
 
       <View
         style={[
@@ -1175,7 +1225,11 @@ function Row({ icon, text, sz = {} }) {
       <Text
         style={[
           styles.infoText,
-          sz.body && { fontSize: sz.body, marginLeft: sz.infoTextMarginLeft, lineHeight: sz.infoLineHeight },
+          {
+            fontSize: sz.body || 14,
+            marginLeft: sz.infoTextMarginLeft || 8,
+            lineHeight: sz.infoLineHeight || 20,
+          },
         ]}
       >
         {text}

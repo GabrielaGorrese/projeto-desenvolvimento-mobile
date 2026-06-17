@@ -1,11 +1,9 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View, Image, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { colors, radii, typography } from '../theme';
-import { LinearGradient } from 'expo-linear-gradient';
+import { colors, radii } from '../theme';
 
 import GradientView from '../components/GradientView';
-import { gradients } from '../theme/colors';
 
 function getGradient(name) {
   const k = (name || '').toLowerCase();
@@ -80,10 +78,10 @@ export default function CategoryCard({ category, onPress, style, selected, dimme
       style={[
         styles.card,
         {
-          height: 136 * scale,
+          height: 104 * scale,
           borderRadius: radii.lg * scale,
-          margin: 6 * scale,
-          borderWidth: 3 * scale,
+          margin: 5 * scale,
+          borderWidth: 2 * scale,
         },
         selected && styles.cardSelected,
         dimmed && styles.cardDimmed,
@@ -97,8 +95,8 @@ export default function CategoryCard({ category, onPress, style, selected, dimme
         style={[
           styles.image,
           {
-            width: 130 * scale,
-            height: 130 * scale,
+            width: 92 * scale,
+            height: 92 * scale,
           },
         ]}
         resizeMode="contain"
@@ -108,7 +106,7 @@ export default function CategoryCard({ category, onPress, style, selected, dimme
         style={[
           styles.name,
           {
-            fontSize: 26 * scale,
+            fontSize: 18 * scale,
             marginRight: '4%',
           },
         ]}
@@ -122,15 +120,15 @@ export default function CategoryCard({ category, onPress, style, selected, dimme
           style={[
             styles.check,
             {
-              top: 8 * scale,
-              right: 8 * scale,
-              width: 28 * scale,
-              height: 28 * scale,
-              borderRadius: 14 * scale,
+              top: 6 * scale,
+              right: 6 * scale,
+              width: 20 * scale,
+              height: 20 * scale,
+              borderRadius: 10 * scale,
             },
           ]}
         >
-          <Feather name="check" size={14 * scale} color={colors.textDark} />
+          <Feather name="check" size={10 * scale} color={colors.textDark} />
         </View>
       )}
     </Pressable>

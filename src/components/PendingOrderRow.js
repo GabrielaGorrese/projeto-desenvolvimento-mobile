@@ -5,7 +5,13 @@ import { colors, radii, shadow, typography } from '../theme';
 
 export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliverAll, isNew, partial }) {
   const { width } = useWindowDimensions();
-  const scale = width / 375;
+
+  const baseWidth = 375;
+  const scaleRaw = width / baseWidth;
+  const scale = Math.min(Math.max(scaleRaw, 0.75), 1.1);
+
+  const textScale = Math.min(Math.max(scaleRaw, 0.7), 1.0);
+  const btnScale = Math.min(Math.max(scaleRaw, 0.8), 1.05);
 
   const [busyAll, setBusyAll] = useState(false);
   const [busyItems, setBusyItems] = useState([]);
@@ -48,7 +54,7 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
   }
 
   function Divider() {
-    return <View style={[styles.divider, { marginVertical: 8 * scale }]} />;
+    return <View style={[styles.divider, { marginVertical: 4 * scale }]} />;
   }
 
   return (
@@ -59,20 +65,20 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
         styles.row,
         {
           borderRadius: radii.lg * scale,
-          marginHorizontal: 6 * scale,
-          marginBottom: 12 * scale,
-          paddingRight: 8 * scale,
+          marginHorizontal: 1 * scale,
+          marginBottom: 8 * scale,
+          paddingRight: 6 * scale,
         },
         pressed && { opacity: 0.95 }
       ]}
     >
-      <View style={[styles.left, { width: 66 * scale }]}>
+      <View style={[styles.left, { width: 54 * scale }]}>
         <View style={[
           styles.numBox,
           {
             backgroundColor: bg,
-            width: 74 * scale,
-            minHeight: 128 * scale,
+            width: 58 * scale,
+            minHeight: 82 * scale,
             borderTopLeftRadius: radii.md * scale,
             borderBottomLeftRadius: radii.md * scale,
           }
@@ -81,14 +87,14 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
             style={[
               styles.num,
               {
-                fontSize: 32 * scale,
-                paddingBottom: 16 * scale,
-                paddingHorizontal: 4 * scale,
+                fontSize: 22 * textScale,
+                paddingBottom: 8 * scale,
+                paddingHorizontal: 2 * scale,
               }
             ]}
             numberOfLines={1}
             adjustsFontSizeToFit
-            minimumFontScale={0.4}
+            minimumFontScale={0.5}
           >
             {label}
           </Text>
@@ -97,22 +103,22 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
             <View style={[
               styles.partial,
               {
-                bottom: 6 * scale,
-                borderRadius: 4 * scale,
+                bottom: 4 * scale,
+                borderRadius: 3 * scale,
                 paddingVertical: 2 * scale,
               }
             ]}>
-              <Text style={[styles.partialText, { fontSize: 9 * scale }]}>
+              <Text style={[styles.partialText, { fontSize: 7 * textScale }]}>
                 PARCIAL
               </Text>
             </View>
           ) : null}
 
           {isNew ? (
-            <View style={[styles.star, { top: 3 * scale, right: 3 * scale }]}>
+            <View style={[styles.star, { top: 2 * scale, right: 2 * scale }]}>
               <Image
                 source={require('../../assets/novo.png')}
-                style={{ width: 28 * scale, height: 28 * scale }}
+                style={{ width: 18 * scale, height: 18 * scale }}
                 resizeMode="contain"
               />
             </View>
@@ -120,9 +126,9 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
         </View>
       </View>
 
-      <View style={[styles.items, { marginLeft: 16 * scale, marginRight: 6 * scale, paddingVertical: 2 * scale }]}>
+      <View style={[styles.items, { marginLeft: 10 * scale, marginRight: 4 * scale }]}>
         {pendingItems.length === 0 ? (
-          <Text style={[styles.emptyItem, { fontSize: 17 * scale }]}>
+          <Text style={[styles.emptyItem, { fontSize: 12 * textScale }]}>
             Sem itens pendentes
           </Text>
         ) : (
@@ -135,33 +141,36 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
                   key={it.id ?? idx}
                   style={[
                     styles.itemRow,
-                    { paddingVertical: 11 * scale },
+                    { paddingVertical: 5 * scale },
                     !last && styles.itemDivider
                   ]}
                 >
                   <View style={[
                     styles.itemThumb,
                     {
-                      width: 72 * scale,
-                      height: 72 * scale,
+                      width: 46 * scale,
+                      height: 46 * scale,
                       borderRadius: radii.md * scale,
-                      marginRight: 14 * scale,
+                      marginRight: 8 * scale,
                     }
                   ]}>
                     {it.image ? (
                       <Image source={{ uri: it.image }} style={styles.itemImage} resizeMode="cover" />
                     ) : (
-                      <Feather name="image" size={22 * scale} color="#B8B1AA" />
+                      <Feather name="image" size={16 * scale} color="#B8B1AA" />
                     )}
                   </View>
 
-                  <Text style={[
-                    styles.itemText,
-                    { fontSize: 26 * scale }
-                  ]}>
+                  <Text
+                    numberOfLines={2}
+                    style={[
+                      styles.itemText,
+                      { fontSize: 15 * textScale }
+                    ]}
+                  >
                     {it.product_name}
                     {Number(it.quantity) > 1 ? (
-                      <Text style={[styles.itemQty, { fontSize: 24 * scale }]}>
+                      <Text style={[styles.itemQty, { fontSize: 13 * textScale }]}>
                         {`  ×${it.quantity}`}
                       </Text>
                     ) : ''}
@@ -169,16 +178,16 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
 
                   <Pressable
                     onPress={() => deliverOne(it.id)}
-                    hitSlop={8}
+                    hitSlop={6}
                     android_ripple={{ color: 'rgba(204,126,74,0.14)', borderless: false }}
                     style={({ pressed }) => [
                       styles.checkBtn,
                       {
-                        width: 46 * scale,
-                        height: 46 * scale,
-                        borderRadius: 30 * scale,
-                        marginLeft: 10 * scale,
-                        marginRight: 10 * scale,
+                        width: 32 * btnScale,
+                        height: 32 * btnScale,
+                        borderRadius: 20 * btnScale,
+                        marginLeft: 4 * scale,
+                        marginRight: 4 * scale,
                       },
                       (busy || busyAll || pressed) && { opacity: 0.7 }
                     ]}
@@ -186,7 +195,7 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
                     {busy ? (
                       <ActivityIndicator size="small" color={colors.primary} />
                     ) : (
-                      <Feather name="check" size={22 * scale} color={colors.primary} />
+                      <Feather name="check" size={16 * btnScale} color={colors.primary} />
                     )}
                   </Pressable>
                 </View>
@@ -198,14 +207,14 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
             <View style={[
               styles.bottomRow,
               {
-                marginTop: 12 * scale,
-                minHeight: 48 * scale,
+                marginTop: 4 * scale,
+                minHeight: 30 * scale,
               }
             ]}>
               {timeStr ? (
                 <View style={styles.timeRow}>
-                  <Feather name="clock" size={20 * scale} color={colors.textMuted} style={{ marginRight: 6 * scale }} />
-                  <Text style={[styles.timeText, { fontSize: 18 * scale }]}>
+                  <Feather name="clock" size={14 * scale} color={colors.textMuted} style={{ marginRight: 4 * scale }} />
+                  <Text style={[styles.timeText, { fontSize: 12 * textScale }]}>
                     {timeStr}
                   </Text>
                 </View>
@@ -219,9 +228,9 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
                     styles.deliverAllBtn,
                     {
                       borderRadius: radii.md * scale,
-                      paddingHorizontal: 18 * scale,
-                      paddingVertical: 9 * scale,
-                      marginBottom: 16 * scale,
+                      paddingHorizontal: 10 * scale,
+                      paddingVertical: 5 * scale,
+                      marginBottom: 6 * scale,
                     },
                     (busyAll || pressed) && { opacity: 0.85 }
                   ]}
@@ -230,8 +239,8 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
                     <ActivityIndicator size="small" color={colors.primary} />
                   ) : (
                     <>
-                      <Feather name="check-circle" size={18 * scale} color={colors.primary} />
-                      <Text style={[styles.deliverAllText, { fontSize: 16 * scale }]}>
+                      <Feather name="check-circle" size={14 * btnScale} color={colors.primary} />
+                      <Text style={[styles.deliverAllText, { fontSize: 12 * textScale }]}>
                         Entregar todos
                       </Text>
                     </>
@@ -245,9 +254,9 @@ export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliv
 
       <Feather
         name="chevron-right"
-        size={22 * scale}
+        size={16 * scale}
         color={colors.textMuted}
-        style={{ alignSelf: 'center', marginLeft: 6 * scale }}
+        style={{ alignSelf: 'center', marginLeft: 4 * scale }}
       />
     </Pressable>
   );
@@ -342,7 +351,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: 'transparent',
     borderWidth: 2,
     borderColor: colors.primary,
@@ -357,7 +366,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   divider: {
-    height: 2,
+    height: 1,
     backgroundColor: '#F0EBE4',
     width: '100%',
   },

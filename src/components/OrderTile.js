@@ -19,7 +19,7 @@ export default function OrderTile({ order, onPress, isNew, partial }) {
   const label = String(order.daily_number ?? order.id).padStart(2, '0');
 
   return (
-    <View style={[styles.wrap, { margin: 6 * scale }]}>
+    <View style={[styles.wrap, { margin: 4 * scale }]}>
       <Pressable
         onPress={onPress}
         android_ripple={{ color: 'rgba(255,255,255,0.3)' }}
@@ -27,8 +27,8 @@ export default function OrderTile({ order, onPress, isNew, partial }) {
           styles.tile,
           {
             backgroundColor: bg,
-            width: 92 * scale,
-            height: 124 * scale,
+            width: 58 * scale,
+            height: 90 * scale,
             borderRadius: radii.md * scale,
             marginTop: 12 * scale,
           },
@@ -40,7 +40,7 @@ export default function OrderTile({ order, onPress, isNew, partial }) {
           style={[
             styles.num,
             {
-              fontSize: 32 * scale,
+              fontSize: 22 * scale,
               paddingHorizontal: 6 * scale,
             },
             isClosed && { color: '#9C8E84' }

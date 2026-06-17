@@ -15,7 +15,7 @@ import { colors, radii, typography } from '../theme';
 export default function FiltersSheet({ visible, onClose, onClear, sections = [], size = 'md' }) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const scale = width / 375;
+  const scale = (width / 375) * 0.75;
 
   const isLarge = size === 'lg';
 
@@ -26,12 +26,12 @@ export default function FiltersSheet({ visible, onClose, onClear, sections = [],
           style={[
             styles.sheet,
             {
-              paddingHorizontal: 26 * scale,
-              paddingTop: 10 * scale,
-              borderTopLeftRadius: 22 * scale,
-              borderTopRightRadius: 22 * scale,
-              paddingBottom: insets.bottom + (isLarge ? 28 * scale : 20 * scale),
-              maxHeight: isLarge ? '88%' : '85%',
+              paddingHorizontal: 18 * scale,
+              paddingTop: 6 * scale,
+              borderTopLeftRadius: 18 * scale,
+              borderTopRightRadius: 18 * scale,
+              paddingBottom: insets.bottom + (isLarge ? 16 * scale : 12 * scale),
+              maxHeight: isLarge ? '55%' : '50%',
             },
           ]}
           onPress={() => {}}
@@ -40,10 +40,10 @@ export default function FiltersSheet({ visible, onClose, onClear, sections = [],
             style={[
               styles.handle,
               {
-                width: 54 * scale,
-                height: 6 * scale,
-                borderRadius: 3 * scale,
-                marginVertical: 10 * scale,
+                width: 40 * scale,
+                height: 4 * scale,
+                borderRadius: 2 * scale,
+                marginVertical: 6 * scale,
               },
             ]}
           />
@@ -52,9 +52,9 @@ export default function FiltersSheet({ visible, onClose, onClear, sections = [],
             style={[
               styles.header,
               {
-                marginBottom: 16 * scale,
-                paddingHorizontal: 24 * scale,
-                minHeight: 54 * scale,
+                marginBottom: 10 * scale,
+                paddingHorizontal: 12 * scale,
+                minHeight: 36 * scale,
               },
             ]}
           >
@@ -62,8 +62,8 @@ export default function FiltersSheet({ visible, onClose, onClear, sections = [],
               style={[
                 styles.title,
                 {
-                  fontSize: (isLarge ? 30 : 24) * scale,
-                  lineHeight: (isLarge ? 38 : 31) * scale,
+                  fontSize: (isLarge ? 22 : 18) * scale,
+                  lineHeight: (isLarge ? 26 : 22) * scale,
                 },
               ]}
             >
@@ -77,17 +77,17 @@ export default function FiltersSheet({ visible, onClose, onClear, sections = [],
                 onPress={onClear}
                 hitSlop={8}
                 style={{
-                  paddingHorizontal: 14 * scale,
-                  paddingVertical: 10 * scale,
+                  paddingHorizontal: 8 * scale,
+                  paddingVertical: 6 * scale,
                 }}
               >
                 <Text
                   style={{
                     color: colors.primary,
                     fontWeight: '700',
-                    fontSize: (isLarge ? 24 : 20) * scale,
-                    lineHeight: (isLarge ? 31 : 26) * scale,
-                    marginRight: 8 * scale,
+                    fontSize: (isLarge ? 16 : 14) * scale,
+                    lineHeight: (isLarge ? 20 : 18) * scale,
+                    marginRight: 4 * scale,
                   }}
                 >
                   Limpar
@@ -98,11 +98,11 @@ export default function FiltersSheet({ visible, onClose, onClear, sections = [],
             <Pressable
               onPress={onClose}
               hitSlop={8}
-              style={{ padding: 8 * scale, marginLeft: 4 * scale }}
+              style={{ padding: 4 * scale, marginLeft: 2 * scale }}
             >
               <Feather
                 name="x"
-                size={(isLarge ? 38 : 32) * scale}
+                size={(isLarge ? 24 : 20) * scale}
                 color={colors.textDark}
               />
             </Pressable>
@@ -113,32 +113,32 @@ export default function FiltersSheet({ visible, onClose, onClear, sections = [],
               height: 1,
               backgroundColor: '#ccc',
               width: '100%',
-              marginVertical: 10 * scale,
+              marginVertical: 6 * scale,
             }}
           />
 
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{
-              paddingHorizontal: 24 * scale,
-              paddingBottom: isLarge ? 12 * scale : 8 * scale,
+              paddingHorizontal: 12 * scale,
+              paddingBottom: isLarge ? 8 * scale : 6 * scale,
             }}
           >
             {sections.map((sec) => (
               <View
                 key={sec.key}
                 style={{
-                  marginTop: 18 * scale,
-                  marginBottom: 10 * scale,
+                  marginTop: 10 * scale,
+                  marginBottom: 6 * scale,
                 }}
               >
                 <Text
                   style={[
                     styles.sectionTitle,
                     {
-                      fontSize: (isLarge ? 26 : 22) * scale,
-                      lineHeight: (isLarge ? 34 : 29) * scale,
-                      marginBottom: 12 * scale,
+                      fontSize: (isLarge ? 18 : 16) * scale,
+                      lineHeight: (isLarge ? 22 : 20) * scale,
+                      marginBottom: 6 * scale,
                     },
                   ]}
                 >
@@ -156,12 +156,12 @@ export default function FiltersSheet({ visible, onClose, onClear, sections = [],
                         style={[
                           styles.chip,
                           {
-                            minHeight: (isLarge ? 60 : 50) * scale,
-                            paddingHorizontal: (isLarge ? 22 : 18) * scale,
-                            paddingVertical: (isLarge ? 15 : 12) * scale,
-                            borderRadius: radii.md * scale,
-                            marginRight: (isLarge ? 12 : 10) * scale,
-                            marginBottom: (isLarge ? 12 : 10) * scale,
+                            minHeight: (isLarge ? 40 : 34) * scale,
+                            paddingHorizontal: (isLarge ? 14 : 12) * scale,
+                            paddingVertical: (isLarge ? 10 : 8) * scale,
+                            borderRadius: radii.md,
+                            marginRight: (isLarge ? 8 : 6) * scale,
+                            marginBottom: (isLarge ? 8 : 6) * scale,
                           },
                           active && {
                             backgroundColor: opt.color || colors.primary,
@@ -172,10 +172,10 @@ export default function FiltersSheet({ visible, onClose, onClear, sections = [],
                         {opt.dot ? (
                           <View
                             style={{
-                              width: (isLarge ? 16 : 13) * scale,
-                              height: (isLarge ? 16 : 13) * scale,
-                              borderRadius: (isLarge ? 8 : 7) * scale,
-                              marginRight: (isLarge ? 12 : 10) * scale,
+                              width: (isLarge ? 10 : 8) * scale,
+                              height: (isLarge ? 10 : 8) * scale,
+                              borderRadius: (isLarge ? 5 : 4) * scale,
+                              marginRight: (isLarge ? 6 : 5) * scale,
                               backgroundColor: opt.dot,
                             }}
                           />
@@ -185,8 +185,8 @@ export default function FiltersSheet({ visible, onClose, onClear, sections = [],
                           style={[
                             {
                               color: colors.textDark,
-                              fontSize: (isLarge ? 23 : 19) * scale,
-                              lineHeight: (isLarge ? 30 : 25) * scale,
+                              fontSize: (isLarge ? 15 : 13) * scale,
+                              lineHeight: (isLarge ? 18 : 16) * scale,
                             },
                             active && { color: '#FFF', fontWeight: '700' },
                           ]}

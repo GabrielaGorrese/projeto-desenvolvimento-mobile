@@ -67,8 +67,8 @@ export default function LoginScreen({ navigation }) {
   const backIconSize = scaleSize(42, minSide);
   const formPaddingTop = scaleSize(compact ? 0 : 8, minSide);
   const rememberRowGap = scaleSize(12, minSide);
-  const rememberRowMarginTop = scaleSize(compact ? 8 : comfyPortrait ? 20 : 8, minSide);
-  const rememberRowMarginBottom = scaleSize(compact ? 12 : comfyPortrait ? 20 : 12, minSide);
+  const rememberRowMarginTop = scaleSize(compact ? 8 : comfyPortrait ? 8 : 8, minSide);
+  const rememberRowMarginBottom = scaleSize(compact ? 12 : comfyPortrait ? 8 : 12, minSide);
   const rememberLabelMarginLeft = scaleSize(20, minSide);
   const switchScale = Math.min(1.6, Math.max(1.1, minSide / REF_MIN_SIDE * 1.6));
   const switchMarginRight = scaleSize(compact ? 12 : 16, minSide);

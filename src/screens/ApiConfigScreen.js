@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, View, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import Screen from '../components/Screen';
 import DarkHeader from '../components/DarkHeader';
@@ -11,12 +11,10 @@ import { getApiBaseUrl, setApiBaseUrl, normalizeBaseUrl } from '../services/apiC
 import { getShowTable, getShowLabel, setShowTable, setShowLabel } from '../services/appSettings';
 import { reconnectSocket } from '../services/socket';
 
-// Testa se o servidor responde, com timeout manual (o fetch do RN não tem timeout nativo).
 async function pingServer(baseUrl, timeoutMs = 6000) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    // /api-docs sempre existe e não exige autenticação; qualquer resposta HTTP = servidor acessível.
     const res = await fetch(`${baseUrl}/api-docs`, { method: 'GET', signal: ctrl.signal });
     return res.status > 0;
   } catch {
@@ -27,13 +25,14 @@ async function pingServer(baseUrl, timeoutMs = 6000) {
 }
 
 export default function ApiConfigScreen({ navigation }) {
+  const { width } = useWindowDimensions();
+  const scale = width / 375;
+
   const [url, setUrl] = useState('');
   const [testing, setTesting] = useState(false);
-  // status: null | 'ok' | 'fail'
   const [status, setStatus] = useState(null);
   const [feedback, setFeedback] = useState(null);
 
-  // Flags de campos opcionais da comanda
   const [showTable, setShowTableState] = useState(false);
   const [showLabel, setShowLabelState] = useState(false);
 
@@ -83,10 +82,10 @@ export default function ApiConfigScreen({ navigation }) {
         onBack={() => navigation.goBack()}
       />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingHorizontal: 24 * scale, paddingTop: 24 * scale }]}>
         <View style={styles.content}>
 
-          <Text style={styles.label}>Endereço do servidor</Text>
+          <Text style={[styles.label, { fontSize: 18 * scale }]}>Endereço do servidor</Text>
           <Input
             value={url}
             onChangeText={(t) => { setUrl(t); setStatus(null); }}
@@ -94,80 +93,81 @@ export default function ApiConfigScreen({ navigation }) {
             keyboardType="url"
             autoCapitalize="none"
             autoCorrect={false}
-            fieldStyle={styles.inputField}
-            inputStyle={styles.inputText}
+            fieldStyle={[styles.inputField, { height: 56 * scale, paddingHorizontal: 16 * scale }]}
+            inputStyle={[styles.inputText, { fontSize: 16 * scale }]}
             style={styles.inputWrap}
           />
 
-          <Text style={styles.hint}>
-            <Feather name="info" size={20} color={colors.textMuted} />  Use o IP do computador/servidor onde a API
-            está rodando, na mesma rede dos tablets. Ex.: http://192.168.0.10:3000
+          <Text style={[styles.hint, { fontSize: 14 * scale, lineHeight: 20 * scale }]}>
+            <Feather name="info" size={16 * scale} color={colors.textMuted} /> Use o IP do servidor na mesma rede.
           </Text>
 
           {status === 'ok' ? (
-            <View style={[styles.statusBox, { backgroundColor: '#E7F6EC' }]}>
-              <Feather name="check-circle" size={28} color="#1E9E54" />
-              <Text style={[styles.statusText, { color: '#1E7E45' }]}>Servidor encontrado. Conexão OK.</Text>
+            <View style={[styles.statusBox, { padding: 14 * scale }]}>
+              <Feather name="check-circle" size={20 * scale} color="#1E9E54" />
+              <Text style={[styles.statusText, { fontSize: 14 * scale }]}>Servidor encontrado.</Text>
             </View>
           ) : status === 'fail' ? (
-            <View style={[styles.statusBox, { backgroundColor: '#FBEAEA' }]}>
-              <Feather name="x-circle" size={28} color={colors.danger} />
-              <Text style={[styles.statusText, { color: colors.danger }]}>
-                Não foi possível conectar. Verifique o IP, a porta e se a API está no ar.
+            <View style={[styles.statusBox, { padding: 14 * scale }]}>
+              <Feather name="x-circle" size={20 * scale} color={colors.danger} />
+              <Text style={[styles.statusText, { fontSize: 14 * scale }]}>
+                Falha na conexão.
               </Text>
             </View>
           ) : null}
 
-          <View style={{ marginTop: 24 }}>
+          <View style={{ marginTop: 16 * scale }}>
             <Button
               title="Testar conexão"
               variant="outline"
               onPress={onTest}
               loading={testing}
-              icon={<Feather name="wifi" size={26} color={colors.primary} />}
+              icon={<Feather name="wifi" size={18 * scale} color={colors.primary} />}
               size="lg"
-              style={styles.actionButton}
-              textStyle={styles.actionButtonText}
+              style={[styles.actionButton, { height: 52 * scale }]}
+              textStyle={{ fontSize: 16 * scale }}
             />
           </View>
-          <View style={styles.saveButtonWrap}>
+
+          <View style={{ marginTop: 10 * scale }}>
             <Button
               title="Salvar"
               onPress={onSave}
               size="lg"
-              style={styles.actionButton}
-              textStyle={styles.actionButtonText}
+              style={[styles.actionButton, { height: 52 * scale }]}
+              textStyle={{ fontSize: 16 * scale }}
             />
           </View>
 
-          {/* ── Campos opcionais da comanda ── */}
-          <Text style={styles.sectionLabel}>Campos da comanda</Text>
+          <Text style={[styles.sectionLabel, { fontSize: 18 * scale, marginTop: 28 * scale }]}>
+            Campos da comanda
+          </Text>
 
-          <View style={styles.toggleRow}>
+          <View style={[styles.toggleRow, { paddingVertical: 14 * scale }]}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.toggleTitle}>Mesa</Text>
-              <Text style={styles.toggleDesc}>Exibe o seletor de mesa na comanda.</Text>
+              <Text style={[styles.toggleTitle, { fontSize: 16 * scale }]}>Mesa</Text>
+              <Text style={[styles.toggleDesc, { fontSize: 13 * scale }]}>Exibe o seletor.</Text>
             </View>
             <Switch
               value={showTable}
               onValueChange={toggleTable}
               trackColor={{ true: colors.primary, false: '#CCC' }}
               thumbColor="#FFF"
-              style={styles.switch}
+              style={{ transform: [{ scaleX: 1.1 }, { scaleY: 1.1 }] }}
             />
           </View>
 
-          <View style={styles.toggleRow}>
+          <View style={[styles.toggleRow, { paddingVertical: 14 * scale }]}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.toggleTitle}>Identificação</Text>
-              <Text style={styles.toggleDesc}>Exibe o campo de identificação/descrição da comanda.</Text>
+              <Text style={[styles.toggleTitle, { fontSize: 16 * scale }]}>Identificação</Text>
+              <Text style={[styles.toggleDesc, { fontSize: 13 * scale }]}>Campo opcional.</Text>
             </View>
             <Switch
               value={showLabel}
               onValueChange={toggleLabel}
               trackColor={{ true: colors.primary, false: '#CCC' }}
               thumbColor="#FFF"
-              style={styles.switch}
+              style={{ transform: [{ scaleX: 1.1 }, { scaleY: 1.1 }] }}
             />
           </View>
 
@@ -188,9 +188,7 @@ export default function ApiConfigScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   scrollContent: {
-    paddingHorizontal: 34,
-    paddingTop: 34,
-    paddingBottom: 48,
+    paddingBottom: 32,
     alignItems: 'center',
   },
   content: {
@@ -200,79 +198,52 @@ const styles = StyleSheet.create({
   label: {
     ...typography.bodyBold,
     color: colors.textDark,
-    fontSize: 25,
-    marginBottom: 14,
+    marginBottom: 8,
   },
   inputWrap: {
-    marginBottom: 14,
+    marginBottom: 10,
   },
   inputField: {
-    height: 86,
-    paddingHorizontal: 24,
     borderRadius: radii.lg,
     borderWidth: 2,
   },
-  inputText: {
-    fontSize: 24,
-  },
-  hint:  {
+  inputText: {},
+  hint: {
     color: colors.textMuted,
-    fontSize: 19,
-    lineHeight: 28,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   statusBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    columnGap: 14,
-    padding: 22,
+    columnGap: 10,
     borderRadius: radii.lg,
-    marginTop: 22,
+    marginTop: 12,
   },
   statusText: {
     flex: 1,
-    fontSize: 20,
-    lineHeight: 28,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   actionButton: {
-    height: 78,
     borderRadius: radii.lg,
   },
-  actionButtonText: {
-    fontSize: 23,
-  },
-  saveButtonWrap: {
-    marginTop: 18,
-  },
-
   sectionLabel: {
     ...typography.bodyBold,
     color: colors.textDark,
-    fontSize: 26,
-    marginTop: 46,
-    marginBottom: 10,
+    marginBottom: 6,
   },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 24,
     borderBottomWidth: 1,
     borderBottomColor: '#F0EBE4',
-    columnGap: 20,
+    columnGap: 12,
   },
   toggleTitle: {
     ...typography.bodyBold,
     color: colors.textDark,
-    fontSize: 24,
   },
-  toggleDesc:  {
+  toggleDesc: {
     color: colors.textMuted,
-    fontSize: 18,
-    lineHeight: 25,
-    marginTop: 6,
-  },
-  switch: {
-    transform: [{ scaleX: 1.35 }, { scaleY: 1.35 }],
+    marginTop: 4,
   },
 });
