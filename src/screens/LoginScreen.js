@@ -1,8 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  Animated,
-  Easing,
-  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -24,6 +21,13 @@ import { useAuth } from '../contexts/AuthContext';
 import useResponsive from '../hooks/useResponsive';
 import SettingsButton from '../components/SettingsButton';
 
+const REF_MIN_SIDE = 820;
+
+function scaleSize(value, minSide) {
+  const factor = Math.min(1.35, Math.max(0.72, minSide / REF_MIN_SIDE));
+  return Math.round(value * factor);
+}
+
 export default function LoginScreen({ navigation }) {
   const { selectedRole, signIn, signOut, rememberedUsername } = useAuth();
   const r = useResponsive();
@@ -39,18 +43,54 @@ export default function LoginScreen({ navigation }) {
   const maxW = panelWidth - panelHorizontalPadding * 2;
   const compact = r.isTablet && r.isLandscape;
   const comfyPortrait = r.isPortrait;
-  const scale = Math.min(1.4, Math.max(1, r.width / 600));
-  const bannerTitleFontSize = 26 * scale;
-  const rememberLabelFontSize = (compact ? 15 : comfyPortrait ? 16 : 16) * scale;
-  const errorFontSize = (compact ? 14 : 16) * scale;
-  const inputFontSize = (compact ? 16 : comfyPortrait ? 18 : 18) * scale;
-  const inputLabelFontSize = (compact ? 16 : comfyPortrait ? 18 : 18) * scale;
-  const inputHeight = compact ? 52 : comfyPortrait ? 72 : 72;
-  const actionButtonHeight = compact ? 62 : comfyPortrait ? 82 : 82;
-  const actionButtonFontSize = (compact ? 17 : comfyPortrait ? 19 : 19) * scale;
-  const actionButtonRadius = 12;
+  const scale = Math.min(1.4, Math.max(0.85, r.width / 600));
+  const bannerTitleFontSize = Math.round(26 * scale);
+  const rememberLabelFontSize = scaleSize(compact ? 15 : 16, minSide);
+  const errorFontSize = scaleSize(compact ? 14 : 16, minSide);
+  const inputFontSize = scaleSize(compact ? 16 : 18, minSide);
+  const inputLabelFontSize = scaleSize(compact ? 16 : 18, minSide);
+  const inputHeight = Math.round(Math.max(48, Math.min(72, scaleSize(compact ? 52 : 72, minSide))));
+  const actionButtonHeight = Math.round(Math.max(52, Math.min(82, scaleSize(compact ? 62 : 82, minSide))));
+  const actionButtonFontSize = scaleSize(compact ? 17 : 19, minSide);
+  const actionButtonRadius = scaleSize(12, minSide);
   const buttonSize = comfyPortrait ? 'lg' : compact ? 'sm' : 'md';
-  const maxKeyboardLift = Math.round(Math.min(compact ? 150 : 260, Math.max(120, r.height * 0.32)));
+  const scrollTopPad = scaleSize(82, minSide);
+  const scrollBottomPad = scaleSize(42, minSide);
+  const panelPaddingBottom = scaleSize(58, minSide);
+  const panelRadius = scaleSize(14, minSide);
+  const bannerMinHeight = scaleSize(124, minSide);
+  const bannerPaddingH = scaleSize(36, minSide);
+  const bannerMarginBottom = scaleSize(36, minSide);
+  const bannerRadius = scaleSize(12, minSide);
+  const bannerBackSize = scaleSize(44, minSide);
+  const bannerBackHeight = scaleSize(56, minSide);
+  const backIconSize = scaleSize(42, minSide);
+  const formPaddingTop = scaleSize(compact ? 0 : 8, minSide);
+  const rememberRowGap = scaleSize(12, minSide);
+  const rememberRowMarginTop = scaleSize(compact ? 8 : comfyPortrait ? 20 : 8, minSide);
+  const rememberRowMarginBottom = scaleSize(compact ? 12 : comfyPortrait ? 20 : 12, minSide);
+  const rememberLabelMarginLeft = scaleSize(20, minSide);
+  const switchScale = Math.min(1.6, Math.max(1.1, minSide / REF_MIN_SIDE * 1.6));
+  const switchMarginRight = scaleSize(compact ? 12 : 16, minSide);
+  const switchPaddingLeft = scaleSize(8, minSide);
+  const errorIconSize = scaleSize(20, minSide);
+  const errorBadgeGap = scaleSize(6, minSide);
+  const errorBadgePaddingH = scaleSize(16, minSide);
+  const errorBadgePaddingV = scaleSize(6, minSide);
+  const actionsMarginTop = scaleSize(compact ? 14 : 22, minSide);
+  const actionsGap = scaleSize(10, minSide);
+  const cadastrarMarginTop = scaleSize(compact ? 14 : 20, minSide);
+  const cadastrarBorderWidth = scaleSize(2, minSide);
+  const inputMarginTop = scaleSize(compact ? 6 : comfyPortrait ? 2 : 0, minSide);
+  const inputMarginBottom = scaleSize(6, minSide);
+  const inputPaddingH = scaleSize(compact ? 15 : 18, minSide);
+  const inputFieldMarginBottom = scaleSize(8, minSide);
+  const securityMarginTop = scaleSize(40, minSide);
+  const securityPaddingH = scaleSize(24, minSide);
+  const securityTextMarginTop = scaleSize(16, minSide);
+  const securityTextMarginLeft = scaleSize(20, minSide);
+  const securityFontSize = scaleSize(21, minSide);
+  const securityLineHeight = scaleSize(28, minSide);
 
   const [username, setUsername] = useState(rememberedUsername || '');
   const [password, setPassword] = useState('');
@@ -90,13 +130,23 @@ export default function LoginScreen({ navigation }) {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: insets.top + 82, paddingBottom: insets.bottom + 42 },
+          { paddingTop: insets.top + scrollTopPad, paddingBottom: insets.bottom + scrollBottomPad },
         ]}
       >
         <View style={[styles.brand, { marginBottom: brandBottom }]}>
           <Logo size="lg" subtitle="Boas vindas!" />
         </View>
-          <View style={[styles.panel, { width: panelWidth, paddingHorizontal: panelHorizontalPadding }]}>
+          <View
+            style={[
+              styles.panel,
+              {
+                width: panelWidth,
+                paddingHorizontal: panelHorizontalPadding,
+                paddingBottom: panelPaddingBottom,
+                borderRadius: panelRadius,
+              },
+            ]}
+          >
             <GradientView
               colors={isManager ? gradients.ui.manager : gradients.ui.primary}
               style={[
@@ -104,6 +154,11 @@ export default function LoginScreen({ navigation }) {
                 {
                   width: bannerWidth,
                   marginHorizontal: -panelHorizontalPadding,
+                  minHeight: bannerMinHeight,
+                  paddingHorizontal: bannerPaddingH,
+                  marginBottom: bannerMarginBottom,
+                  borderTopLeftRadius: bannerRadius,
+                  borderTopRightRadius: bannerRadius,
                 },
               ]}
             >
@@ -111,27 +166,27 @@ export default function LoginScreen({ navigation }) {
                 hitSlop={10}
                 onPress={() => navigation.goBack()}
                 android_ripple={{ color: 'rgba(255,255,255,0.2)', borderless: true, radius: 18 }}
-                style={styles.bannerBack}
+                style={[styles.bannerBack, { width: bannerBackSize, height: bannerBackHeight }]}
               >
-                <Feather name="arrow-left" size={42} color="#FFF" />
+                <Feather name="arrow-left" size={backIconSize} color="#FFF" />
               </Pressable>
               <Text style={[styles.bannerTitle, { fontSize: bannerTitleFontSize }]}>
                 {isManager ? 'GERENTE' : 'ATENDENTE'}
               </Text>
-              <View style={styles.bannerSpacer} />
+              <View style={[styles.bannerSpacer, { width: bannerBackSize }]} />
             </GradientView>
 
             <View style={[styles.column, { maxWidth: maxW }]}>
-              <View style={[styles.form, compact && styles.formCompact, comfyPortrait && styles.formPortrait]}>
+              <View style={[styles.form, { paddingTop: formPaddingTop }]}>
                 <Input
                   label="Usuário"
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"
                   returnKeyType="next"
-                  style={[compact && styles.inputCompact, comfyPortrait && styles.inputPortrait]}
+                  style={{ marginTop: inputMarginTop, marginBottom: inputMarginBottom }}
                   labelStyle={{ fontSize: inputLabelFontSize }}
-                  fieldStyle={{ height: inputHeight, paddingHorizontal: compact ? 15 : 18, marginBottom: 8 }}
+                  fieldStyle={{ height: inputHeight, paddingHorizontal: inputPaddingH, marginBottom: inputFieldMarginBottom }}
                   inputStyle={[{ fontSize: inputFontSize }]}
                 />
                 <Input
@@ -141,27 +196,38 @@ export default function LoginScreen({ navigation }) {
                   secureTextEntry
                   returnKeyType="done"
                   onSubmitEditing={onSubmit}
-                  style={[compact && styles.inputCompact, comfyPortrait && styles.inputPortrait]}
+                  style={{ marginTop: inputMarginTop, marginBottom: inputMarginBottom }}
                   labelStyle={{ fontSize: inputLabelFontSize }}
-                  fieldStyle={{ height: inputHeight, paddingHorizontal: compact ? 15 : 18, marginBottom: 8 }}
+                  fieldStyle={{ height: inputHeight, paddingHorizontal: inputPaddingH, marginBottom: inputFieldMarginBottom }}
                   inputStyle={[{ fontSize: inputFontSize }]}
                 />
 
-                <View style={[styles.rememberRow, comfyPortrait && styles.rememberPortrait]}>
+                <View
+                  style={[
+                    styles.rememberRow,
+                    {
+                      gap: rememberRowGap,
+                      marginTop: rememberRowMarginTop,
+                      marginBottom: rememberRowMarginBottom,
+                    },
+                  ]}
+                >
                   <View style={styles.remember}>
                     <Switch
                       value={remember}
                       onValueChange={setRemember}
                       trackColor={{ true: colors.primary, false: '#CCC' }}
                       thumbColor="#FFF"
-                      style={[compact && styles.rememberSwitchCompact, comfyPortrait && styles.rememberSwitchPortrait]}
+                      style={{
+                        transform: [{ scaleX: switchScale }, { scaleY: switchScale }],
+                        marginRight: switchMarginRight,
+                        paddingLeft: comfyPortrait ? switchPaddingLeft : 0,
+                      }}
                     />
                     <Text
                       style={[
                         styles.rememberLabel,
-                        { fontSize: rememberLabelFontSize },
-                        compact && styles.rememberLabelCompact,
-                        comfyPortrait && styles.rememberLabelPortrait,
+                        { fontSize: rememberLabelFontSize, marginLeft: rememberLabelMarginLeft },
                       ]}
                     >
                       Lembrar usuário
@@ -169,8 +235,17 @@ export default function LoginScreen({ navigation }) {
                   </View>
 
                   {error ? (
-                    <View style={styles.errorBadge}>
-                      <Feather name="alert-triangle" size={20} color={colors.danger} />
+                    <View
+                      style={[
+                        styles.errorBadge,
+                        {
+                          gap: errorBadgeGap,
+                          paddingHorizontal: errorBadgePaddingH,
+                          paddingVertical: errorBadgePaddingV,
+                        },
+                      ]}
+                    >
+                      <Feather name="alert-triangle" size={errorIconSize} color={colors.danger} />
                       <Text style={[styles.error, { fontSize: errorFontSize }]} numberOfLines={1}>
                         {error}
                       </Text>
@@ -178,7 +253,13 @@ export default function LoginScreen({ navigation }) {
                   ) : null}
                 </View>
 
-                <View style={[styles.actions, compact && !isManager && styles.actionsCompact]}>
+                <View
+                  style={[
+                    styles.actions,
+                    { marginTop: actionsMarginTop },
+                    compact && !isManager && { flexDirection: 'row', alignItems: 'center', gap: actionsGap },
+                  ]}
+                >
                   <Button
                     title="ENTRAR"
                     onPress={onSubmit}
@@ -213,17 +294,16 @@ export default function LoginScreen({ navigation }) {
                       android_ripple={{ color: 'rgba(204,126,74,0.18)' }}
                       style={({ pressed }) => [
                         styles.cadastrar,
-                        { height: actionButtonHeight, borderRadius: actionButtonRadius },
+                        {
+                          height: actionButtonHeight,
+                          borderRadius: actionButtonRadius,
+                          marginTop: cadastrarMarginTop,
+                          borderWidth: cadastrarBorderWidth,
+                        },
                         pressed && Platform.OS !== 'android' && { opacity: 0.7 },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.cadastrarLabel,
-                          { fontSize: actionButtonFontSize },
-                          comfyPortrait && styles.cadastrarLabelPortrait,
-                        ]}
-                      >
+                      <Text style={[styles.cadastrarLabel, { fontSize: actionButtonFontSize }]}>
                         CADASTRAR
                       </Text>
                     </Pressable>
@@ -233,8 +313,20 @@ export default function LoginScreen({ navigation }) {
             </View>
           </View>
 
-        <View style={styles.security}>
-          <Text style={styles.securityText}>{'Desenvolvimento SATC | 2026'}</Text>
+        <View style={[styles.security, { marginTop: securityMarginTop, paddingHorizontal: securityPaddingH }]}>
+          <Text
+            style={[
+              styles.securityText,
+              {
+                marginTop: securityTextMarginTop,
+                marginLeft: securityTextMarginLeft,
+                fontSize: securityFontSize,
+                lineHeight: securityLineHeight,
+              },
+            ]}
+          >
+            {'Desenvolvimento SATC | 2026'}
+          </Text>
         </View>
       </ScrollView>
     </GradientView>
@@ -251,17 +343,10 @@ const styles = StyleSheet.create({
   },
   brand: {
     alignItems: 'center',
-    marginBottom: 82,
-  },
-  panelMover: {
-    alignItems: 'center',
   },
   panel: {
     alignItems: 'center',
     backgroundColor: '#ffffff',
-    borderRadius: 14,
-    paddingHorizontal: 54,
-    paddingBottom: 58,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
@@ -281,18 +366,12 @@ const styles = StyleSheet.create({
 
   banner: {
     width: '100%',
-    minHeight: 124,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    marginBottom: 34,
-    paddingHorizontal: 36,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 36
   },
-  bannerBack: { width: 44, height: 56, justifyContent: 'center', alignItems: 'center' },
-  bannerSpacer: { width: 44 },
+  bannerBack: { justifyContent: 'center', alignItems: 'center' },
+  bannerSpacer: {},
   bannerTitle: {
     color: '#FFF',
     fontFamily: typography.familyHeavy,
@@ -301,82 +380,36 @@ const styles = StyleSheet.create({
   },
 
   form: {
-    paddingTop: 8,
     paddingBottom: 0,
-  },
-  formCompact: {
-    paddingTop: 0,
-  },
-  formPortrait: {
-    paddingTop: 4,
-  },
-  inputCompact: {
-    marginTop: 6,
-    marginBottom: 6,
-  },
-  inputPortrait: {
-    marginTop: 2,
-    marginBottom: 6,
   },
   rememberRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
-    marginTop: 8,
-    marginBottom: 12,
   },
   remember: {
     flexDirection: 'row',
     alignItems: 'center',
     flexShrink: 0,
   },
-  rememberPortrait: {
-    marginTop: 20,
-    marginBottom: 20,
-  },
   rememberLabel: {
-    marginLeft: 20,
     color: colors.textDark,
   },
-  rememberSwitchCompact: {
-    transform: [{ scaleX: 1.6 }, { scaleY: 1.6 }],
-    marginRight: 12,
-  },
-  rememberSwitchPortrait: {
-    transform: [{ scaleX: 1.6 }, { scaleY: 1.6 }],
-    marginRight: 16,
-    paddingLeft: 8
-  },
-  rememberLabelCompact: {},
-  rememberLabelPortrait: {},
   errorBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-end',
-    gap: 6,
     borderRadius: radii.md,
     backgroundColor: 'rgba(212, 81, 70, 0.10)',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
   },
   error: {
     color: colors.danger,
     flexShrink: 1,
-    fontSize: 13,
     marginTop: 0,
     textAlign: 'right',
   },
 
-  actions: {
-    marginTop: 22,
-  },
-  actionsCompact: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 14,
-  },
+  actions: {},
   actionHalf: {
     flex: 1,
   },
@@ -385,9 +418,6 @@ const styles = StyleSheet.create({
   },
 
   cadastrar: {
-    marginTop: 20,
-    borderRadius: radii.lg,
-    borderWidth: 2,
     borderColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -397,24 +427,13 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '800',
     letterSpacing: 1,
-    fontSize: 17,
   },
-  cadastrarPortrait: {
-    marginTop: 14,
-  },
-  cadastrarLabelPortrait: {},
   security: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 40,
-    paddingHorizontal: 24,
   },
   securityText: {
-    marginTop: 16,
-    marginLeft: 20,
     color: 'rgba(255,255,255,0.72)',
     fontFamily: typography.family,
-    fontSize: 21,
-    lineHeight: 28,
   },
 });

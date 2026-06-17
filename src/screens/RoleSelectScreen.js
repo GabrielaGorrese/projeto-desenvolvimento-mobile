@@ -18,6 +18,13 @@ const roleImages = {
   manager: require('../../assets/icons/gerente.png'),
 };
 
+const REF_MIN_SIDE = 820;
+
+function scaleSize(value, minSide) {
+  const factor = Math.min(1.35, Math.max(0.72, minSide / REF_MIN_SIDE));
+  return Math.round(value * factor);
+}
+
 export default function RoleSelectScreen({ navigation }) {
   const { setSelectedRole } = useAuth();
   const r = useResponsive();
@@ -31,16 +38,34 @@ export default function RoleSelectScreen({ navigation }) {
   const minSide = Math.min(r.width, r.height);
   const panelWidth = Math.min(900, r.width * 0.9);
   const panelHorizontalPadding = Math.round(Math.max(20, Math.min(52, minSide * 0.05)));
-  const logoWidth = Math.min(360, Math.max(250, r.width * 0.38));
-  const logoHeight = Math.round(logoWidth * 0.39);
   const roleCardHeight = Math.round(Math.max(118, Math.min(320, minSide * 0.26)));
   const roleIconSize = Math.round(Math.max(58, Math.min(132, minSide * 0.15)));
   const titleSize = Math.round(Math.max(22, Math.min(30, minSide * 0.038)));
-  const headerIconSize = Math.round(Math.max(86, Math.min(122, minSide * 0.12)));
-  const subheadingSize = Math.round(Math.max(20, Math.min(20, minSide * 0.026)));
-  const roleTitleSize = Math.round(Math.max(20, Math.min(28, minSide * 0.035)));
-  const cardPaddingH = Math.round(Math.max(18, Math.min(30, minSide * 0.032)));
+  const subheadingSize = Math.round(Math.max(18, Math.min(24, minSide * 0.026)));
+  const roleTitleSize = Math.round(Math.max(20, Math.min(40, minSide * 0.049)));
+  const cardPaddingH = Math.round(Math.max(18, Math.min(36, minSide * 0.032)));
   const brandBottom = Math.round(Math.max(44, Math.min(82, minSide * 0.08)));
+  const chevronSize = scaleSize(42, minSide);
+  const scrollTopPad = scaleSize(82, minSide);
+  const scrollBottomPad = scaleSize(42, minSide);
+  const panelPaddingTop = scaleSize(50, minSide);
+  const panelPaddingBottom = scaleSize(58, minSide);
+  const panelRadius = scaleSize(14, minSide);
+  const headingPaddingTop = scaleSize(64, minSide);
+  const subheadingPaddingBottom = scaleSize(24, minSide);
+  const subheadingMarginTop = scaleSize(8, minSide);
+  const cardsGap = scaleSize(34, minSide);
+  const cardsMarginTop = scaleSize(66, minSide);
+  const cardPaddingV = scaleSize(24, minSide);
+  const roleTextMarginLeft = scaleSize(28, minSide);
+  const roleTextMarginRight = scaleSize(16, minSide);
+  const roleIconMarginLeft = scaleSize(4, minSide);
+  const securityMarginTop = scaleSize(40, minSide);
+  const securityPaddingH = scaleSize(24, minSide);
+  const securityTextMarginTop = scaleSize(16, minSide);
+  const securityTextMarginLeft = scaleSize(20, minSide);
+  const securityFontSize = scaleSize(21, minSide);
+  const securityLineHeight = scaleSize(28, minSide);
 
   return (
     <GradientView colors={gradients.ui.dark} style={styles.root}>
@@ -53,23 +78,53 @@ export default function RoleSelectScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: insets.top + 82, paddingBottom: insets.bottom + 42 },
+          { paddingTop: insets.top + scrollTopPad, paddingBottom: insets.bottom + scrollBottomPad },
         ]}
       >
         <View style={[styles.brand, { marginBottom: brandBottom }]}>
           <Logo size="lg" subtitle="Boas vindas!" />
         </View>
 
-        <View style={[styles.panel, { width: panelWidth, paddingHorizontal: panelHorizontalPadding }]}>
+        <View
+          style={[
+            styles.panel,
+            {
+              width: panelWidth,
+              paddingHorizontal: panelHorizontalPadding,
+              paddingTop: panelPaddingTop,
+              paddingBottom: panelPaddingBottom,
+              borderRadius: panelRadius,
+            },
+          ]}
+        >
 
-          <Text style={[styles.heading, { fontSize: titleSize, lineHeight: Math.round(titleSize * 1.18), paddingTop: 64 }]}>
+          <Text
+            style={[
+              styles.heading,
+              {
+                fontSize: titleSize,
+                lineHeight: Math.round(titleSize * 1.18),
+                paddingTop: headingPaddingTop,
+              },
+            ]}
+          >
             {'Quem est\u00e1 tentando acessar?'}
           </Text>
-          <Text style={[styles.subheading, { fontSize: subheadingSize, paddingBottom: 24, marginTop: 8 }]}>
+          <Text
+            style={[
+              styles.subheading,
+              {
+                fontSize: subheadingSize,
+                lineHeight: Math.round(subheadingSize * 1.29),
+                paddingBottom: subheadingPaddingBottom,
+                marginTop: subheadingMarginTop,
+              },
+            ]}
+          >
             Selecione o tipo de conta para continuar.
           </Text>
 
-          <View style={styles.cards}>
+          <View style={[styles.cards, { gap: cardsGap, marginTop: cardsMarginTop }]}>
             <RoleCard
               title="ATENDENTE"
               imageSource={roleImages.attendant}
@@ -79,6 +134,11 @@ export default function RoleSelectScreen({ navigation }) {
               iconSize={roleIconSize}
               titleSize={roleTitleSize}
               paddingHorizontal={cardPaddingH}
+              paddingVertical={cardPaddingV}
+              roleTextMarginLeft={roleTextMarginLeft}
+              roleTextMarginRight={roleTextMarginRight}
+              roleIconMarginLeft={roleIconMarginLeft}
+              chevronSize={chevronSize}
             />
             <RoleCard
               title="GERENTE"
@@ -89,12 +149,29 @@ export default function RoleSelectScreen({ navigation }) {
               iconSize={roleIconSize}
               titleSize={roleTitleSize}
               paddingHorizontal={cardPaddingH}
+              paddingVertical={cardPaddingV}
+              roleTextMarginLeft={roleTextMarginLeft}
+              roleTextMarginRight={roleTextMarginRight}
+              roleIconMarginLeft={roleIconMarginLeft}
+              chevronSize={chevronSize}
             />
           </View>
         </View>
 
-        <View style={styles.security}>
-          <Text style={styles.securityText}>{'Desenvolvimento SATC | 2026'}</Text>
+        <View style={[styles.security, { marginTop: securityMarginTop, paddingHorizontal: securityPaddingH }]}>
+          <Text
+            style={[
+              styles.securityText,
+              {
+                marginTop: securityTextMarginTop,
+                marginLeft: securityTextMarginLeft,
+                fontSize: securityFontSize,
+                lineHeight: securityLineHeight,
+              },
+            ]}
+          >
+            {'Desenvolvimento SATC | 2026'}
+          </Text>
         </View>
       </ScrollView>
     </GradientView>
@@ -110,6 +187,11 @@ function RoleCard({
   iconSize,
   titleSize,
   paddingHorizontal,
+  paddingVertical,
+  roleTextMarginLeft,
+  roleTextMarginRight,
+  roleIconMarginLeft,
+  chevronSize,
 }) {
   return (
     <Pressable
@@ -120,23 +202,34 @@ function RoleCard({
         pressed && Platform.OS !== 'android' && styles.cardPressed,
       ]}
     >
-      <GradientView colors={gradient} style={[styles.card, { minHeight: height, paddingHorizontal }]}>
+      <GradientView
+        colors={gradient}
+        style={[styles.card, { minHeight: height, paddingHorizontal, paddingVertical }]}
+      >
         <Image
           source={imageSource}
-          style={[styles.roleIcon, { width: iconSize, height: iconSize, borderRadius: iconSize / 2 }]}
+          style={[
+            styles.roleIcon,
+            {
+              width: iconSize,
+              height: iconSize,
+              borderRadius: iconSize / 2,
+              marginLeft: roleIconMarginLeft,
+            },
+          ]}
           resizeMode="contain"
         />
 
-        <View style={styles.roleText}>
+        <View style={[styles.roleText, { marginLeft: roleTextMarginLeft, marginRight: roleTextMarginRight }]}>
           <Text
-            style={[styles.roleTitle, { fontSize: 40, lineHeight: Math.round(titleSize * 1.18) }]}
+            style={[styles.roleTitle, { fontSize: titleSize, lineHeight: Math.round(titleSize * 1.18) }]}
             numberOfLines={1}
           >
             {title}
           </Text>
         </View>
 
-        <Feather name="chevron-right" size={42} color="#FFFFFF" />
+        <Feather name="chevron-right" size={chevronSize} color="#FFFFFF" />
       </GradientView>
     </Pressable>
   );
@@ -150,33 +243,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: 'center',
   },
-  gear: {
-    position: 'absolute',
-    right: 24,
-    zIndex: 2,
-    width: 46,
-    height: 46,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   brand: {
     alignItems: 'center',
-    marginBottom: 82,
-  },
-  welcome: {
-    marginTop: -8,
-    color: '#FFFFFF',
-    fontFamily: typography.familyBold,
-    fontSize: 25,
-    fontWeight: '800',
   },
   panel: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingHorizontal: 52,
-    paddingTop: 50,
-    paddingBottom: 58,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
@@ -189,34 +261,19 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  headerIcon: {
-    width: 122,
-    height: 122,
-    borderRadius: 61,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F8E7DA',
-    marginBottom: 34,
-  },
   heading: {
     color: '#202124',
     fontFamily: typography.familyHeavy,
     fontWeight: '900',
-    lineHeight: 42,
     textAlign: 'center',
   },
   subheading: {
-    marginTop: 24,
     color: '#656565',
     fontFamily: typography.family,
-    fontSize: 24,
-    lineHeight: 31,
     textAlign: 'center',
   },
   cards: {
     alignSelf: 'stretch',
-    gap: 34,
-    marginTop: 66,
   },
   cardPressable: {
     borderRadius: radii.lg,
@@ -241,37 +298,24 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 36,
-    paddingVertical: 24,
   },
   roleIcon: {
     flexShrink: 0,
-    marginLeft: 4
   },
   roleText: {
     flex: 1,
-    marginLeft: 28,
-    marginRight: 16,
   },
   roleTitle: {
     color: '#FFFFFF',
     fontFamily: typography.familyHeavy,
-    fontSize: 34,
     fontWeight: '900',
-    lineHeight: 40,
   },
   security: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 40,
-    paddingHorizontal: 24,
   },
   securityText: {
-    marginTop: 16,
-    marginLeft: 20,
     color: 'rgba(255,255,255,0.72)',
     fontFamily: typography.family,
-    fontSize: 21,
-    lineHeight: 28,
   },
 });
