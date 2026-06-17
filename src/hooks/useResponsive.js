@@ -32,6 +32,9 @@ export default function useResponsive() {
     return c;
   };
 
+  const wp = (percent) => (width * percent) / 100;
+  const hp = (percent) => (height * percent) / 100;
+
   return {
     width,
     height,
@@ -41,5 +44,7 @@ export default function useResponsive() {
     isPhone,
     contentMaxWidth,
     cols,
+    wp,
+    hp,
   };
 }
