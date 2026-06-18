@@ -10,6 +10,7 @@ import { colors, radii, typography } from '../theme';
 import { getApiBaseUrl, setApiBaseUrl, normalizeBaseUrl } from '../services/apiConfig';
 import { getShowTable, getShowLabel, setShowTable, setShowLabel } from '../services/appSettings';
 import { reconnectSocket } from '../services/socket';
+import { getUiScale } from '../utils/uiScale';
 
 async function pingServer(baseUrl, timeoutMs = 6000) {
   const ctrl = new AbortController();
@@ -25,8 +26,8 @@ async function pingServer(baseUrl, timeoutMs = 6000) {
 }
 
 export default function ApiConfigScreen({ navigation }) {
-  const { width } = useWindowDimensions();
-  const scale = width / 375;
+  const { width, height } = useWindowDimensions();
+  const scale = getUiScale(width, height);
 
   const [url, setUrl] = useState('');
   const [testing, setTesting] = useState(false);

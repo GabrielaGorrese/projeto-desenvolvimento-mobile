@@ -2,16 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, radii, shadow, typography } from '../theme';
+import { getRowScale } from '../utils/uiScale';
 
 export default function PendingOrderRow({ order, onPress, onDeliverItem, onDeliverAll, isNew, partial }) {
-  const { width } = useWindowDimensions();
-
-  const baseWidth = 375;
-  const scaleRaw = width / baseWidth;
-  const scale = Math.min(Math.max(scaleRaw, 0.75), 1.1);
-
-  const textScale = Math.min(Math.max(scaleRaw, 0.7), 1.0);
-  const btnScale = Math.min(Math.max(scaleRaw, 0.8), 1.05);
+  const { width, height } = useWindowDimensions();
+  const { scale, textScale, btnScale } = getRowScale(width, height);
 
   const [busyAll, setBusyAll] = useState(false);
   const [busyItems, setBusyItems] = useState([]);

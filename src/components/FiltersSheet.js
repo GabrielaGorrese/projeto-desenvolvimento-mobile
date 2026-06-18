@@ -11,11 +11,12 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, typography } from '../theme';
+import { getUiScale } from '../utils/uiScale';
 
 export default function FiltersSheet({ visible, onClose, onClear, sections = [], size = 'md' }) {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const scale = (width / 375) * 0.75;
+  const { width, height } = useWindowDimensions();
+  const scale = getUiScale(width, height) * 0.75;
 
   const isLarge = size === 'lg';
 

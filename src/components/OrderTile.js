@@ -2,10 +2,11 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, radii, typography } from '../theme';
+import { getUiScale } from '../utils/uiScale';
 
 export default function OrderTile({ order, onPress, isNew, partial }) {
-  const { width } = useWindowDimensions();
-  const scale = width / 375;
+  const { width, height } = useWindowDimensions();
+  const scale = getUiScale(width, height);
 
   const bg = order.status === 'closed'
     ? colors.statusClosed

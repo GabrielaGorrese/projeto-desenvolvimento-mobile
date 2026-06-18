@@ -3,11 +3,12 @@ import { Pressable, StyleSheet, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, shadow, radii } from '../theme';
+import { getUiScale } from '../utils/uiScale';
 
 export default function Fab({ onPress, icon = 'plus', style, aboveBottomBar = true, centeredOnBottomBar = false }) {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const scale = width / 375;
+  const { width, height } = useWindowDimensions();
+  const scale = getUiScale(width, height);
 
   const bottomBarHeight = aboveBottomBar ? 56 * scale : 0;
   const bottom = centeredOnBottomBar

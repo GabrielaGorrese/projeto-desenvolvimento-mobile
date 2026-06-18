@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View, Image, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, radii } from '../theme';
+import { getUiScale } from '../utils/uiScale';
 
 import GradientView from '../components/GradientView';
 
@@ -64,8 +65,8 @@ function getGradient(name) {
 }
 
 export default function CategoryCard({ category, onPress, style, selected, dimmed }) {
-  const { width } = useWindowDimensions();
-  const scale = width / 375;
+  const { width, height } = useWindowDimensions();
+  const scale = getUiScale(width, height);
 
   const { gradient, image } = useMemo(
     () => getGradient(category.name),

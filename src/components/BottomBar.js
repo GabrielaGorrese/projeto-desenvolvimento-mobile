@@ -5,13 +5,14 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { colors } from '../theme';
+import { getUiScale } from '../utils/uiScale';
 
 export default function BottomBar({ current = 'home' }) {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { isManager } = useAuth();
-  const { width } = useWindowDimensions();
-  const scale = width / 375;
+  const { width, height } = useWindowDimensions();
+  const scale = getUiScale(width, height);
 
   function go(name) {
     if (name === current) return;
