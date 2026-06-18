@@ -116,9 +116,6 @@ export default function CategoryCard({ category, onPress, onDelete, style, selec
         {(category.name || '').toUpperCase()}
       </Text>
 
-        <Text style={styles.name} numberOfLines={1}>
-          {(category.name || '').toUpperCase()}
-        </Text>
 
         {selected && (
           <View

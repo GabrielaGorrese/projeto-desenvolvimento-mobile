@@ -66,8 +66,6 @@ export default function CatalogScreen({ navigation, route }) {
   const contentWidth = r.isTablet ? Math.min(r.width - 32, 1100) : r.contentMaxWidth;
   const prodCols = Math.max(2, Math.min(7, Math.floor(contentWidth / scaleSize(185, minSide))));
   const catCols = Math.max(2, Math.min(4, Math.floor(contentWidth / scaleSize(250, minSide))));
-  const prodCols = Math.max(2, Math.min(7, Math.floor(contentWidth / 185)));
-  const catCols = Math.max(2, Math.min(4, Math.floor(contentWidth / 250)));
   const canManageCats = mode === 'manage' && isManager;
   const ui = {
     scrollPadH: scaleSize(20, minSide),
@@ -425,7 +423,7 @@ function AddCategoryCard({ onPress }) {
   );
 }
 
-function SectionHeader({ title, count }) {
+function SectionHeader({ title, count, ui }) {
   return (
     <View style={[styles.sectionHeader, { marginBottom: ui.sectionHeaderMarginBottom }]}>
       <Text style={[styles.sectionTitle, { fontSize: ui.sectionTitle }]}>{title}</Text>
