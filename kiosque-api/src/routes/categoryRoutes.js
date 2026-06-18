@@ -1,9 +1,10 @@
 const express    = require('express')
 const router     = express.Router()
 const categories = require('../controllers/categoryController')
-const { authMiddleware } = require('../middlewares/auth')
+const { authMiddleware, roleMiddleware } = require('../middlewares/auth')
 
-// Categorias são somente leitura via API (gerenciadas internamente via seed)
-router.get('/', authMiddleware, categories.getAll)
+router.get('/',     authMiddleware, categories.getAll)
+router.post('/',    authMiddleware, roleMiddleware('manager'), categories.create)
+router.delete('/:id', authMiddleware, roleMiddleware('manager'), categories.remove)
 
 module.exports = router

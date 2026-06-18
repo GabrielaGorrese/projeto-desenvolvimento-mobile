@@ -19,13 +19,11 @@ import PendingOrderRow from '../components/PendingOrderRow';
 import BottomBar from '../components/BottomBar';
 import Fab from '../components/Fab';
 import FeedbackModal from '../components/FeedbackModal';
-import ConfirmModal from '../components/ConfirmModal';
 import FiltersSheet from '../components/FiltersSheet';
 import { colors, typography } from '../theme';
 import {
   fetchOpenOrders,
   fetchClosedOrders,
-  resetOrderSequence,
   deliverItems,
   deliverAll,
 } from '../services/ordersService';
@@ -63,10 +61,6 @@ export default function OrdersScreen({ navigation, route }) {
   const [newOrderId, setNewOrderId] = useState(route.params?.justCreatedId || null);
   const [newOrderNumber] = useState(route.params?.justCreatedNumber ?? route.params?.justCreatedId ?? null);
   const [createdModal, setCreatedModal] = useState(!!route.params?.justCreatedId);
-  const [resetModal,  setResetModal]  = useState(false); // confirmação "novo dia"
-  const [resetting,   setResetting]   = useState(false); // chamada em andamento
-  const [resetResult, setResetResult] = useState(null);  // mensagem de sucesso
-  const [resetError,  setResetError]  = useState(null);  // mensagem de erro
   const [deliverError, setDeliverError] = useState(null);
 
   // Filtros (modal)
@@ -185,22 +179,6 @@ export default function OrdersScreen({ navigation, route }) {
     setFilters(INITIAL_FILTERS);
   }
 
-  // "Fechar caixa": zera a numeração visível (próxima comanda volta a ser nº 1).
-  // O backend recusa se ainda houver comandas abertas.
-  async function doReset() {
-    try {
-      setResetting(true);
-      const res = await resetOrderSequence();
-      await load();
-      setResetModal(false);
-      setResetResult(res?.message || 'Numeração reiniciada.');
-    } catch (err) {
-      setResetModal(false);
-      setResetError(err?.uiMessage || 'Erro ao reiniciar a numeração.');
-    } finally {
-      setResetting(false);
-    }
-  }
 
   return (
     <Screen background="#FFF" statusBarBg={colors.bgDark} statusBarStyle="light-content" avoidKeyboard={false}>
@@ -335,39 +313,6 @@ export default function OrdersScreen({ navigation, route }) {
         message={`Pedido nº ${newOrderNumber} cadastrado com sucesso!`}
         size="lg"
         onClose={() => { setCreatedModal(false); }}
-      />
-
-      <ConfirmModal
-        visible={resetModal}
-        variant="warning"
-        icon="refresh-ccw"
-        title="Iniciar novo dia?"
-        message="A numeração das comandas voltará a começar do nº 1. Faça isso apenas com o caixa fechado (sem comandas abertas)."
-        confirmLabel="Iniciar novo dia"
-        cancelLabel="Cancelar"
-        loading={resetting}
-        size="lg"
-        onConfirm={doReset}
-        onCancel={() => setResetModal(false)}
-      />
-
-      <FeedbackModal
-        visible={!!resetResult}
-        title="Novo dia iniciado"
-        message={resetResult || ''}
-        okLabel="OK"
-        size="lg"
-        onClose={() => setResetResult(null)}
-      />
-
-      <FeedbackModal
-        visible={!!resetError}
-        variant="danger"
-        title="Não foi possível"
-        message={resetError || ''}
-        okLabel="OK"
-        size="lg"
-        onClose={() => setResetError(null)}
       />
 
       <FeedbackModal

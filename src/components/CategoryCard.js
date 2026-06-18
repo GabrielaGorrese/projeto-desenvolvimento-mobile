@@ -65,7 +65,7 @@ function getGradient(name) {
   };
 }
 
-export default function CategoryCard({ category, onPress, style, selected, dimmed }) {
+export default function CategoryCard({ category, onPress, onDelete, style, selected, dimmed }) {
   const { gradient, image } = useMemo(
     () => getGradient(category.name),
     [category.name]
@@ -96,6 +96,17 @@ export default function CategoryCard({ category, onPress, style, selected, dimme
             <Feather name="check" size={14} color={colors.textDark} />
           </View>
         )}
+
+        {onDelete ? (
+          <Pressable
+            onPress={onDelete}
+            hitSlop={8}
+            android_ripple={{ color: 'rgba(255,255,255,0.3)', borderless: true, radius: 18 }}
+            style={({ pressed }) => [styles.delBtn, pressed && { opacity: 0.7 }]}
+          >
+            <Feather name="trash-2" size={16} color="#FFF" />
+          </Pressable>
+        ) : null}
       </Pressable>
      
   );
@@ -137,5 +148,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  delBtn: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
 });

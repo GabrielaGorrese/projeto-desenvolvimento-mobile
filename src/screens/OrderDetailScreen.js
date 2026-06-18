@@ -186,10 +186,18 @@ export default function OrderDetailScreen({ route, navigation }) {
       setOrder(payload);
       setItems(payload.items || []);
     };
+    const onReconnect = async () => {
+      try {
+        const fresh = await fetchOrder(id);
+        setOrder(fresh);
+        setItems(fresh.items || []);
+      } catch {}
+    };
     const subs = [
       onSocket('order:closed', onGone),
       onSocket('order:deleted', onGone),
       onSocket('order:updated', onUpdated),
+      onSocket('connect', onReconnect),
     ];
     return () => subs.forEach((off) => off());
   }, [id, isNew, readOnly]);

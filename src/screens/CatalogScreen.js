@@ -16,10 +16,15 @@ import CategoryCard from '../components/CategoryCard';
 import BottomBar from '../components/BottomBar';
 import Fab from '../components/Fab';
 import Button from '../components/Button';
+import NewCategoryModal from '../components/NewCategoryModal';
+import ConfirmModal from '../components/ConfirmModal';
+import FeedbackModal from '../components/FeedbackModal';
 import { colors, radii, typography } from '../theme';
 import {
   fetchProducts,
   fetchCategories,
+  createCategory,
+  deleteCategory,
 } from '../services/productsService';
 import { useAuth } from '../contexts/AuthContext';
 import { usePendingItems } from '../contexts/PendingItemsContext';
@@ -54,6 +59,7 @@ export default function CatalogScreen({ navigation, route }) {
   const prodCols = Math.max(2, Math.min(7, Math.floor(contentWidth / 185)));
   // Categorias: alvo de ~250dp por card.
   const catCols = Math.max(2, Math.min(4, Math.floor(contentWidth / 250)));
+  const canManageCats = mode === 'manage' && isManager;
 
   const [categories, setCategories] = useState([]);
   const [products,   setProducts]   = useState([]);
@@ -61,6 +67,13 @@ export default function CatalogScreen({ navigation, route }) {
   const [search,     setSearch]     = useState('');
   const [categoryId, setCategoryId] = useState(null);
   const [cart,       setCart]       = useState({}); // {product_id: { product, qty }}
+  const [catModal,    setCatModal]    = useState(false);
+  const [newCatName,  setNewCatName]  = useState('');
+  const [creatingCat, setCreatingCat] = useState(false);
+  const [catError,    setCatError]    = useState('');
+  const [catToDelete, setCatToDelete] = useState(null);
+  const [deletingCat, setDeletingCat] = useState(false);
+  const [catDeleteError, setCatDeleteError] = useState(null);
 
   const load = useCallback(async ({ silent = false } = {}) => {
     try {
@@ -112,6 +125,9 @@ export default function CatalogScreen({ navigation, route }) {
       onSocket('product:updated',  onUpdated),
       onSocket('product:deleted',  onDeleted),
       onSocket('product:restored', reload),
+      onSocket('category:created', reload),
+      onSocket('category:deleted', reload),
+      onSocket('connect',          reload),
     ];
     return () => subs.forEach((off) => off());
   }, []);
@@ -158,6 +174,46 @@ export default function CatalogScreen({ navigation, route }) {
     }
   }
 
+  function openCatModal() {
+    setNewCatName('');
+    setCatError('');
+    setCatModal(true);
+  }
+
+  async function createCat() {
+    const name = newCatName.trim();
+    if (!name) { setCatError('Informe o nome da categoria.'); return; }
+    try {
+      setCreatingCat(true);
+      setCatError('');
+      await createCategory(name);
+      setCatModal(false);
+      setNewCatName('');
+      load({ silent: true });
+    } catch (err) {
+      setCatError(err?.uiMessage || 'Erro ao criar categoria.');
+    } finally {
+      setCreatingCat(false);
+    }
+  }
+
+  async function confirmDeleteCat() {
+    if (!catToDelete) return;
+    try {
+      setDeletingCat(true);
+      await deleteCategory(catToDelete.id);
+      if (categoryId === catToDelete.id) setCategoryId(null);
+      setCatToDelete(null);
+      load({ silent: true });
+    } catch (err) {
+      const msg = err?.uiMessage || 'Erro ao excluir categoria.';
+      setCatToDelete(null);
+      setCatDeleteError(msg);
+    } finally {
+      setDeletingCat(false);
+    }
+  }
+
   return (
     <Screen background="#FFF" statusBarBg={colors.bgDark} statusBarStyle="light-content" edges={['top']} avoidKeyboard={false}>
       <SearchHeader
@@ -181,10 +237,16 @@ export default function CatalogScreen({ navigation, route }) {
                   <CategoryCard
                     category={c}
                     onPress={() => setCategoryId((cur) => cur === c.id ? null : c.id)}
+                    onDelete={canManageCats ? () => setCatToDelete(c) : undefined}
                     style={categoryId === c.id ? { borderWidth: 3, borderColor: colors.primary } : null}
                   />
                 </View>
               ))}
+              {canManageCats ? (
+                <View style={{ width: `${100 / catCols}%` }}>
+                  <AddCategoryCard onPress={openCatModal} />
+                </View>
+              ) : null}
             </View>
 
             <Divider />
@@ -232,7 +294,54 @@ export default function CatalogScreen({ navigation, route }) {
         centeredOnBottomBar
          />
       ) : null}
+
+      <NewCategoryModal
+        visible={catModal}
+        value={newCatName}
+        onChangeText={(t) => { setNewCatName(t); if (catError) setCatError(''); }}
+        loading={creatingCat}
+        error={catError}
+        onCancel={() => { if (!creatingCat) setCatModal(false); }}
+        onConfirm={createCat}
+      />
+
+      <ConfirmModal
+        visible={!!catToDelete}
+        variant="danger"
+        title={`Excluir "${catToDelete?.name}"?`}
+        message="A categoria será removida. Só é possível se não houver produtos nela."
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        destructive
+        loading={deletingCat}
+        onConfirm={confirmDeleteCat}
+        onCancel={() => { if (!deletingCat) setCatToDelete(null); }}
+      />
+
+      <FeedbackModal
+        visible={!!catDeleteError}
+        variant="danger"
+        title="Não foi possível excluir"
+        message={catDeleteError || ''}
+        okLabel="OK"
+        onClose={() => setCatDeleteError(null)}
+      />
     </Screen>
+  );
+}
+
+function AddCategoryCard({ onPress }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      android_ripple={{ color: 'rgba(204,126,74,0.12)' }}
+      style={({ pressed }) => [styles.addCatCard, pressed && { opacity: 0.85 }]}
+    >
+      <View style={styles.addCatIcon}>
+        <Feather name="plus" size={26} color={colors.primary} />
+      </View>
+      <Text style={styles.addCatText}>Nova categoria</Text>
+    </Pressable>
   );
 }
 
@@ -317,6 +426,28 @@ const styles = StyleSheet.create({
     marginHorizontal: -6,
     marginTop: 0,
   },
+  addCatCard: {
+    flex: 1,
+    height: 136,
+    borderRadius: radii.lg,
+    margin: 6,
+    borderWidth: 2,
+    borderColor: colors.primaryLight,
+    borderStyle: 'dashed',
+    backgroundColor: '#FFF7F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  addCatIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FBE6D7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addCatText: { color: colors.primary, fontWeight: '800', fontSize: 15 },
 
   prodGrid: {
     flexDirection: 'row',

@@ -31,6 +31,22 @@ Authorization: Bearer <token>
 | \`manager\` | Gerente — acesso total, incluindo cadastro de produtos e usuários |
 | \`attendant\` | Atendente — gerencia comandas e consulta catálogo |
 
+> **Atenção — criação de contas é pública:** qualquer pessoa pode se cadastrar (inclusive como \`manager\`) via \`POST /auth/users/attendant\`, **sem login**. A rota \`POST /auth/users\` (somente gerente) é apenas a criação administrativa — **não** é o único caminho para criar contas.
+
+### Fluxo de uma comanda
+Ciclo de vida (cada passo emite o evento Socket.IO correspondente):
+
+1. **Abrir** — \`POST /orders\` com \`daily_number\` (número visível, escolhido na hora), \`people\` e, opcionalmente, \`label\`/\`table_id\` e \`items\` iniciais. Nasce com status \`open\`.
+2. **Itens** — \`PATCH /orders/{id}\` adiciona (\`add_items\`), edita (\`update_items\`) ou remove (\`remove_items\`). O \`unit_price\` de cada item é um **snapshot** do preço no momento da venda.
+3. **Entregar** — \`PATCH /orders/{id}\` marca itens entregues: \`deliver_items\` (item a item), \`deliver_all\` (todos) ou \`undeliver_items\` (desfaz). Cada item tem o campo \`delivered\`.
+4. **Fechar** — \`POST /orders/{id}/close\`: calcula o \`total\` final via trigger (\`MAX(0, subtotal − discount)\`) e grava \`closed_at\`. *(O app exige todos os itens entregues antes de fechar; a API em si não bloqueia.)*
+5. **Reabrir** — \`POST /orders/{id}/reopen\` (somente gerente) volta a comanda para \`open\`.
+6. **Excluir** — \`DELETE /orders/{id}\` (apenas comandas abertas).
+
+**Contadores / estados:** cada comanda retorna \`pending_count\` (itens não entregues) e \`delivered_count\` (entregues). Com os dois \` > 0\`, a comanda está **parcialmente entregue**.
+
+**Listagem:** \`GET /orders\` retorna as abertas já com \`items\`; \`GET /orders/closed\` retorna as fechadas do dia (use \`?date=YYYY-MM-DD\` para outro dia).
+
 ### Tempo real (Socket.IO)
 O servidor emite eventos Socket.IO para todos os clientes conectados:
 
@@ -40,6 +56,8 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
 | \`order:updated\` | Comanda editada |
 | \`order:closed\` | Comanda fechada |
 | \`order:deleted\` | Comanda excluída |
+| \`category:created\` | Categoria criada |
+| \`category:deleted\` | Categoria excluída |
 
 ### Color status das comandas abertas
 | Cor | Tempo desde a abertura |
@@ -60,9 +78,9 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
   // -----------------------------------------------------------
   tags: [
     { name: 'Auth',       description: 'Autenticação e gerenciamento de usuários' },
-    { name: 'Orders',     description: 'Comandas — criação, edição e fechamento' },
+    { name: 'Orders',     description: 'Comandas — abrir, itens, entrega, fechar e reabrir' },
     { name: 'Products',   description: 'Catálogo de produtos' },
-    { name: 'Categories', description: 'Categorias (somente leitura via API)' },
+    { name: 'Categories', description: 'Categorias de produtos' },
     { name: 'Tables',     description: 'Mesas físicas' },
     { name: 'Misc',       description: 'Utilitários' }
   ],
@@ -147,6 +165,16 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
         }
       },
 
+      RegisterAttendantRequest: {
+        type: 'object',
+        required: ['username', 'password'],
+        properties: {
+          username: { type: 'string', example: 'maria' },
+          password: { type: 'string', example: 'senha123', description: 'Mínimo 6 caracteres' },
+          role:     { type: 'string', enum: ['attendant', 'manager'], default: 'attendant', description: 'Opcional — padrão attendant' }
+        }
+      },
+
       ChangePasswordRequest: {
         type: 'object',
         required: ['newPassword'],
@@ -161,6 +189,14 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
         properties: {
           id:   { type: 'integer', example: 1 },
           name: { type: 'string',  example: 'Bebidas' }
+        }
+      },
+
+      CreateCategoryRequest: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', example: 'Sobremesas', description: 'Deve ser único' }
         }
       },
 
@@ -241,7 +277,9 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
           category_name: { type: 'string',            example: 'Lanches' },
           quantity:      { type: 'integer',           example: 2 },
           unit_price:    { type: 'number', format: 'float', example: 18.90, description: 'Preço no momento da venda (snapshot)' },
-          notes:         { type: 'string',            example: 'sem cebola', nullable: true }
+          notes:         { type: 'string',            example: 'sem cebola', nullable: true },
+          delivered:     { type: 'boolean',           example: false, description: 'Se o item já foi entregue ao cliente' },
+          image:         { type: 'string', format: 'uri', example: 'http://localhost:3000/uploads/products/1234.jpg', nullable: true, description: 'Imagem do produto' }
         }
       },
 
@@ -271,6 +309,7 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
         type: 'object',
         properties: {
           id:              { type: 'integer',           example: 7 },
+          daily_number:    { type: 'integer',           example: 12, description: 'Número visível da comanda no dia (reinicia ao fechar o caixa)' },
           label:           { type: 'string',            example: 'João', nullable: true, description: 'Identificação livre: nome do cliente, mesa, etc.' },
           created_at:      { type: 'string', format: 'date-time' },
           closed_at:       { type: 'string', format: 'date-time', nullable: true },
@@ -278,6 +317,7 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
           attendant:       { type: 'string',            example: 'maria',  description: 'Username do atendente que criou a comanda' },
           table_id:        { type: 'integer',           example: 1,        nullable: true },
           table_label:     { type: 'string',            example: 'Mesa 1', nullable: true },
+          people:          { type: 'integer',           example: 2, description: 'Número de pessoas para divisão da conta' },
           discount:        { type: 'number', format: 'float', example: 5.00 },
           total:           { type: 'number', format: 'float', example: 32.80, description: 'Calculado ao fechar: subtotal − desconto' },
           minutes_elapsed: { type: 'number',            example: 12.3, description: 'Minutos decorridos desde a abertura' },
@@ -288,6 +328,8 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
             description: '`green` < 15 min | `yellow` 15–30 min | `red` > 30 min | `null` para comandas fechadas'
           },
           items_count:     { type: 'integer',           example: 3, description: 'Total de itens (somando quantities)' },
+          pending_count:   { type: 'integer',           example: 2, description: 'Itens ainda não entregues' },
+          delivered_count: { type: 'integer',           example: 1, description: 'Itens já entregues' },
           subtotal:        { type: 'number', format: 'float', example: 37.80, description: 'Soma bruta (quantity × unit_price) antes do desconto' }
         }
       },
@@ -312,8 +354,10 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
         type: 'object',
         description: 'Itens são opcionais — é possível criar uma comanda vazia e adicionar itens depois via PATCH',
         properties: {
-          label:    { type: 'string',  example: 'Mesa 3',  description: 'Identificação livre (nome, mesa, etc.)' },
-          table_id: { type: 'integer', example: 1,         description: 'ID da mesa (opcional)' },
+          label:        { type: 'string',  example: 'Mesa 3',  description: 'Identificação livre (nome, mesa, etc.)' },
+          table_id:     { type: 'integer', example: 1,         description: 'ID da mesa (opcional)' },
+          people:       { type: 'integer', minimum: 1, default: 1, example: 2, description: 'Número de pessoas para divisão (padrão 1)' },
+          daily_number: { type: 'integer', minimum: 1, maximum: 999999, example: 12, description: 'Número visível escolhido (opcional; sem ele usa o próximo do contador)' },
           items: {
             type: 'array',
             items: { $ref: '#/components/schemas/AddItemInput' },
@@ -328,6 +372,7 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
         properties: {
           label:    { type: 'string',  example: 'João da Silva' },
           table_id: { type: 'integer', example: 2,    nullable: true, description: 'null para desvincular mesa' },
+          people:   { type: 'integer', minimum: 1, example: 3, description: 'Número de pessoas para divisão' },
           discount: { type: 'number',  example: 10.00, description: 'Desconto em reais (>= 0)' },
           add_items: {
             type: 'array',
@@ -344,6 +389,23 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
             items: { type: 'integer' },
             example: [3, 7],
             description: 'IDs dos itens (order_item.id) a remover'
+          },
+          deliver_items: {
+            type: 'array',
+            items: { type: 'integer' },
+            example: [3, 7],
+            description: 'IDs dos itens a marcar como entregues'
+          },
+          undeliver_items: {
+            type: 'array',
+            items: { type: 'integer' },
+            example: [3],
+            description: 'IDs dos itens a voltar para pendente'
+          },
+          deliver_all: {
+            type: 'boolean',
+            example: true,
+            description: 'Marca todos os itens da comanda como entregues'
           }
         }
       }
@@ -428,11 +490,45 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
       }
     },
 
+    '/auth/users/attendant': {
+      post: {
+        tags:        ['Auth'],
+        summary:     'Auto-cadastro de usuário (público)',
+        description: '**Público — qualquer pessoa pode criar uma conta sem login**, inclusive de `manager`. O campo `role` é opcional (`attendant` por padrão; aceita `manager`). Limitado por rate-limit (20 cadastros / 15 min por IP).',
+        security:    [],
+        requestBody: {
+          required: true,
+          content: { 'application/json': {
+            schema:  { $ref: '#/components/schemas/RegisterAttendantRequest' },
+            example: { username: 'maria', password: 'senha123', role: 'attendant' }
+          }}
+        },
+        responses: {
+          201: {
+            description: 'Usuário criado',
+            content: { 'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: { type: 'string', example: 'Usuário maria criado com sucesso.' },
+                  user:    { $ref: '#/components/schemas/User' }
+                }
+              }
+            }}
+          },
+          400: { description: 'username/password ausentes ou senha < 6 caracteres', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+          409: { description: 'Username já em uso', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' }, example: { error: 'Username já está em uso.' } } } },
+          429: { description: 'Muitas criações de usuário (rate-limit)', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+          500: { $ref: '#/components/responses/InternalError' }
+        }
+      }
+    },
+
     '/auth/users': {
       post: {
         tags:        ['Auth'],
-        summary:     'Criar usuário',
-        description: '**Somente gerente.** Cria um novo usuário atendente ou gerente.',
+        summary:     'Criar usuário (administrativo)',
+        description: '**Somente gerente.** Criação administrativa de um usuário (atendente ou gerente). Não é o único caminho: o auto-cadastro público `POST /auth/users/attendant` também cria contas, inclusive de gerente, sem login.',
         requestBody: {
           required: true,
           content: { 'application/json': {
@@ -552,7 +648,7 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
       get: {
         tags:        ['Categories'],
         summary:     'Listar categorias',
-        description: 'Retorna todas as categorias de produtos. Categorias são pré-cadastradas internamente e não possuem gerenciamento via UI.',
+        description: 'Retorna todas as categorias de produtos, ordenadas por nome.',
         responses: {
           200: {
             description: 'Lista de categorias',
@@ -577,6 +673,63 @@ O servidor emite eventos Socket.IO para todos os clientes conectados:
             }}
           },
           401: { $ref: '#/components/responses/Unauthorized' },
+          500: { $ref: '#/components/responses/InternalError' }
+        }
+      },
+      post: {
+        tags:        ['Categories'],
+        summary:     'Criar categoria',
+        description: '**Somente gerente.** Cria uma nova categoria. Emite evento **`category:created`** via Socket.IO.',
+        requestBody: {
+          required: true,
+          content: { 'application/json': {
+            schema:  { $ref: '#/components/schemas/CreateCategoryRequest' },
+            example: { name: 'Sobremesas' }
+          }}
+        },
+        responses: {
+          201: {
+            description: 'Categoria criada — evento `category:created` emitido via Socket.IO',
+            content: { 'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message:  { type: 'string', example: 'Categoria "Sobremesas" criada.' },
+                  category: { $ref: '#/components/schemas/Category' }
+                }
+              }
+            }}
+          },
+          400: { description: 'name ausente',                  content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+          401: { $ref: '#/components/responses/Unauthorized' },
+          403: { $ref: '#/components/responses/Forbidden' },
+          409: { description: 'Categoria com esse nome já existe', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' }, example: { error: 'Já existe uma categoria com esse nome.' } } } },
+          500: { $ref: '#/components/responses/InternalError' }
+        }
+      }
+    },
+
+    '/categories/{id}': {
+      delete: {
+        tags:        ['Categories'],
+        summary:     'Excluir categoria',
+        description: '**Somente gerente.** Exclui a categoria. A exclusão é bloqueada (409) se houver produtos (ativos ou inativos) vinculados a ela. Emite evento **`category:deleted`** via Socket.IO.',
+        parameters: [{
+          name: 'id', in: 'path', required: true,
+          schema: { type: 'integer', example: 1 }, description: 'ID da categoria'
+        }],
+        responses: {
+          200: {
+            description: 'Categoria excluída — evento `category:deleted` emitido via Socket.IO',
+            content: { 'application/json': {
+              schema:  { $ref: '#/components/schemas/Message' },
+              example: { message: 'Categoria "Sobremesas" excluída.' }
+            }}
+          },
+          401: { $ref: '#/components/responses/Unauthorized' },
+          403: { $ref: '#/components/responses/Forbidden' },
+          404: { description: 'Categoria não encontrada',     content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+          409: { description: 'Existem produtos vinculados à categoria', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' }, example: { error: 'Não é possível excluir: existem produtos nesta categoria (inclusive inativos). Mova ou exclua os produtos antes.' } } } },
           500: { $ref: '#/components/responses/InternalError' }
         }
       }
@@ -1196,6 +1349,55 @@ Após fechada, a comanda:
           },
           401: { $ref: '#/components/responses/Unauthorized' },
           404: { description: 'Comanda não encontrada ou já fechada', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+          500: { $ref: '#/components/responses/InternalError' }
+        }
+      }
+    },
+
+    '/orders/next-number': {
+      get: {
+        tags:        ['Orders'],
+        summary:     'Sugestão do próximo número de comanda',
+        description: 'Retorna `current_value + 1` do contador de numeração diária — sugestão padrão ao abrir uma nova comanda (o usuário pode escolher outro número).',
+        responses: {
+          200: {
+            description: 'Próximo número sugerido',
+            content: { 'application/json': {
+              schema: { type: 'object', properties: { next_number: { type: 'integer', example: 13 } } }
+            }}
+          },
+          401: { $ref: '#/components/responses/Unauthorized' },
+          500: { $ref: '#/components/responses/InternalError' }
+        }
+      }
+    },
+
+    '/orders/{id}/reopen': {
+      post: {
+        tags:        ['Orders'],
+        summary:     'Reabrir comanda fechada',
+        description: '**Somente gerente.** Volta a comanda para `open` (limpa `closed_at` e `total`), permitindo editar novamente. Emite evento **`order:updated`** via Socket.IO.',
+        parameters: [{
+          name: 'id', in: 'path', required: true,
+          schema: { type: 'integer', example: 7 }, description: 'ID da comanda'
+        }],
+        responses: {
+          200: {
+            description: 'Comanda reaberta — evento `order:updated` emitido via Socket.IO',
+            content: { 'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: { type: 'string', example: 'Comanda reaberta com sucesso.' },
+                  order:   { $ref: '#/components/schemas/OrderDetail' }
+                }
+              }
+            }}
+          },
+          401: { $ref: '#/components/responses/Unauthorized' },
+          403: { $ref: '#/components/responses/Forbidden' },
+          404: { description: 'Comanda não encontrada ou não está fechada', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+          409: { description: 'Já existe comanda aberta com este número', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' }, example: { error: 'Já existe uma comanda aberta com este número. Não é possível reabrir.' } } } },
           500: { $ref: '#/components/responses/InternalError' }
         }
       }
