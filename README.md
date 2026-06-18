@@ -5,7 +5,7 @@ App mobile (Expo / React Native) + API (Node.js / Express / PostgreSQL) para ger
 - **Beneficiário 01:** Wesley Dagostin
 - **Nome ou empresa:** Quiosque da Amizade
 - **CPF/CNPJ:** 37.919.434/0001-08
-- **Endereço:** Rod. Luiz Rosso, 7722 – CEP 88812-000
+- **Endereço:** Rod. Luiz Rosso, 7722, CEP 88812-000
 - **Relato do Problema:** "Como os itens são escritos na comanda e entregue ao cliente, muitas vezes gera transtorno na parte da cozinha por esquecer o cliente pediu. Na hora de pagamento no caixa, como não possui um controle exato, acaba que cliente sai sem pagar as vezes, um app vai ajudar a organizar muito"
 
 ## Grupo
@@ -34,9 +34,9 @@ Instalar antes de começar:
 | **Git** | qualquer recente | <https://git-scm.com> |
 | **PostgreSQL** | 14 ou superior | <https://www.postgresql.org/download/> |
 | **Android Studio** | última versão | <https://developer.android.com/studio> |
-| **JDK** (vem com o Android Studio) | 17+ | — |
+| **JDK** (vem com o Android Studio) | 17+ | - |
 
-Durante a instalação do **PostgreSQL**, anote a senha do usuário `postgres` — vamos usar depois.
+Durante a instalação do **PostgreSQL**, anote a senha do usuário `postgres`, vamos usar depois.
 
 Durante a instalação do **Android Studio**, marque "Android Virtual Device" para poder criar emuladores.
 
@@ -57,7 +57,7 @@ cd SEU_REPO
 
 1. Abre o **pgAdmin** e conecta com a senha do `postgres`
 2. Clica com botão direito em **Databases** → **Create** → **Database**
-3. Nome: `postgres2` (ou outro — vai precisar usar no `.env`)
+3. Nome: `postgres2` (ou outro, vai precisar usar no `.env`)
 4. Clica **Save**
 
 ### 3.2. Rodar o schema SQL
@@ -65,10 +65,10 @@ cd SEU_REPO
 1. Clica no banco recém-criado → ícone de **Query Tool** (folha com lupa)
 2. Abre o arquivo [kiosque-api/SQL DO POSTGRES.sql](kiosque-api/SQL%20DO%20POSTGRES.sql) no editor de texto
 3. Copia **tudo** e cola no Query Tool do pgAdmin
-4. Aperta **F5** ou clica no botão ▶ (Execute)
-5. Deve aparecer "Query returned successfully" — todas as tabelas foram criadas
+4. Aperta **F5** ou clica no botão Executar
+5. Deve aparecer "Query returned successfully", todas as tabelas foram criadas
 
-> Se aparecer erro "extension unaccent not exist" — você precisa rodar o pgAdmin como administrador. Ou execute manualmente: `CREATE EXTENSION IF NOT EXISTS unaccent;`
+> Se aparecer erro "extension unaccent not exist", você precisa rodar o pgAdmin como administrador. Ou execute manualmente: `CREATE EXTENSION IF NOT EXISTS unaccent;`
 
 ---
 
@@ -95,7 +95,7 @@ DB_USER=postgres
 DB_PASSWORD=SUA_SENHA_DO_POSTGRES
 
 JWT_SECRET=qualquer_string_secreta_aqui
-JWT_EXPIRES_IN=24h
+JWT_EXPIRES_IN=30d
 ```
 
 **Substitua `SUA_SENHA_DO_POSTGRES`** pela senha que você definiu na instalação do Postgres.
@@ -108,7 +108,7 @@ npm run seed
 
 Deve aparecer:
 ```
-✓ Usuário admin criado.
+Usuário admin criado.
   Username : admin
   Senha    : admin123
 ```
@@ -121,7 +121,7 @@ node src/scripts/createTestUser.js
 
 Deve aparecer:
 ```
-✓ Usuário "teste" criado.
+Usuário "teste" criado.
   username: teste
   senha:    teste123
 ```
@@ -139,7 +139,7 @@ Documentação: http://localhost:3000/api-docs
 Socket.IO ativo
 ```
 
-**Deixe esse terminal aberto** — é a API rodando.
+**Deixe esse terminal aberto**, é a API rodando.
 
 ---
 
@@ -161,7 +161,7 @@ npm install
 4. Escolhe **Tablet → Medium Tablet** (ou Pixel Tablet)
 5. Faz download da imagem do sistema (API 34 ou 35)
 6. Finaliza a criação
-7. Clica em ▶ pra iniciar o emulador
+7. Inicia o emulador
 
 > **Atenção:** se aparecer um menu de "Desktop Mode" ou janela flutuante, **maximize** a janela (clica nos 3 pontos → "Use full screen") senão alguns layouts ficam quebrados.
 
@@ -174,15 +174,19 @@ npm run android
 ```
 
 Esse comando faz 3 coisas:
-1. `adb reverse tcp:8081 tcp:8081` — encaminha porta do Metro
-2. `adb reverse tcp:3000 tcp:3000` — encaminha porta da API
-3. `expo start --android --localhost` — inicia o Expo no modo correto
+1. `adb reverse tcp:8081 tcp:8081` encaminha a porta do Metro
+2. `adb reverse tcp:3000 tcp:3000` encaminha a porta da API
+3. `expo start --android --localhost` inicia o Expo no modo certo
 
 Vai abrir o **Expo Go** no emulador automaticamente.
 
-> Se aparecer erro `adb: no devices/emulators found` — é porque o emulador não está rodando. Inicia o emulador primeiro e tenta de novo.
+> Se aparecer erro `adb: no devices/emulators found`, é porque o emulador não está rodando. Inicia o emulador primeiro e tenta de novo.
 
 > Na primeira vez, vai pedir pra **instalar o Expo Go**. Aceita.
+
+### 5.4. Rodar nos tablets de verdade
+
+O emulador acima é só pra desenvolver. Nos tablets físicos (o caso do quiosque), os aparelhos e o PC que roda a API precisam estar na **mesma rede**. Aponta cada tablet pro IP do servidor, seja pela tela de configuração de conexão no app ou deixando o `BUILT_IN_DEFAULT` em [src/services/apiConfig.js](src/services/apiConfig.js) preenchido antes de gerar o APK. A partir daí os tablets ficam sincronizados em tempo real: o que um faz (nova comanda, item entregue, comanda fechada) aparece nos outros na hora.
 
 ---
 
@@ -207,9 +211,9 @@ Quando o app abrir:
 
 1. Confirma que a API está rodando (`npm run dev` em outra janela)
 2. Confirma que o `adb reverse` foi feito (rode `npm run android:reverse`)
-3. Se não funcionar, edita [src/services/api.js](src/services/api.js) e muda:
+3. Se ainda não conectar, dá pra apontar o endereço do servidor pelo próprio app (na tela de login tem a opção de configurar a conexão, onde você digita o IP e a porta da API). Pra já deixar apontado por padrão, edita o `BUILT_IN_DEFAULT` em [src/services/apiConfig.js](src/services/apiConfig.js):
    ```js
-   const API_OVERRIDE = 'http://10.0.2.2:3000'; // padrão emulador Android
+   const BUILT_IN_DEFAULT = 'http://192.168.0.10:3000'; // IP do PC que roda a API, na mesma rede
    ```
 
 ### "Something went wrong" no Expo Go
@@ -222,8 +226,7 @@ Quando o app abrir:
 
 Faz **cold boot** do emulador:
 1. Android Studio → Device Manager
-2. ⋮ ao lado do emulador → **Cold Boot Now** ou **Wipe Data**
-
+2. No menu de 3 pontinhos ao lado do emulador, escolhe **Cold Boot Now** ou **Wipe Data**
 
 ### Tabelas não existem no banco
 
@@ -302,14 +305,22 @@ Principais:
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | POST | `/api/auth/login` | Login |
-| POST | `/api/auth/users` | Criar usuário (manager) |
-| GET | `/api/orders` | Listar comandas abertas |
+| POST | `/api/auth/users/attendant` | Auto-cadastro público, sem login (cria atendente ou gerente) |
+| POST | `/api/auth/users` | Criar usuário pelo gerente já logado |
+| GET | `/api/orders` | Listar comandas abertas (já com os itens) |
 | GET | `/api/orders/closed` | Listar comandas fechadas |
 | POST | `/api/orders` | Criar comanda |
-| PATCH | `/api/orders/:id` | Editar comanda |
+| PATCH | `/api/orders/:id` | Editar comanda / entregar itens (`deliver_items`, `deliver_all`) |
 | POST | `/api/orders/:id/close` | Fechar comanda |
+| POST | `/api/orders/:id/reopen` | Reabrir comanda (manager) |
 | GET | `/api/products` | Listar produtos |
 | POST | `/api/products` | Criar produto (manager) |
 | PUT | `/api/products/:id` | Editar produto (manager) |
 | GET | `/api/categories` | Listar categorias |
+| POST | `/api/categories` | Criar categoria (manager) |
+| DELETE | `/api/categories/:id` | Excluir categoria (manager) |
 | GET | `/api/tables` | Listar mesas |
+
+> Importante: o cadastro de contas é aberto. Qualquer pessoa na rede consegue criar um usuário (inclusive gerente) pelo `/api/auth/users/attendant`, sem estar logada. A rota `/api/auth/users` é só a criação feita por um gerente já autenticado.
+
+A lista completa, com todos os parâmetros e respostas, está no Swagger (`/api-docs`).
