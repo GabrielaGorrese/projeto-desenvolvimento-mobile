@@ -52,3 +52,13 @@ export async function fetchCategories() {
   const { data } = await api.get('/categories');
   return data.categories;
 }
+
+export async function createCategory(name) {
+  const { data } = await api.post('/categories', { name });
+  return data.category;
+}
+
+export async function deleteCategory(id) {
+  const { data } = await api.delete(`/categories/${id}`);
+  return data;
+}

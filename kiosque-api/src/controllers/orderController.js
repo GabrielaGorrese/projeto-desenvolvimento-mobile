@@ -644,31 +644,4 @@ async function nextNumber(req, res) {
   }
 }
 
-// POST /api/orders/sequence/reset — "fechar o caixa": zera a numeração visível.
-// A próxima comanda criada volta a ser nº 1. Somente gerente (rota protegida).
-// Bloqueia se houver comandas abertas, para não gerar números duplicados na tela.
-async function resetSequence(req, res) {
-  try {
-    const { rows: openRows } = await pool.query(
-      `SELECT COUNT(*)::int AS n
-       FROM   orders o
-       JOIN   status s ON s.id = o.status_id
-       WHERE  s.name = 'open'`
-    )
-    if (openRows[0].n > 0) {
-      return res.status(409).json({
-        error: `Há ${openRows[0].n} comanda(s) aberta(s). Feche todas antes de iniciar um novo dia.`,
-      })
-    }
-
-    await pool.query(`UPDATE order_sequence SET current_value = 0 WHERE id = 1`)
-
-    return res.json({ message: 'Numeração reiniciada. A próxima comanda será nº 1.' })
-
-  } catch (err) {
-    console.error('[orders.resetSequence]', err)
-    return res.status(500).json({ error: 'Erro interno no servidor.' })
-  }
-}
-
-module.exports = { getOpenOrders, getClosedOrders, getOne, create, update, close, reopen, remove, resetSequence, nextNumber }
+module.exports = { getOpenOrders, getClosedOrders, getOne, create, update, close, reopen, remove, nextNumber }
