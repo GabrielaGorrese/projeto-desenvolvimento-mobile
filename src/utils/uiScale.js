@@ -17,7 +17,15 @@ export function getUiScale(width, height = width) {
     return phoneScale;
   }
 
-  return Math.min(width / minSide, TABLET_MAX_SCALE);
+  const base = width / minSide;
+
+  const isPortrait = height > width;
+
+  if (isPortrait) {
+    return Math.min(base * 3, 2);
+  }
+
+  return Math.min(base, TABLET_MAX_SCALE);
 }
 
 /**
