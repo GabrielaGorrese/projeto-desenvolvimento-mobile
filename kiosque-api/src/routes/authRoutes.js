@@ -25,7 +25,7 @@ const registerLimiter = rateLimit({
 
 router.post('/login', loginLimiter, auth.login)
 
-// Auto-cadastro PÚBLICO de atendente (role forçado a 'attendant' no controller).
+// Auto-cadastro PÚBLICO (sem login). Aceita 'role' no body: atendente OU gerente.
 router.post(  '/users/attendant', registerLimiter, auth.registerAttendant)
 
 // Criar usuário com qualquer perfil (inclui gerente): apenas gerente autenticado.

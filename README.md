@@ -305,7 +305,8 @@ Principais:
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | POST | `/api/auth/login` | Login |
-| POST | `/api/auth/users` | Criar usuário (manager) |
+| POST | `/api/auth/users/attendant` | Auto-cadastro público, sem login (cria atendente ou gerente) |
+| POST | `/api/auth/users` | Criar usuário pelo gerente já logado |
 | GET | `/api/orders` | Listar comandas abertas (já com os itens) |
 | GET | `/api/orders/closed` | Listar comandas fechadas |
 | POST | `/api/orders` | Criar comanda |
@@ -319,5 +320,7 @@ Principais:
 | POST | `/api/categories` | Criar categoria (manager) |
 | DELETE | `/api/categories/:id` | Excluir categoria (manager) |
 | GET | `/api/tables` | Listar mesas |
+
+> Importante: o cadastro de contas é aberto. Qualquer pessoa na rede consegue criar um usuário (inclusive gerente) pelo `/api/auth/users/attendant`, sem estar logada. A rota `/api/auth/users` é só a criação feita por um gerente já autenticado.
 
 A lista completa, com todos os parâmetros e respostas, está no Swagger (`/api-docs`).
