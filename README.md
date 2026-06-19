@@ -18,7 +18,7 @@ App mobile (Expo / React Native) + API (Node.js / Express / PostgreSQL) para ger
 
 ## Modelo Banco de Dados
 
-[Acessar Modelo do BD](./Diagrama.pdf)
+[Acessar Modelo do BD](./kiosque-api/Diagrama.pdf)
 
 ---
 
